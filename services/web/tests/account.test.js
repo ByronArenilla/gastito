@@ -51,6 +51,18 @@ test("entrar vuelve a la pantalla a la que se iba", async () => {
   assert.equal(destination, "/unirse/abc");
 });
 
+test("sin ruta pendiente, entrar va a la pantalla de inicio del dispositivo (spec 012)", async () => {
+  const session = fakeSession();
+  const api = fakeApi({ "/auth/login": () => TOKEN });
+
+  const destination = await logIn(
+    { api, session, home: () => "/mes" },
+    { email: "ana@example.com", password: "x" },
+  );
+
+  assert.equal(destination, "/mes");
+});
+
 test("crear cuenta registra y entra con la misma contraseña", async () => {
   const session = fakeSession();
   const api = fakeApi({ "/auth/register": () => ({ id: 1 }), "/auth/login": () => TOKEN });

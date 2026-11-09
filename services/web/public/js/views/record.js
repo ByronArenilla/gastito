@@ -187,10 +187,13 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
     data.cards.map((item) => h("option", { value: item.id }, `${item.name} · corte ${item.cutoff_day}`)),
   );
   const cardRow = field({ id: "record-card", label: "Tarjeta", control: card });
+  // Sin tarjetas, el crédito enlaza a añadir una (spec 012, RF-30).
   const noCards = h(
     "p",
     { class: "row row--block muted" },
-    "Este espacio todavía no tiene tarjetas. Por ahora se crean con la API (README, «Tarjetas»).",
+    "Este espacio todavía no tiene tarjetas. ",
+    h("a", { href: "/tarjetas/nueva" }, "Añade una"),
+    " para registrar compras a crédito.",
   );
 
   const otherInstallments = h("input", {
@@ -319,7 +322,16 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
   // --- Enviar ---
   const errors = formError();
   const submit = h("button", { class: "button button--block", type: "submit", "data-sends": true }, submitLabel);
-  const lockNote = locked && h("p", { class: "error" }, locked.reason);
+  // La razón del bloqueo enlaza a los abonos, que se borran desde la compra
+  // (spec 012, RF-27).
+  const lockNote =
+    locked &&
+    h(
+      "p",
+      { class: "error" },
+      locked.reason,
+      locked.link && [" ", h("a", { href: locked.link }, "Ver sus abonos")],
+    );
 
   const element = h(
     "form",
@@ -547,10 +559,10 @@ export async function renderEdit(main, app, { id }) {
   let lock = null;
   if (expense.card_id !== null) {
     const schedule = await app.api.get(`${url}/installments`);
-    lock = lockFor(schedule.prepayments.length > 0);
+    lock = lockFor(schedule.prepayments.length > 0, expense.id);
   }
   const backToList = () => {
-    app.drafts.set("expenses-period", periodOf(expense.spent_on));
+    app.drafts.set("period", periodOf(expense.spent_on));
     app.navigate("/gastos");
   };
 
@@ -608,13 +620,20 @@ export async function renderEdit(main, app, { id }) {
         {
           class: "button button--link",
           href: "/gastos",
-          onClick: () => app.drafts.set("expenses-period", periodOf(expense.spent_on)),
+          onClick: () => app.drafts.set("period", periodOf(expense.spent_on)),
         },
         "Volver a Gastos",
       ),
     ),
     controller.element,
-    h("div", { class: "submit" }, remove),
+    h(
+      "div",
+      { class: "submit stack" },
+      // Una compra con tarjeta enlaza a su plan de cuotas y sus abonos (RF-27).
+      expense.card_id !== null &&
+        h("a", { class: "button button--quiet button--block", href: `/compras/${expense.id}` }, "Ver cuotas y abonos"),
+      remove,
+    ),
   );
   controller.focus();
 }

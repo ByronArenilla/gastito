@@ -2,17 +2,18 @@
 // cambiarlo, compartirlo, crear otro, salir de uno compartido, la cuenta con
 // cerrar sesión (decisión 22) y la guía para fijar la app (T11).
 import { logOut } from "../account.js";
+import { categoryRequest } from "../categories.js";
 import { h } from "../dom.js";
 import { pinGuide } from "../platform.js";
 import { createSpace, leaveSpace, shareInvitation } from "../spaces.js";
-import { OFFLINE_SAVE, field, formError, setBusy, showErrors } from "./form.js";
+import { OFFLINE_SAVE, clearErrors, field, formError, nameConflict, setBusy, showErrors } from "./form.js";
 
 /** Al cambiar de espacio, lo escrito en Registrar y el mes de Gastos eran del
  * espacio anterior. */
 function switchTo(app, space, message) {
   app.useSpace(space);
   app.drafts.clear("record");
-  app.drafts.clear("expenses-period");
+  app.drafts.clear("period");
   app.navigate("/espacio", { replace: true });
   if (message) app.notices.show({ text: message, seconds: 6 });
 }
@@ -215,6 +216,107 @@ function pinSection() {
   );
 }
 
+/** Las categorías del espacio: verlas, crear y eliminar (spec 012, RF-28 y
+ * RF-29). Eliminar archiva: lo que ya la tiene la conserva, y crearla de
+ * nuevo con el mismo nombre la restaura (spec 008). */
+function categoriesSection(app) {
+  const base = `/spaces/${app.space.id}/categories`;
+  const list = h("ul", { class: "rows", "aria-label": "Categorías" }, h("li", { class: "loading", "aria-hidden": "true" }));
+  const name = h("input", { class: "input", name: "name", autocomplete: "off", maxlength: 50 });
+  const busyLabel = "Creando…";
+  const submit = h("button", { class: "button button--quiet", type: "submit", "data-sends": true }, "Crear categoría");
+
+  async function load() {
+    try {
+      const categories = await app.api.get(base);
+      list.replaceChildren(
+        ...categories.map((category) =>
+          h(
+            "li",
+            { class: "entry" },
+            h("span", {}, category.name),
+            h(
+              "button",
+              {
+                type: "button",
+                class: "button button--link",
+                "data-sends": true,
+                "aria-label": `Eliminar «${category.name}»`,
+                onClick: () => remove(category),
+              },
+              "Eliminar",
+            ),
+          ),
+        ),
+      );
+      app.refreshSending();
+    } catch (error) {
+      list.replaceChildren(h("li", { class: "error", role: "alert" }, error.message));
+    }
+  }
+
+  async function remove(category) {
+    if (!app.connection.online()) return;
+    const confirmed = await app.confirm({
+      title: `¿Eliminar «${category.name}»?`,
+      body: "Los rubros y los gastos que ya la tienen la conservan. Para usarla de nuevo, créala con el mismo nombre.",
+      confirmLabel: "Eliminar categoría",
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      const result = await app.api.del(`${base}/${category.id}`);
+      // El mensaje de la API dice qué pasa con sus rubros (decisión 19).
+      app.notices.show({ text: result.message, seconds: 0 });
+      await load();
+    } catch (error) {
+      app.notices.show({ text: error.message, kind: "error", seconds: 0 });
+    }
+  }
+
+  const form = h(
+    "form",
+    {
+      class: "stack",
+      novalidate: true,
+      onSubmit: async (event) => {
+        event.preventDefault();
+        if (!app.connection.online()) return showErrors(form, { message: OFFLINE_SAVE });
+        const request = categoryRequest(name.value);
+        if (request.missing.length) {
+          const message = "Escribe el nombre de la categoría.";
+          return showErrors(form, { message, fields: { name: message } });
+        }
+        setBusy(submit, true, busyLabel);
+        try {
+          const category = await app.api.post(base, request.body);
+          app.notices.show({ text: `Categoría «${category.name}» lista para usar.`, seconds: 6 });
+          clearErrors(form);
+          name.value = "";
+          await load();
+        } catch (error) {
+          showErrors(form, nameConflict(error));
+        } finally {
+          setBusy(submit, false, busyLabel);
+        }
+      },
+    },
+    formError(),
+    h("div", { class: "rows" }, field({ id: "category-name", label: "Nueva", control: name })),
+    h("div", {}, submit),
+  );
+
+  load();
+  return h(
+    "section",
+    { class: "stack", "aria-labelledby": "categories-title" },
+    h("h2", { id: "categories-title" }, "Categorías"),
+    h("p", { class: "muted" }, "Agrupan los rubros y los gastos del espacio."),
+    list,
+    form,
+  );
+}
+
 export async function renderSpace(main, app) {
   // La lista de espacios puede haber cambiado en otro dispositivo.
   await app.loadAccount();
@@ -224,6 +326,7 @@ export async function renderSpace(main, app) {
       { class: "screen spaced" },
       h("h1", { class: "sr-only" }, "Espacio"),
       currentSection(app),
+      categoriesSection(app),
       shareSection(app),
       createSection(app),
       app.spaces.length > 1 && leaveSection(app),

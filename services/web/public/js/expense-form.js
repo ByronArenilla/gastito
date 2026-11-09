@@ -254,12 +254,14 @@ const LOCKED_WITH_PREPAYMENTS = [
 ];
 
 /** Una compra con abonos solo cambia qué fue y categoría, y no se borra
- * (RF-16 de la 009, decisión 24, RF-21). `null` si no tiene abonos. */
-export function lockFor(hasPrepayments) {
+ * (RF-16 de la 009, decisión 24, RF-21). `null` si no tiene abonos. `link`
+ * lleva a sus abonos, que se borran desde la compra (spec 012, RF-27). */
+export function lockFor(hasPrepayments, expenseId = null) {
   if (!hasPrepayments) return null;
   return {
     fields: new Set(LOCKED_WITH_PREPAYMENTS),
     canDelete: false,
+    link: expenseId === null ? null : `/compras/${expenseId}`,
     reason:
       "Esta compra tiene abonos: solo puedes cambiar qué fue y la categoría. " +
       "Para cambiar lo demás o borrarla, primero hay que borrar sus abonos.",

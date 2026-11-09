@@ -41,7 +41,19 @@ def get(url: str) -> tuple[int, dict[str, str], bytes]:
 INDEX = (serve.PUBLIC / "index.html").read_bytes()
 
 
-@pytest.mark.parametrize("path", ["/", "/registrar", "/gastos/12", "/unirse/abc-_9"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/",
+        "/registrar",
+        "/gastos/12",
+        "/unirse/abc-_9",
+        "/mes",
+        "/mes/planear",
+        "/tarjetas/3",
+        "/compras/12",
+    ],
+)
 def test_app_routes_return_the_page(base_url: str, path: str) -> None:
     status, headers, body = get(base_url + path)
 
@@ -138,7 +150,8 @@ def test_the_manifest_lets_the_app_be_pinned() -> None:
     assert manifest["name"] == manifest["short_name"] == "gastito"
     assert manifest["lang"] == "es-CO"
     assert manifest["display"] == "standalone"
-    assert manifest["start_url"] == "/registrar"
+    # El ícono fijado abre la pantalla de inicio del dispositivo (spec 012).
+    assert manifest["start_url"] == "/"
     assert manifest["background_color"].startswith("#")
     assert manifest["theme_color"].startswith("#")
     icons = {(icon["sizes"], icon.get("purpose", "any")) for icon in manifest["icons"]}

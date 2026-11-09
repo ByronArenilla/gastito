@@ -7,7 +7,7 @@ import { formatDay, formatMonth, formatPesos, shiftPeriod } from "../format.js";
 
 export async function renderExpenses(main, app) {
   const base = `/spaces/${app.space.id}`;
-  let period = app.drafts.get("expenses-period");
+  let period = app.drafts.get("period");
   let mine = app.drafts.get("expenses-mine") ?? false;
   const cards = await app.api.get(`${base}/cards`);
   if (!period) period = (await app.api.get(`${base}/summary`)).period;
@@ -58,7 +58,7 @@ export async function renderExpenses(main, app) {
 
   function move(months) {
     period = shiftPeriod(period, months);
-    app.drafts.set("expenses-period", period);
+    app.drafts.set("period", period);
     load();
   }
 

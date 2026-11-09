@@ -4,8 +4,7 @@ App para controlar el presupuesto mensual, en solitario o compartido con
 otras personas. El mes se planea en el computador y cada gasto se registra
 desde el celular, en la misma app web: se fija en la pantalla de inicio desde
 el navegador y se abre como una aplicación, sin descargar nada de una tienda
-(ver "La web"). Planear el mes y la pantalla de tarjetas llegan con la spec
-012; mientras tanto, eso se hace con la API.
+(ver "La web"). Ahí mismo se ve cuánto va gastado frente a lo planeado.
 
 Es mi proyecto de portafolio DevOps. La aplicación es pequeña a propósito y
 la infraestructura crece por fases: Docker, Nginx, GitHub Actions, AWS,
@@ -98,16 +97,32 @@ que pone las cabeceras de seguridad y responde la página a cualquier ruta
 de la app. Por qué así:
 [ADR 0015](docs/adr/0015-web-sin-framework-sesion-y-pruebas.md).
 
+Cinco secciones: abajo en el celular y al costado desde 1024 px. Al abrir,
+el computador va al Mes y el celular a Registrar.
+
+- **Mes**: el tablero del mes, con ingresos, planeado, gastado, sin asignar
+  y balance; una barra que reparte el ingreso; cada categoría con sus rubros
+  (lo gastado, lo que queda y "excedido" en rojo) y lo no planeado como "Sin
+  rubro"; y lo que hay que pagarle a cada tarjeta. Un mes sin plan ofrece
+  copiar el del mes anterior. **Planear** convierte el mes en una tabla
+  editable: ingresos, rubros y el valor real del extracto de cada tarjeta.
+  Cada renglón se guarda al salir de él.
 - **Registrar**: abre con el teclado numérico en el monto. "Qué fue"
   sugiere los rubros del mes con lo que queda. A crédito pide la tarjeta y
   las cuotas, y a 1 cuota pregunta si estaba en el plan del mes. Antes de
   guardar muestra cuándo y cuánto se paga. Tras registrar, "Deshacer" dura
   10 segundos.
 - **Gastos**: los del mes por fecha de compra, con flechas de mes y "Solo
-  los míos". Tocar un gasto lo edita o lo borra (con confirmación).
-- **Espacio**: cambiar de espacio, crear uno, compartirlo con un enlace de
-  un solo uso que caduca en 24 horas, salir de uno compartido, cerrar
-  sesión y la guía para fijar la app.
+  los míos". Tocar un gasto lo edita o lo borra (con confirmación). Mes,
+  Planear y Gastos muestran el mismo mes.
+- **Tarjetas**: añadir, editar y eliminar tarjetas; el estado de cada una
+  (saldo, lo que hay que pagar cada mes y las compras con cuotas
+  pendientes) y "Pagar todo". Cada compra muestra su plan de cuotas y sus
+  abonos: se abona con "Deshacer" y un abono se borra con confirmación.
+- **Espacio**: cambiar de espacio, sus categorías (crear y eliminar), crear
+  otro espacio, compartirlo con un enlace de un solo uso que caduca en 24
+  horas, salir de uno compartido, cerrar sesión y la guía para fijar la
+  app.
 
 **Se entra una sola vez.** La sesión se renueva cada vez que se usa la app
 y caduca tras 90 días sin abrirla. Cerrar sesión la corta al momento.
@@ -134,9 +149,12 @@ red pública.
 **Diseño.** Dirección "Libro auxiliar": papel verdoso, renglones, tinta
 casi negra y la doble raya roja de los totales, con tema claro y oscuro
 según el sistema. Las reglas están en la sección "Diseño" de
-`specs/011-app-web/spec.md`, y los colores, en
-`services/web/public/css/tokens.css`. Un test comprueba su contraste en los
-dos temas.
+`specs/011-app-web/spec.md` y, para el Mes y las tarjetas, en la de
+`specs/012-tablero-y-planear/spec.md`. Los colores están en
+`services/web/public/css/tokens.css`, y un test comprueba su contraste en
+los dos temas, también el de las barras. Las barras son CSS propio, sin
+librería de gráficos:
+[ADR 0016](docs/adr/0016-barras-propias-sin-libreria.md).
 
 **Regenerar los íconos** después de cambiar `icons/icon.svg` o
 `icons/icon-maskable.svg` (desde `services/web/public/icons`):
@@ -148,9 +166,9 @@ rsvg-convert -w 512 -h 512 icon-maskable.svg -o icon-maskable-512.png
 rsvg-convert -w 180 -h 180 icon-maskable.svg -o apple-touch-icon.png
 ```
 
-**Con la API directamente.** Lo que la web todavía no hace (planear el mes,
-tarjetas y categorías) se hace con `curl`, como en los ejemplos de este
-README, o desde http://localhost:8000/docs: inicia sesión con
+**Con la API directamente.** Todo lo de la web también se puede hacer con
+`curl`, como en los ejemplos de este README, o desde
+http://localhost:8000/docs: inicia sesión con
 `POST /auth/login` en "Try it out", copia el `access_token`, pégalo en el
 botón **Authorize** y prueba cualquier ruta.
 
@@ -224,6 +242,10 @@ las suyas. Todo espacio nuevo nace con siete predefinidas: Hogar, Comida,
 Transporte, Salud, Servicios, Ocio y Otros. Desde ese momento son del
 espacio, no de un mes: cualquier miembro puede añadir más o eliminarlas, y
 siguen disponibles mes tras mes.
+
+**Desde la web**: pestaña Espacio, bloque "Categorías". Ahí se crean y se
+eliminan (con confirmación); crear de nuevo una eliminada la restaura. Con
+la API:
 
 **Listar.** Devuelve las categorías activas del espacio en orden de
 creación: primero las predefinidas y después las nuevas. Las eliminadas no
@@ -392,6 +414,12 @@ futuro, que no cambia. Por qué así:
 - Sin `period`, se usa el mes actual en `TZ`.
 - Cualquier miembro del espacio puede crear, editar y borrar.
 
+**Desde la web**: pestaña Mes → "Planear". Cada ingreso y cada rubro es un
+renglón de campos que se guarda al salir de él; un renglón a medias dice qué
+le falta. Quitar un rubro que ya tiene gastos pide confirmación, y sus
+gastos quedan sin rubro. Un mes sin plan ofrece "Copiar el plan de" el mes
+anterior. Con la API:
+
 **Crear un rubro.**
 
 ```sh
@@ -490,6 +518,11 @@ A varias cuotas, una compra siempre es deuda. A 1 cuota, tú dices si estaba
 en el plan (`is_debt`); si no lo dices, es gasto del mes. Por qué así:
 [ADR 0013](docs/adr/0013-compras-con-tarjeta-cuentan-al-pagar.md) y
 [ADR 0014](docs/adr/0014-compras-del-mes-con-tarjeta.md).
+
+**Desde la web**: pestaña Tarjetas para crear, editar, eliminar y ver el
+estado de cada tarjeta, pagar todo, y abonar o borrar abonos desde cada
+compra. El valor real del extracto se escribe al planear el mes (Mes →
+Planear). Con la API:
 
 **Tarjetas.** Una tarjeta tiene nombre, día de corte, día límite de pago y,
 si la conoces, tasa de interés mensual en porcentaje (`1.89` es 1,89 %, con

@@ -20,14 +20,20 @@ const dayParts = new Intl.DateTimeFormat("es-CO", {
 const monthLong = new Intl.DateTimeFormat("es-CO", { month: "long", timeZone: "UTC" });
 const monthShort = new Intl.DateTimeFormat("es-CO", { month: "short", timeZone: "UTC" });
 
-/** `1240000` → `$ 1.240.000`, con espacio duro para que no se parta. */
+// Signo menos tipográfico (U+2212) para los negativos: "excedido −40.000"
+// (Diseño, principio 4). Intl usa el guion.
+const MINUS = "−";
+
+/** `1240000` → `$ 1.240.000`, con espacio duro para que no se parta;
+ * `-12000` → `−$ 12.000`. */
 export function formatPesos(amount) {
-  return pesos.format(amount);
+  return amount < 0 ? `${MINUS}${pesos.format(-amount)}` : pesos.format(amount);
 }
 
-/** `1240000` → `1.240.000`, para el campo del monto mientras se escribe. */
+/** `1240000` → `1.240.000`, para el campo del monto mientras se escribe;
+ * `-40000` → `−40.000`. */
 export function formatNumber(amount) {
-  return number.format(amount);
+  return amount < 0 ? `${MINUS}${number.format(-amount)}` : number.format(amount);
 }
 
 /** Solo los dígitos de lo escrito, como entero de pesos; `null` si no hay
