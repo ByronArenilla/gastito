@@ -167,9 +167,10 @@ curl -X POST localhost:8000/auth/register -H 'content-type: application/json' \
   -d '{"email": "ana@example.com", "password": "al-menos-12-caracteres"}'
 ```
 
-**Iniciar sesión.** Devuelve un token que dura 15 días y se envía en la
-cabecera `Authorization: Bearer <token>` de cada petición. `POST /auth/logout`
-lo invalida en el momento.
+**Iniciar sesión.** Devuelve un token que se envía en la cabecera
+`Authorization: Bearer <token>` de cada petición. Caduca tras 90 días sin
+usarse: cada día que se usa, vuelve a durar 90 días (spec 011).
+`POST /auth/logout` lo invalida en el momento.
 
 ```sh
 curl -X POST localhost:8000/auth/login -H 'content-type: application/json' \
@@ -207,10 +208,10 @@ solo a quien se invita.
    # {"id": 2, "name": "Casa"}
    ```
 
-Un enlace desconocido, usado o caducado se rechaza con el mismo mensaje. La
-página `/unirse/...` de la web llegará con `010-app-web`; hasta
-entonces, `<invitación>` es la última parte de la `url` y el canje se hace
-contra la API.
+Un enlace desconocido, usado o caducado se rechaza con el mismo mensaje. En
+la web, todo esto lo hace la pantalla Espacio (Compartir) y la página
+`/unirse/<invitación>`, que muestra el espacio y une con un botón; con la
+API, `<invitación>` es la última parte de la `url`.
 
 **Espacios.** `GET /spaces` lista los tuyos y `POST /spaces` crea uno.
 `DELETE /spaces/{id}/members/me` te saca de un espacio. Si eres su único

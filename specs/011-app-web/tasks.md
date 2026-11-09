@@ -231,7 +231,9 @@ Pasada completa con la sección "Diseño" de la spec.
 - Estado (2026-11-06): hecha en el computador con Chromium sin interfaz; la
   revisión corrigió `hidden` pisado por `display`, el desbordamiento a lo
   ancho, el tamaño de "Volver a Gastos" y la negrita sintética de las
-  cifras. Falta la verificación en Android y en iPhone.
+  cifras. El 2026-11-08 se completó la columna C salvo fijar la app de
+  verdad (borrar con Escape, copiar el enlace, reducir movimiento y los
+  estados en cada pantalla). Falta la verificación en Android y en iPhone.
 
 ## [x] T13 — ADR 0015
 `docs/adr/0015-web-sin-framework-sesion-y-pruebas.md`: token en
@@ -261,6 +263,7 @@ días renovable con el uso (cambia RF-8 de la 001), pruebas con `node
 - Hecho cuando: `make test` y `make lint` están en verde y la verificación
   a mano está completa.
 - RF: cierra la spec.
-- Estado (2026-11-06): README hecho y criterios 1 a 4 y 6 en verde. Faltan
+- Estado (2026-11-08): README hecho (corregidos el token de 15 días y la
+  página `/unirse` "que llegará") y criterios 1 a 4 y 6 en verde. Faltan
   la verificación en Android e iPhone (criterio 5) y, después, marcar la
   011 en el roadmap.
