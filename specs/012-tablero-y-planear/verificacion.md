@@ -85,10 +85,10 @@ computador. Antes de empezar:
 
 | Paso | A | I | C |
 |---|---|---|---|
-| Todo con teclado y foco visible en las pantallas nuevas. | — | — | [ ] |
-| Zoom al 200 % (*reflow* a 320 px) sin perder contenido. | [ ] | [ ] | [ ] |
-| Objetivos de al menos 44 px. | [ ] | [ ] | [ ] |
-| Estados de carga, vacío, error y sin conexión en cada pantalla nueva. | [ ] | [ ] | [ ] |
-| Las barras no se leen con el lector de pantalla; las cifras sí. | [ ] | [ ] | [ ] |
-| Tema oscuro en todas las pantallas nuevas. | [ ] | [ ] | [ ] |
-| Ningún emoji, sombra ni degradado; cifras alineadas a la derecha. | [ ] | [ ] | [ ] |
+| Todo con teclado y foco visible en las pantallas nuevas. | — | — | [x] |
+| Zoom al 200 % (*reflow* a 320 px) sin perder contenido. | [ ] | [ ] | [x] |
+| Objetivos de al menos 44 px. | [ ] | [ ] | [x] |
+| Estados de carga, vacío, error y sin conexión en cada pantalla nueva. | [ ] | [ ] | [x] |
+| Las barras no se leen con el lector de pantalla; las cifras sí. | [ ] | [ ] | [x] |
+| Tema oscuro en todas las pantallas nuevas. | [ ] | [ ] | [x] |
+| Ningún emoji, sombra ni degradado; cifras alineadas a la derecha. | [ ] | [ ] | [x] |

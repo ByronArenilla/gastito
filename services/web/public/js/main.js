@@ -5,7 +5,7 @@ import { API_URL } from "/config.js";
 import { createApi } from "./api.js";
 import { h } from "./dom.js";
 import { formatMonthShort } from "./format.js";
-import { createConnection } from "./offline.js";
+import { createConnection, screenError } from "./offline.js";
 import { homePath, matchRoute } from "./routes.js";
 import { createSession } from "./session.js";
 import { createDrafts } from "./state.js";
@@ -165,7 +165,7 @@ async function render() {
       h(
         "div",
         { class: "screen" },
-        h("p", { class: "error", role: "alert" }, error.message ?? "Algo salió mal."),
+        h("p", { class: "error", role: "alert" }, screenError(error, connection.online())),
         h("button", { type: "button", class: "button button--quiet", onClick: render }, "Reintentar"),
       ),
     );

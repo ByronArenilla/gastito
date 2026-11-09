@@ -173,7 +173,7 @@ en el bloqueo de una compra con abonos.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-28, RF-29.
 
-## [ ] T11 — Revisión de diseño y accesibilidad
+## [x] T11 — Revisión de diseño y accesibilidad
 Pasada completa con la sección "Diseño" de esta spec y la de la 011.
 
 - Test primero: `contrast.test.js` sigue en verde con los valores finales.
@@ -184,6 +184,14 @@ Pasada completa con la sección "Diseño" de esta spec y la de la 011.
   ningún emoji, sombra ni degradado; cifras alineadas a la derecha.
 - Hecho cuando: la columna C de `verificacion.md` está completa.
 - RF: RF-31.
+- Estado (2026-11-09): columna C completa con Chromium sin interfaz, a 320,
+  390 y 1280 px y en los dos temas. Lo que corrigió la revisión: el anillo
+  de foco alrededor de `<main>` al cambiar de pantalla (de la 011), los
+  negativos con guion en lugar del signo menos (de la 011), la tabla de
+  cuotas que se cortaba a 360 px, el doble envío al quitar un extracto, el
+  nombre repetido que salía arriba y no junto al campo, y el error en inglés
+  del navegador al abrir sin conexión una pantalla que no se había cargado
+  (de la 011; ahora lo dice `screenError`).
 
 ## [ ] T12 — ADR 0016
 `docs/adr/0016-barras-propias-sin-libreria.md`: barras con CSS y

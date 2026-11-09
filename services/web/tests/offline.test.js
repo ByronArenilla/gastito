@@ -1,7 +1,7 @@
 // Estado de la conexión (spec 011, RF-30, decisión 15).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createConnection } from "../public/js/offline.js";
+import { createConnection, screenError } from "../public/js/offline.js";
 
 function fakeWindow(onLine) {
   const listeners = {};
@@ -43,4 +43,22 @@ test("un fallo de red lo marca sin conexión y una respuesta lo devuelve", () =>
 
   // Solo avisa cuando cambia.
   assert.deepEqual(seen, [false, true]);
+});
+
+test("una pantalla que no se pudo abrir lo dice en español (revisión de la 012)", () => {
+  // Sin conexión, el módulo de una pantalla que no se había abierto no carga:
+  // el navegador da un TypeError en inglés que no se muestra.
+  const importError = new TypeError("Failed to fetch dynamically imported module: /js/views/cards.js");
+
+  assert.equal(
+    screenError(importError, false),
+    "Sin conexión: esta pantalla se abrirá cuando vuelva la conexión.",
+  );
+  assert.equal(
+    screenError(importError, true),
+    "No se pudo abrir esta pantalla. Revisa la conexión y vuelve a intentarlo.",
+  );
+  // Un error de la API trae su mensaje en español y se muestra tal cual.
+  const apiError = Object.assign(new Error("Tarjeta no encontrada."), { status: 404 });
+  assert.equal(screenError(apiError, true), "Tarjeta no encontrada.");
 });
