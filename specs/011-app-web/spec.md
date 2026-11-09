@@ -167,7 +167,10 @@ accesibilidad.
     monto y qué fue, no la ventana `confirm()` del navegador, que no se
     puede diseñar ni probar.
 24. **Una compra con abonos** se edita solo en descripción y categoría (RF-16
-    de la 009): los demás campos aparecen bloqueados con la razón.
+    de la 009): los demás campos aparecen bloqueados con la razón. "Borrar
+    gasto" también queda deshabilitado con esa misma razón, porque la API no
+    deja borrarla hasta borrar sus abonos, y eso todavía no se hace desde la
+    web: un botón activo prometería algo que siempre falla.
 25. **La navegación tiene tres secciones con nombre y sin íconos**:
     Registrar, Gastos y Espacio. Tres palabras se entienden sin aprender
     íconos, y en el celular caben con su texto completo.
@@ -261,7 +264,8 @@ accesibilidad.
   fue y categoría, diciendo por qué (decisión 24).
 - **RF-21** CUANDO se pide borrar un gasto, la web DEBE pedir confirmación
   en un diálogo que muestre el monto y qué fue, y borrarlo solo al
-  confirmar (decisión 23, principio 8).
+  confirmar (decisión 23, principio 8). En una compra con abonos, "Borrar
+  gasto" DEBE aparecer deshabilitado con la razón de RF-20 (decisión 24).
 - **RF-22** SI el mes no tiene gastos, ENTONCES la lista DEBE decirlo y
   ofrecer ir a Registrar.
 
