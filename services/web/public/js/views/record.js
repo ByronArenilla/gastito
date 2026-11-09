@@ -550,7 +550,7 @@ export async function renderEdit(main, app, { id }) {
     lock = lockFor(schedule.prepayments.length > 0);
   }
   const backToList = () => {
-    app.drafts.set("expenses-period", periodOf(expense.spent_on));
+    app.drafts.set("period", periodOf(expense.spent_on));
     app.navigate("/gastos");
   };
 
@@ -608,7 +608,7 @@ export async function renderEdit(main, app, { id }) {
         {
           class: "button button--link",
           href: "/gastos",
-          onClick: () => app.drafts.set("expenses-period", periodOf(expense.spent_on)),
+          onClick: () => app.drafts.set("period", periodOf(expense.spent_on)),
         },
         "Volver a Gastos",
       ),

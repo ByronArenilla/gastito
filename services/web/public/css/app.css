@@ -163,7 +163,10 @@ button {
   position: fixed;
   inset: auto 0 0 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Cinco secciones (spec 012, RF-1), cada una del ancho de su palabra: así
+     "REGISTRAR" y "TARJETAS" caben enteras en 360 px. */
+  grid-template-columns: repeat(5, auto);
+  justify-content: space-around;
   background: var(--paper);
   border-top: var(--rule-width) solid var(--ink);
   padding-bottom: env(safe-area-inset-bottom);
@@ -172,11 +175,13 @@ button {
 
 .tabs a {
   min-height: calc(var(--row) + var(--space-1));
+  min-width: var(--touch);
+  padding: 0 var(--space-1);
   display: grid;
   place-items: center;
   font-size: var(--size-label);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
   color: var(--muted);
   text-decoration: none;
 }
@@ -219,6 +224,8 @@ button {
     border-top: 0;
     border-right: var(--rule-width) solid var(--ink);
     padding: var(--space-5) 0;
+    /* Sin esto, las secciones se repartirían a lo alto (prototipo 012). */
+    justify-content: flex-start;
   }
 
   .tabs__brand {
@@ -234,6 +241,7 @@ button {
   .tabs a {
     justify-items: start;
     padding: 0 var(--gutter);
+    letter-spacing: 0.1em;
   }
 
   .tabs a[aria-current="page"] {

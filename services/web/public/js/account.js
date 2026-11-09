@@ -6,11 +6,12 @@ const OFFLINE_LOGOUT =
   "servidor se cerrará sola tras 90 días sin uso.";
 
 /** Entra y devuelve la ruta a la que ir: la que se pidió antes de entrar o
- * Registrar (RF-2, decisión 16). */
-export async function logIn({ api, session }, { email, password }) {
+ * la pantalla de inicio del dispositivo (RF-2 y decisión 16 de la 011; RF-2
+ * de la 012). Sin `home`, Registrar. */
+export async function logIn({ api, session, home }, { email, password }) {
   const token = await api.post("/auth/login", { email, password });
   session.save({ token: token.access_token, email: email.trim().toLowerCase() });
-  return session.takeNext() ?? "/registrar";
+  return session.takeNext() ?? home?.() ?? "/registrar";
 }
 
 /** Crea la cuenta y entra con ella (RF-1). */

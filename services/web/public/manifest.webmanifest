@@ -4,7 +4,7 @@
   "description": "El presupuesto del mes: planéalo y registra cada gasto desde el celular.",
   "lang": "es-CO",
   "dir": "ltr",
-  "start_url": "/registrar",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#e9eee6",

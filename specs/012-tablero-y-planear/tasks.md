@@ -32,7 +32,7 @@ tokens y las fuentes de la 011, a 360 y a 1280 px y en los dos temas.
   volver a `flex-start`, y movió "Quitar" junto al monto en el celular.
   Anotado en el plan, sección "Diseño".
 
-## [ ] T2 — Navegación, inicio y mes compartido
+## [x] T2 — Navegación, inicio y mes compartido
 `index.html` con Mes y Tarjetas; `routes.js` con las rutas nuevas y
 `homePath()`; `main.js` con las secciones y el inicio por ancho;
 `manifest.webmanifest` con `start_url: "/"`; el mes elegido como `period` en

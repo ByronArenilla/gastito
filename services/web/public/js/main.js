@@ -6,7 +6,7 @@ import { createApi } from "./api.js";
 import { h } from "./dom.js";
 import { formatMonthShort } from "./format.js";
 import { createConnection } from "./offline.js";
-import { matchRoute } from "./routes.js";
+import { homePath, matchRoute } from "./routes.js";
 import { createSession } from "./session.js";
 import { createDrafts } from "./state.js";
 import { confirmDialog, createNotices } from "./views/notices.js";
@@ -20,10 +20,29 @@ const VIEWS = {
   expenses: () => import("./views/expenses.js").then((module) => module.renderExpenses),
   space: () => import("./views/space.js").then((module) => module.renderSpace),
   join: () => import("./views/join.js").then((module) => module.renderJoin),
+  month: () => import("./views/month.js").then((module) => module.renderMonth),
+  plan: () => import("./views/month.js").then((module) => module.renderPlan),
+  cards: () => import("./views/cards.js").then((module) => module.renderCards),
+  cardNew: () => import("./views/cards.js").then((module) => module.renderCardNew),
+  card: () => import("./views/cards.js").then((module) => module.renderCard),
+  cardEdit: () => import("./views/cards.js").then((module) => module.renderCardEdit),
+  purchase: () => import("./views/purchase.js").then((module) => module.renderPurchase),
 };
 
 // Qué sección de la navegación marca cada pantalla.
-const SECTIONS = { record: "record", edit: "expenses", expenses: "expenses", space: "space" };
+const SECTIONS = {
+  month: "month",
+  plan: "month",
+  record: "record",
+  edit: "expenses",
+  expenses: "expenses",
+  cards: "cards",
+  cardNew: "cards",
+  card: "cards",
+  cardEdit: "cards",
+  purchase: "cards",
+  space: "space",
+};
 
 const shell = document.getElementById("app");
 const main = document.getElementById("main");
@@ -67,6 +86,8 @@ const app = {
   spaces: [],
   space: null,
   navigate,
+  /** La pantalla de inicio de este dispositivo (spec 012, decisión 3). */
+  home: () => homePath(window.innerWidth),
   confirm: (options) => confirmDialog(dialog, options),
   /** Usuario, espacios y espacio actual (RF-23, decisión 17). */
   async loadAccount() {
@@ -114,7 +135,7 @@ function markSection(view) {
 
 async function render() {
   const count = ++renderCount;
-  const route = matchRoute(location.pathname);
+  const route = matchRoute(location.pathname, { width: window.innerWidth });
   if (route.redirect) return navigate(route.redirect, { replace: true });
 
   const loggedIn = session.isLoggedIn();
@@ -123,7 +144,7 @@ async function render() {
     return navigate("/entrar", { replace: true });
   }
   if (route.access === "guest" && loggedIn) {
-    return navigate(session.takeNext() ?? "/registrar", { replace: true });
+    return navigate(session.takeNext() ?? app.home(), { replace: true });
   }
 
   const member = loggedIn && route.access !== "guest";

@@ -70,8 +70,8 @@ export async function renderJoin(main, app, { token }) {
           await app.loadAccount();
           app.useSpace(space);
           app.drafts.clear("record");
-          app.drafts.clear("expenses-period");
-          app.navigate("/registrar", { replace: true });
+          app.drafts.clear("period");
+          app.navigate(app.home(), { replace: true });
           app.notices.show({ text: `Te uniste a «${space.name}».`, seconds: 6 });
         } catch (error) {
           status.textContent = error.message;

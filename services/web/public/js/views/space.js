@@ -12,7 +12,7 @@ import { OFFLINE_SAVE, field, formError, setBusy, showErrors } from "./form.js";
 function switchTo(app, space, message) {
   app.useSpace(space);
   app.drafts.clear("record");
-  app.drafts.clear("expenses-period");
+  app.drafts.clear("period");
   app.navigate("/espacio", { replace: true });
   if (message) app.notices.show({ text: message, seconds: 6 });
 }
