@@ -1,7 +1,7 @@
 # Roadmap — gastito
 
-> **Fase actual:** 1 — Aplicación y SDD
-> **Spec activa:** 012-tablero-y-planear
+> **Fase actual:** 2 — Docker
+> **Spec activa:** 013-contenedores
 >
 > Este es el único lugar donde se actualiza el estado del proyecto.
 
@@ -81,7 +81,7 @@ está validada. Marca con [x] las specs terminadas.
   - **Se cerró sin la verificación en el celular (2026-11-09)**, por
     decisión del usuario: el criterio 5 está hecho en Chrome del computador,
     y Android e iPhone se verifican con la app desplegada (ver 019).
-- [ ] 012-tablero-y-planear — Tablero del mes, planear el mes y tarjetas, con gráficos para decidir.
+- [x] 012-tablero-y-planear — Tablero del mes, planear el mes y tarjetas, con gráficos para decidir.
   - **Prototipo visual antes de escribir código.** El de la antigua 007
     (2026-11-04) no se conservó; la 011 hizo uno nuevo (2026-11-06). Son
     desechables: no entran al repositorio.
@@ -100,6 +100,11 @@ está validada. Marca con [x] las specs terminadas.
     pequeña sin compilación (por ejemplo Alpine.js) con su ADR.
   - Los gráficos del prototipo son SVG y CSS propios. Chart.js entra solo
     si la spec lo justifica.
+  - **Terminada el 2026-11-09**: Mes con barras propias en CSS (ADR 0016),
+    Planear como tabla que guarda por renglón, Tarjetas con abonos y pagar
+    todo, y categorías en Espacio. Cinco secciones; el inicio depende del
+    ancho. Sin cambios en la API. Se verificó en Chrome del computador; el
+    celular, con la 011 (ver 019).
 
 ## Fase 2 — Docker
 - [ ] 013-contenedores
@@ -125,10 +130,11 @@ está validada. Marca con [x] las specs terminadas.
     en el celular abre la web en el navegador y no a pantalla completa
     (ADR 0010). Además, con la app en internet, entrar sin HTTPS enviaría
     la contraseña sin cifrar.
-  - **Pendiente de la 011:** con la app desplegada, completar las columnas
-    A (Chrome en Android) e I (Safari en iPhone) de
-    `specs/011-app-web/verificacion.md`, incluidos el lector de pantalla y
-    fijar la app de verdad.
+  - **Pendiente de la 011 y la 012:** con la app desplegada, completar las
+    columnas A (Chrome en Android) e I (Safari en iPhone) de
+    `specs/011-app-web/verificacion.md` y
+    `specs/012-tablero-y-planear/verificacion.md`, incluidos el lector de
+    pantalla y fijar la app de verdad.
 
 ## Fase 6 — Ansible + despliegue continuo
 - [ ] 020-configuracion-servidores

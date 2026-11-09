@@ -203,7 +203,7 @@ Chart.js, SVG generado y solo cifras.
 - Hecho cuando: el ADR existe con la plantilla y el plan lo cita.
 - RF: ninguno; principio 4.
 
-## [ ] T13 — Cierre: README y validación
+## [x] T13 — Cierre: README y validación
 - `README.md`: "Plan del mes: rubros e ingresos" y "Tarjetas y compras a
   cuotas" explican la web primero y dejan `curl` como alternativa; "La web"
   con las cinco secciones y la pantalla de inicio.
@@ -215,3 +215,8 @@ Chart.js, SVG generado y solo cifras.
 - Hecho cuando: `make test` y `make lint` están en verde y la columna C de
   la verificación está completa.
 - RF: cierra la spec.
+- Estado (2026-11-09): README al día (la web primero y `curl` como
+  alternativa en categorías, plan y tarjetas). Criterios 1 a 3 y 5 en verde
+  (163 pruebas de `node --test`, 26 del servidor, 768 de la API); criterio
+  4 completo en Chrome del computador. Android e iPhone van con la 011 en la
+  019. Roadmap: 012 terminada, fase 2 con `013-contenedores` activa.
