@@ -1,6 +1,6 @@
 # Tareas 012 — Tablero y planear
 
-- Spec: `spec.md` (borrador) · Plan: `plan.md` (borrador)
+- Spec: `spec.md` (aprobada) · Plan: `plan.md` (aprobado)
 - Regla: una tarea por vez, primero los tests y luego el código. Al
   terminarla, marcarla, ejecutar `make test` y `make lint`, y detenerse.
 - Orden: primero el prototipo (T1), que puede cambiar la spec y el plan;
@@ -10,7 +10,7 @@
   el ADR (T12) y el cierre (T13).
 - Las pantallas se verifican a mano con `verificacion.md`, que crea T2.
 
-## [ ] T1 — Prototipo de Mes, Planear, Tarjetas y una compra
+## [x] T1 — Prototipo de Mes, Planear, Tarjetas y una compra
 Una página HTML desechable con los datos de ejemplo de la spec (noviembre
 2026: ingresos $ 6.500.000, Mercado $ 520.000 de $ 900.000, Gasolina
 excedida en $ 40.000, $ 120.000 sin rubro en Comida, la Visa con
@@ -26,6 +26,11 @@ tokens y las fuentes de la 011, a 360 y a 1280 px y en los dos temas.
 - Hecho cuando: el usuario aprueba el prototipo y los cambios están en la
   spec y el plan.
 - RF: RF-1, RF-5 a RF-9, RF-12, RF-19, RF-21, RF-24 (diseño).
+- Estado (2026-11-09): aprobado por el usuario
+  (https://claude.ai/artifact/383JYBEUT4FuALKPJnxWdB). Las cinco secciones
+  caben en 360 px; el prototipo mostró que el menú lateral necesitaba
+  volver a `flex-start`, y movió "Quitar" junto al monto en el celular.
+  Anotado en el plan, sección "Diseño".
 
 ## [ ] T2 — Navegación, inicio y mes compartido
 `index.html` con Mes y Tarjetas; `routes.js` con las rutas nuevas y

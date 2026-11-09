@@ -1,7 +1,7 @@
 # Spec 012 — Tablero y planear
 
 - Fase: 1 — Aplicación y SDD
-- Estado: borrador (2026-11-09)
+- Estado: aprobada (2026-11-09)
 - Base: spec 002 (categorías), spec 008 (rubros, ingresos, plan y
   resumen), spec 009 (tarjetas, cuotas, abonos, extracto y pagar todo),
   spec 010 (gasto del mes con tarjeta o deuda), spec 011 (la web y su

@@ -1,8 +1,8 @@
 # Plan 012 — Tablero y planear
 
-- Spec: `spec.md` (estado: borrador)
+- Spec: `spec.md` (estado: aprobada)
 - Servicios afectados: `services/web`. La API no cambia.
-- Estado: borrador (2026-11-09)
+- Estado: aprobado (2026-11-09)
 
 La 012 sigue el camino de la 011: HTML, CSS y módulos de JavaScript
 nativos, sin framework, sin `npm` y sin compilación. Cada pantalla nueva
@@ -163,8 +163,15 @@ alrededor y `missing` si queda vacío.
   la acción; bajo 640 px, una columna.
 - `.schedule`: tabla con `font-variant-numeric: tabular-nums`, cifras a la
   derecha y las cuotas pasadas en `--muted`.
-- La navegación inferior con cinco secciones: `flex: 1` por enlace y rótulos
-  de 12 px; se comprueba a 360 px que no se corten.
+- La navegación inferior con cinco secciones: cada una del ancho de su
+  palabra (`grid-template-columns: repeat(5, auto)` con `justify-content:
+  space-around`) y `letter-spacing` de 0,04 em. En el prototipo, las cinco
+  ocupan 304 px de los 360. El menú lateral (≥ 1024 px) vuelve a
+  `justify-content: flex-start` y al relleno de la 011: sin esa regla, las
+  secciones se repartían a lo alto de la pantalla (lo mostró el prototipo).
+- En Planear, el rótulo "PLANEAR" va encima del título del mes, y en el
+  celular un renglón de rubro tiene el nombre en una línea y categoría,
+  monto y "Quitar" en la siguiente.
 - Sin transiciones nuevas, salvo las de 150 ms de color de la 011.
 
 ## Tests
