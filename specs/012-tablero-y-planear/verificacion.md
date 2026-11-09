@@ -43,13 +43,13 @@ computador. Antes de empezar:
 
 | Paso | A | I | C |
 |---|---|---|---|
-| Planear un mes en blanco con dos ingresos y tres rubros solo con teclado. | — | — | [ ] |
-| Cambiar el monto de un rubro y ver "Guardado". | [ ] | [ ] | [ ] |
-| Un renglón a medias dice qué le falta y no se crea. | [ ] | [ ] | [ ] |
-| Un nombre repetido muestra el mensaje de la API junto al campo. | [ ] | [ ] | [ ] |
-| Quitar un rubro con gastos pide confirmación; sus gastos quedan sin rubro. | [ ] | [ ] | [ ] |
-| Escribir y quitar el extracto de la Visa. | [ ] | [ ] | [ ] |
-| "Listo" guarda el renglón abierto. | [ ] | [ ] | [ ] |
+| Planear un mes en blanco con dos ingresos y tres rubros solo con teclado. | — | — | [x] |
+| Cambiar el monto de un rubro y ver "Guardado". | [ ] | [ ] | [x] |
+| Un renglón a medias dice qué le falta y no se crea. | [ ] | [ ] | [x] |
+| Un nombre repetido muestra el mensaje de la API junto al campo. | [ ] | [ ] | [x] |
+| Quitar un rubro con gastos pide confirmación; sus gastos quedan sin rubro. | [ ] | [ ] | [x] |
+| Escribir y quitar el extracto de la Visa. | [ ] | [ ] | [x] |
+| "Listo" guarda el renglón abierto. | [ ] | [ ] | [x] |
 
 ## Tarjetas (T7 y T8)
 

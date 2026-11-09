@@ -1,10 +1,12 @@
 // Mes y Planear (spec 012). El Mes es el tablero de un periodo: totales, la
 // barra del ingreso, las categorías con sus rubros y las tarjetas (RF-5 a
 // RF-9). Un mes sin plan ofrece copiar el del mes anterior o planear en blanco
-// (RF-10, RF-11). Planear (RF-12 a RF-18) se completa en T6.
+// (RF-10, RF-11). Planear es el mismo mes en modo edición (RF-12 a RF-18).
 import { buildDashboard, copyNotice } from "../dashboard.js";
 import { h } from "../dom.js";
-import { formatMonth, formatNumber, formatPesos, monthName, shiftPeriod } from "../format.js";
+import { formatMonth, formatNumber, formatPesos, monthName, parseAmount, shiftPeriod } from "../format.js";
+import { missingText, needsConfirm, rowRequest, statementRequest } from "../plan-rows.js";
+import { OFFLINE_SAVE } from "./form.js";
 
 const PART_NAMES = { items: "Rubros", debts: "Deudas", free: "Sin asignar" };
 
@@ -267,6 +269,379 @@ function capitalize(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export async function renderPlan(main) {
-  main.append(h("div", { class: "screen" }, h("h1", {}, "Planear")));
+// --- Planear (RF-12 a RF-18) ---
+
+const FIELD_OF = { name: "name", category_id: "categoryId", amount: "amount" };
+
+/** Cuánto dura "Guardado" junto al renglón. */
+const SAVED_SECONDS = 4;
+
+/** Un renglón de Planear: un `<fieldset>` que se guarda cuando el foco sale
+ * de él (decisión 5). `original` es `null` en uno nuevo. */
+function planRow(ctx, kind, original, { categories = [] } = {}) {
+  const { app, base, period, pending } = ctx;
+  const isItem = kind === "item";
+  const noun = isItem ? "Rubro" : "Ingreso";
+  const legend = h("legend", { class: "sr-only" }, original ? `${noun} ${original.name}` : `${noun} nuevo`);
+  const name = h("input", {
+    class: "input",
+    name: "name",
+    autocomplete: "off",
+    placeholder: isItem ? "Nombre del rubro" : "Nombre del ingreso",
+    value: original?.name ?? "",
+  });
+  const category =
+    isItem &&
+    h(
+      "select",
+      { class: "select", name: "categoryId" },
+      h("option", { value: "" }, "Categoría"),
+      categories.map((option) =>
+        h("option", { value: String(option.id), selected: option.id === original?.categoryId }, option.name),
+      ),
+    );
+  const amount = h("input", {
+    class: "input figure-input",
+    name: "amount",
+    inputmode: "numeric",
+    autocomplete: "off",
+    placeholder: "$ 0",
+    value: original ? formatNumber(original.amount) : "",
+    onInput: () => {
+      const value = parseAmount(amount.value);
+      amount.value = value === null ? "" : formatNumber(value);
+    },
+  });
+  const status = h("span", { class: "plan-row__status", "aria-live": "polite" });
+  const remove = h("button", { type: "button", class: "button button--link", onClick: () => quit() }, "Quitar");
+  const label = (text, control, extra = "") => h("label", { class: extra }, h("span", { class: "sr-only" }, text), control);
+  const row = h(
+    "fieldset",
+    { class: isItem ? "plan-row" : "plan-row plan-row--income" },
+    legend,
+    label("Nombre", name, "plan-row__name"),
+    category && label("Categoría", category),
+    label("Monto", amount),
+    remove,
+    status,
+  );
+  let saved = original;
+  let timer = null;
+
+  const controls = () => [name, category, amount].filter(Boolean);
+  const values = () => ({ name: name.value, categoryId: category ? category.value : undefined, amount: amount.value });
+
+  function say(text, error = false) {
+    clearTimeout(timer);
+    status.textContent = text;
+    status.classList.toggle("plan-row__status--error", error);
+    if (text && !error) timer = setTimeout(() => (status.textContent = ""), SAVED_SECONDS * 1000);
+  }
+
+  function markInvalid(fields) {
+    for (const control of controls()) control.removeAttribute("aria-invalid");
+    for (const field of fields) row.querySelector(`[name="${field}"]`)?.setAttribute("aria-invalid", "true");
+  }
+
+  async function save() {
+    // Ya hay un envío de este renglón en curso: no se manda otro (RF-18).
+    if (row.disabled) return;
+    const request = rowRequest(kind, saved, values(), period);
+    if (request.missing.length) {
+      markInvalid(request.missing.map((word) => ({ nombre: "name", categoría: "categoryId", monto: "amount" })[word]));
+      say(missingText(request.missing), true);
+      return;
+    }
+    markInvalid([]);
+    if (request.action === "none") return;
+    if (!app.connection.online()) {
+      say(OFFLINE_SAVE, true);
+      return;
+    }
+    // Un envío por renglón a la vez (RF-18): dos salidas seguidas no crean
+    // dos rubros.
+    row.disabled = true;
+    const path = `${base}/${isItem ? "budget-items" : "incomes"}`;
+    try {
+      const result =
+        request.action === "create"
+          ? await app.api.post(path, request.body)
+          : await app.api.patch(`${path}/${saved.id}`, request.body);
+      saved = {
+        id: result.id,
+        name: result.name,
+        amount: result.amount,
+        categoryId: result.category_id,
+        spent: saved?.spent ?? 0,
+      };
+      legend.textContent = `${noun} ${saved.name}`;
+      say("Guardado");
+    } catch (error) {
+      // El mensaje de la API junto al renglón; lo escrito se queda (RF-13).
+      const fields = Object.keys(error.fields ?? {}).map((field) => FIELD_OF[field]).filter(Boolean);
+      markInvalid(fields.length ? fields : error.status === 409 ? ["name"] : []);
+      say(error.message, true);
+    } finally {
+      row.disabled = false;
+    }
+  }
+
+  async function quit() {
+    if (!saved) {
+      row.remove();
+      return;
+    }
+    if (!app.connection.online()) {
+      say(OFFLINE_SAVE, true);
+      return;
+    }
+    if (isItem && needsConfirm(saved)) {
+      const confirmed = await app.confirm({
+        title: `¿Quitar «${saved.name}»?`,
+        body: `Sus gastos de ${monthName(period)} (${formatPesos(saved.spent)}) no se borran: quedan sin rubro, en su categoría.`,
+        confirmLabel: "Quitar rubro",
+        danger: true,
+      });
+      if (!confirmed) return;
+    }
+    try {
+      await app.api.del(`${base}/${isItem ? "budget-items" : "incomes"}/${saved.id}`);
+      row.remove();
+      app.notices.show({ text: `Quitado: ${saved.name}.`, seconds: 6 });
+    } catch (error) {
+      say(error.message, true);
+    }
+  }
+
+  row.addEventListener("focusout", (event) => {
+    // Cambiar de campo dentro del mismo renglón no guarda a medias.
+    if (row.contains(event.relatedTarget)) return;
+    const saving = save();
+    pending.add(saving);
+    saving.finally(() => pending.delete(saving));
+  });
+
+  return { element: row, focus: () => name.focus(), hasError: () => status.classList.contains("plan-row__status--error") };
+}
+
+/** El extracto real de una tarjeta en el mes (RF-17, decisión 6). */
+function statementRow(ctx, card) {
+  const { app, base, period, pending } = ctx;
+  let saved = card.statement;
+  const input = h("input", {
+    class: "input figure-input",
+    id: `statement-${card.id}`,
+    inputmode: "numeric",
+    autocomplete: "off",
+    placeholder: "Sin extracto",
+    value: saved === null ? "" : formatNumber(saved),
+    onInput: () => {
+      const value = parseAmount(input.value);
+      input.value = value === null ? "" : formatNumber(value);
+    },
+  });
+  const status = h("span", { class: "plan-row__status", "aria-live": "polite" });
+  const estimate = () =>
+    saved === null
+      ? `Estimado: ${formatPesos(card.estimated)}.`
+      : `Reemplaza lo estimado (${formatPesos(card.estimated)}).`;
+  status.textContent = estimate();
+  const clear = h(
+    "button",
+    {
+      type: "button",
+      class: "button button--link",
+      onClick: () => {
+        input.value = "";
+        send();
+      },
+    },
+    "Quitar extracto",
+  );
+  const row = h(
+    "fieldset",
+    { class: "plan-row plan-row--income" },
+    h("legend", { class: "sr-only" }, `Extracto de ${card.name}`),
+    h(
+      "label",
+      { class: "plan-row__name", for: input.id },
+      h("span", {}, card.name),
+      card.deleted && h("span", { class: "muted" }, " · eliminada"),
+      h("span", { class: "label" }, " · extracto real"),
+    ),
+    input,
+    clear,
+    status,
+  );
+
+  async function send() {
+    // Deshabilitar el renglón le quita el foco al botón y dispara otro
+    // `focusout`: sin esto, "Quitar extracto" se enviaría dos veces.
+    if (row.disabled) return;
+    const request = statementRequest(saved, input.value);
+    if (request.action === "none") return;
+    if (!app.connection.online()) {
+      status.textContent = OFFLINE_SAVE;
+      status.classList.add("plan-row__status--error");
+      return;
+    }
+    row.disabled = true;
+    const path = `${base}/cards/${card.id}/statements/${period}`;
+    try {
+      if (request.action === "put") saved = (await app.api.put(path, request.body)).amount;
+      else {
+        await app.api.del(path);
+        saved = null;
+      }
+      status.classList.remove("plan-row__status--error");
+      status.textContent = `Guardado. ${estimate()}`;
+    } catch (error) {
+      input.setAttribute("aria-invalid", "true");
+      status.classList.add("plan-row__status--error");
+      status.textContent = error.message;
+    } finally {
+      row.disabled = false;
+    }
+  }
+
+  row.addEventListener("focusout", (event) => {
+    if (row.contains(event.relatedTarget)) return;
+    input.removeAttribute("aria-invalid");
+    const saving = send();
+    pending.add(saving);
+    saving.finally(() => pending.delete(saving));
+  });
+  return row;
+}
+
+export async function renderPlan(main, app) {
+  const base = `/spaces/${app.space.id}`;
+  const [categories, cards] = await Promise.all([
+    app.api.get(`${base}/categories`),
+    app.api.get(`${base}/cards`),
+  ]);
+  const title = h("h1", { "aria-live": "polite" });
+  const body = h("div", { class: "screen" });
+  const pending = new Set();
+  let rows = [];
+
+  const done = h(
+    "button",
+    {
+      type: "button",
+      class: "button",
+      onClick: async () => {
+        // "Listo" espera lo que se esté guardando; si un renglón quedó con
+        // error, se queda para corregirlo.
+        if (main.contains(document.activeElement)) document.activeElement.blur();
+        await Promise.allSettled([...pending]);
+        const broken = rows.find((row) => row.hasError());
+        if (broken) {
+          broken.focus();
+          return;
+        }
+        app.navigate("/mes");
+      },
+    },
+    "Listo",
+  );
+
+  main.classList.add("main--wide");
+  main.append(
+    h(
+      "div",
+      { class: "screen" },
+      monthHead(app, h("div", {}, h("p", { class: "label" }, "Planear"), title), load),
+      h("div", { class: "cluster" }, done),
+      h("p", { class: "muted" }, "Cada renglón se guarda al salir de él."),
+      body,
+    ),
+  );
+
+  function paint(summary) {
+    const period = summary.period;
+    title.textContent = capitalize(formatMonth(period));
+    app.setMonth(period);
+    const ctx = { app, base, period, pending };
+    // Las categorías activas; la de un rubro cuya categoría se eliminó sigue
+    // en su lista para no cambiarla sin querer (RF-42 de la 008).
+    const options = categories.map((row) => ({ id: row.id, name: row.name }));
+    for (const row of summary.categories) {
+      if (row.deleted) options.push({ id: row.category_id, name: `${row.name} (eliminada)` });
+    }
+    rows = [];
+    const make = (kind, original) => {
+      const row = planRow(ctx, kind, original, { categories: options });
+      rows.push(row);
+      return row;
+    };
+    const incomes = h(
+      "div",
+      { class: "plan-rows" },
+      summary.incomes.map((row) => make("income", { id: row.id, name: row.name, amount: row.amount }).element),
+    );
+    const items = h(
+      "div",
+      { class: "plan-rows" },
+      summary.budget_items.map(
+        (row) =>
+          make("item", {
+            id: row.id,
+            name: row.name,
+            categoryId: row.category_id,
+            amount: row.planned,
+            spent: row.spent,
+          }).element,
+      ),
+    );
+    const add = (kind, list, text) =>
+      h(
+        "button",
+        {
+          type: "button",
+          class: "button button--link",
+          onClick: () => {
+            const row = make(kind, null);
+            list.append(row.element);
+            row.focus();
+          },
+        },
+        text,
+      );
+
+    // Las tarjetas activas y las archivadas con algo en el mes (RF-17).
+    const debts = new Map(summary.debts.map((debt) => [debt.card_id, debt]));
+    const statementCards = [
+      ...cards.map((card) => ({ id: card.id, name: card.name, deleted: false })),
+      ...summary.debts.filter((debt) => debt.deleted).map((debt) => ({ id: debt.card_id, name: debt.name, deleted: true })),
+    ].map((card) => ({
+      ...card,
+      estimated: debts.get(card.id)?.estimated ?? 0,
+      statement: debts.get(card.id)?.statement ?? null,
+    }));
+
+    body.replaceChildren(
+      h("section", { class: "stack", "aria-labelledby": "plan-incomes" }, h("h2", { class: "label", id: "plan-incomes" }, "Ingresos"), incomes, h("div", {}, add("income", incomes, "Añadir ingreso"))),
+      h("section", { class: "stack", "aria-labelledby": "plan-items" }, h("h2", { class: "label", id: "plan-items" }, "Rubros"), items, h("div", {}, add("item", items, "Añadir rubro"))),
+      statementCards.length > 0 &&
+        h(
+          "section",
+          { class: "stack", "aria-labelledby": "plan-statements" },
+          h("h2", { class: "label", id: "plan-statements" }, `Extractos de ${monthName(period)}`),
+          statementCards.map((card) => statementRow(ctx, card)),
+        ),
+    );
+  }
+
+  async function load() {
+    body.replaceChildren(h("div", { class: "loading", "aria-hidden": "true" }));
+    try {
+      paint(await loadSummary(app, base));
+    } catch (error) {
+      body.replaceChildren(h("p", { class: "error", role: "alert" }, error.message));
+    }
+    app.refreshSending();
+  }
+
+  await load();
 }

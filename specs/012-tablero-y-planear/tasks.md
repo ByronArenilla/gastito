@@ -84,7 +84,7 @@ el mes vacío y copiar el plan.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-5 a RF-11.
 
-## [ ] T5 — Lógica de Planear
+## [x] T5 — Lógica de Planear
 `plan-rows.js`: `rowRequest`, `needsConfirm` y `statementRequest`.
 
 - Test primero (`plan-rows.test.js`):
@@ -100,7 +100,7 @@ el mes vacío y copiar el plan.
 - Hecho cuando: los tests pasan.
 - RF: RF-13 a RF-17.
 
-## [ ] T6 — Pantalla Planear
+## [x] T6 — Pantalla Planear
 Modo Planear en `views/month.js`: renglones como `<fieldset>`, guardado en
 `focusout`, "Añadir ingreso", "Añadir rubro", "Quitar", extractos y
 "Listo".
