@@ -187,10 +187,13 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
     data.cards.map((item) => h("option", { value: item.id }, `${item.name} · corte ${item.cutoff_day}`)),
   );
   const cardRow = field({ id: "record-card", label: "Tarjeta", control: card });
+  // Sin tarjetas, el crédito enlaza a añadir una (spec 012, RF-30).
   const noCards = h(
     "p",
     { class: "row row--block muted" },
-    "Este espacio todavía no tiene tarjetas. Por ahora se crean con la API (README, «Tarjetas»).",
+    "Este espacio todavía no tiene tarjetas. ",
+    h("a", { href: "/tarjetas/nueva" }, "Añade una"),
+    " para registrar compras a crédito.",
   );
 
   const otherInstallments = h("input", {

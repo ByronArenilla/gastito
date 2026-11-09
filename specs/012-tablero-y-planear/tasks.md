@@ -116,7 +116,7 @@ Modo Planear en `views/month.js`: renglones como `<fieldset>`, guardado en
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-12 a RF-18.
 
-## [ ] T7 — Tarjetas: lista, añadir, editar y eliminar
+## [x] T7 — Tarjetas: lista, añadir, editar y eliminar
 `cards.js` (`cardForm`, `cardLine`) y `views/cards.js` con la lista, el
 formulario y eliminar; el enlace de Registrar sin tarjetas.
 
@@ -131,7 +131,7 @@ formulario y eliminar; el enlace de Registrar sin tarjetas.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-19, RF-20, RF-22, RF-30.
 
-## [ ] T8 — Estado de la tarjeta y pagar todo
+## [x] T8 — Estado de la tarjeta y pagar todo
 La pantalla `/tarjetas/<id>` y "Pagar todo" con `payoffText`.
 
 - Test primero (`cards.test.js`): `payoffText` dice la tarjeta, el mes y

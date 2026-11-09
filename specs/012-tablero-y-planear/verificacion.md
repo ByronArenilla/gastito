@@ -37,7 +37,7 @@ computador. Antes de empezar:
 | Un mes vacío ofrece copiar el plan y planear en blanco. | [ ] | [ ] | [x] |
 | Copiar trae el plan y dice qué rubros omitió. | [ ] | [ ] | [x] |
 | Copiar sin plan en el mes anterior muestra el mensaje de la API. | [ ] | [ ] | [x] |
-| Una tarjeta del mes enlaza a su estado; una archivada dice "eliminada". | [ ] | [ ] | [ ] |
+| Una tarjeta del mes enlaza a su estado; una archivada dice "eliminada". | [ ] | [ ] | [x] |
 
 ## Planear (T6)
 
@@ -55,13 +55,13 @@ computador. Antes de empezar:
 
 | Paso | A | I | C |
 |---|---|---|---|
-| Añadir la Visa; un día 32 muestra el mensaje de la API junto al campo. | [ ] | [ ] | [ ] |
-| Editar la tasa. | [ ] | [ ] | [ ] |
-| Eliminar pide confirmación y muestra el mensaje de la API; crearla de nuevo la restaura. | [ ] | [ ] | [ ] |
-| Sin tarjetas, Registrar a crédito enlaza a añadir una. | [ ] | [ ] | [ ] |
-| El estado de la Visa muestra sus compras y sus meses, con el extracto marcado. | [ ] | [ ] | [ ] |
-| Pagar todo pide confirmación, crea los abonos y lo dice. | [ ] | [ ] | [ ] |
-| Pagar todo sin compras muestra el mensaje de la API. | [ ] | [ ] | [ ] |
+| Añadir la Visa; un día 32 muestra el mensaje de la API junto al campo. | [ ] | [ ] | [x] |
+| Editar la tasa. | [ ] | [ ] | [x] |
+| Eliminar pide confirmación y muestra el mensaje de la API; crearla de nuevo la restaura. | [ ] | [ ] | [x] |
+| Sin tarjetas, Registrar a crédito enlaza a añadir una. | [ ] | [ ] | [x] |
+| El estado de la Visa muestra sus compras y sus meses, con el extracto marcado. | [ ] | [ ] | [x] |
+| Pagar todo pide confirmación, crea los abonos y lo dice. | [ ] | [ ] | [x] |
+| Pagar todo sin compras muestra el mensaje de la API. | [ ] | [ ] | [x] |
 
 ## Compras y abonos (T9)
 
