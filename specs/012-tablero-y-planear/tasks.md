@@ -193,7 +193,7 @@ Pasada completa con la sección "Diseño" de esta spec y la de la 011.
   del navegador al abrir sin conexión una pantalla que no se había cargado
   (de la 011; ahora lo dice `screenError`).
 
-## [ ] T12 — ADR 0016
+## [x] T12 — ADR 0016
 `docs/adr/0016-barras-propias-sin-libreria.md`: barras con CSS y
 propiedades fijadas desde JavaScript, compatibles con la CSP, ocultas al
 lector de pantalla con las cifras al lado. Alternativas descartadas:

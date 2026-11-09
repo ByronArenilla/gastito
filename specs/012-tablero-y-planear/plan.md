@@ -21,7 +21,8 @@ El plan tiene seis partes:
 5. **Tarjetas, compras y abonos**.
 6. **Categorías** y los cambios en lo de la 011.
 
-La decisión de no usar una librería de gráficos queda en el ADR 0016.
+La decisión de no usar una librería de gráficos queda en el
+[ADR 0016](../../docs/adr/0016-barras-propias-sin-libreria.md).
 
 ## Decisiones técnicas
 
@@ -29,7 +30,7 @@ La decisión de no usar una librería de gráficos queda en el ADR 0016.
 |---|---|---|
 | Barras | `<div>` con `width` en porcentaje, que calcula `dashboard.js` y se aplica como propiedad CSS (`style.setProperty("--fill", "0.58")`), y CSS con `inline-size: calc(var(--fill) * 100%)` | Decisión 15. Son barras horizontales de una sola medida: no hacen falta ejes, escalas ni SVG. Con la CSP de la 011 (`style-src 'self'`), un atributo `style` escrito en el HTML se bloquea, pero `element.style.setProperty` desde un módulo propio sí está permitido ([MDN, `style-src`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/style-src): los estilos fijados con la propiedad `style` del elemento no se restringen). Se descartó Chart.js: añade una dependencia de 200 KB que habría que servir desde la web (RF-39 de la 011) para dibujar rectángulos. |
 | Accesibilidad de las barras | `aria-hidden="true"` en cada barra; las cifras escritas al lado son el dato | Decisión 15. Una barra no tiene texto que leer, y las cifras ya dicen lo mismo. Así no hace falta una tabla aparte para el lector de pantalla. |
-| Colores de la barra del ingreso | Rubros `--ink`, deudas `--rule-strong`, sin asignar el fondo de la barra (`--rule`); 2 px de separación entre partes | Tres partes y tres tokens que ya existen. `contrast.test.js` comprueba que las partes llenas pasan 3:1 sobre el papel en los dos temas. La separación y la leyenda con montos evitan que el color sea la única pista. |
+| Colores de la barra del ingreso | Rubros `--ink`, deudas `--rule-strong`, sin asignar `--rule`; 2 px de separación entre partes, que es papel | Tres partes y tres tokens que ya existen. `contrast.test.js` comprueba que las partes llenas pasan 3:1 sobre el papel en los dos temas. La separación y la leyenda con montos evitan que el color sea la única pista. |
 | Mes elegido compartido | `app.drafts` con la clave `period` (ya existe `expenses-period`, que pasa a llamarse `period`); `null` significa "el actual" | Decisión 9. En memoria, como el resto del estado de la 011: al abrir la app vuelve al mes actual. |
 | Mes actual | `GET summary` sin `period` y se toma `summary.period` | Decisión 10. La web no calcula fechas propias; el mes anterior y el siguiente salen de `format.js` (`previousPeriod`, `nextPeriod`), que ya existen. |
 | Pantalla de inicio | `homePath(width)` en `routes.js`: `/mes` si `width >= 1024`, si no `/registrar`. `main.js` la usa para `/`, para una ruta desconocida y después de entrar sin ruta pendiente | Decisión 3. El mismo punto de corte que la navegación lateral. Se lee `window.innerWidth` en ese momento: girar el celular después no cambia de pantalla. |
