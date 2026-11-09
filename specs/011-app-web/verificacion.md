@@ -2,11 +2,21 @@
 
 Lista del criterio 5 de la spec. Se marca cada paso en cada navegador.
 Las marcas de **C** se comprobaron con Chromium sin interfaz, conducido por
-su protocolo de depuración, el 2026-11-06: a 390 y 1280 px, en los dos
-temas, con Tab de teclado y sin conexión emulada. "Zoom al 200 %" se
-comprobó como *reflow* a 320 px sin desbordar. Faltan A, I y los pasos
-que piden un lector de pantalla, el menú de compartir del sistema,
-"reducir movimiento" o fijar la app de verdad.
+su protocolo de depuración, el 2026-11-06 y el 2026-11-08: a 390 y 1280 px,
+en los dos temas, con Tab de teclado y sin conexión emulada. "Zoom al
+200 %" se comprobó como *reflow* a 320 px sin desbordar; "reducir
+movimiento", emulando `prefers-reduced-motion`; los estados de carga y
+error, reteniendo o respondiendo `500` a las peticiones a la API. Para
+fijar la app en C, Chrome no reporta errores de instalabilidad
+(`Page.getInstallabilityErrors`), pero falta fijarla de verdad. Faltan A,
+I y los pasos que piden un lector de pantalla o el menú de compartir del
+sistema.
+
+**La 011 se cerró el 2026-11-09 sin las columnas A e I**, por decisión del
+usuario: se marcan cuando la app esté desplegada con HTTPS (019 en
+`docs/roadmap.md`), que es cuando la app fijada se abre a pantalla completa
+en el celular (ADR 0010). Lo que falle entonces se corrige con su propia
+spec o como parte de la 019.
 
 Columnas:
 **A** = Chrome en Android, **I** = Safari en iPhone, **C** = Chrome en el
@@ -57,14 +67,15 @@ computador. Antes de empezar:
 | Cambiar de mes con las flechas. | [ ] | [ ] | [x] |
 | "Solo los míos" filtra. | [ ] | [ ] | [x] |
 | Editar el monto de un gasto. | [ ] | [ ] | [x] |
-| Borrar con el diálogo; Escape cancela. | [ ] | [ ] | [ ] |
+| Borrar con el diálogo; Escape cancela. | [ ] | [ ] |[x] |
+| Una compra con abonos muestra "Borrar gasto" deshabilitado y no abre el diálogo. | [ ] | [ ] | [x] |
 | Un mes vacío ofrece ir a Registrar. | [ ] | [ ] | [x] |
 
 ## Espacio (T10 y T11)
 
 | Paso | A | I | C |
 |---|---|---|---|
-| Compartir abre el menú del sistema (celular) o copia el enlace (computador). | [ ] | [ ] | [ ] |
+| Compartir abre el menú del sistema (celular) o copia el enlace (computador). | [ ] | [ ] |[x] |
 | Abrir el enlace sin sesión, crear cuenta y unirse. | [ ] | [ ] | [x] |
 | Un enlace ya usado muestra el mensaje de la API. | [ ] | [ ] | [x] |
 | Salir de un espacio pide confirmación. | [ ] | [ ] | [x] |
@@ -78,6 +89,6 @@ computador. Antes de empezar:
 | Todo se usa con teclado y el foco siempre se ve. | — | — | [x] |
 | Lector de pantalla (TalkBack o VoiceOver) lee cada campo de Registrar. | [ ] | [ ] | — |
 | Zoom al 200 % sin perder contenido. | — | — | [x] |
-| Con "reducir movimiento", sin transiciones. | [ ] | [ ] | [ ] |
-| Estados de carga, vacío, error y bloqueado en cada pantalla. | [ ] | [ ] | [ ] |
+| Con "reducir movimiento", sin transiciones. | [ ] | [ ] |[x] |
+| Estados de carga, vacío, error y bloqueado en cada pantalla. | [ ] | [ ] |[x] |
 | Ningún emoji, sombra ni degradado; cifras alineadas a la derecha. | [ ] | [ ] | [x] |

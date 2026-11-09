@@ -1,7 +1,7 @@
 # Roadmap — gastito
 
 > **Fase actual:** 1 — Aplicación y SDD
-> **Spec activa:** 011-app-web
+> **Spec activa:** 012-tablero-y-planear
 >
 > Este es el único lugar donde se actualiza el estado del proyecto.
 
@@ -59,7 +59,7 @@ está validada. Marca con [x] las specs terminadas.
     ese total menos los gastos del mes que incluye.
   - Se hace antes de la web, que pasa a ser la 011, y las specs siguientes
     corren un número.
-- [ ] 011-app-web — Entrar y registrarse, registrar gastos desde el celular, fijarla en la pantalla de inicio y diseño responsive.
+- [x] 011-app-web — Entrar y registrarse, registrar gastos desde el celular, fijarla en la pantalla de inicio y diseño responsive.
   - **Se fija desde el navegador, no se instala ni se descarga.** En el
     celular se usa "Añadir a pantalla de inicio" (Safari en iPhone, Chrome
     en Android) y la app enseña esos pasos; en el computador se fija desde
@@ -78,6 +78,9 @@ está validada. Marca con [x] las specs terminadas.
   - **El diseño de la app se fija en esta spec** (dirección "Libro
     auxiliar", elegida en un prototipo nuevo el 2026-11-06), y la 012 lo
     reutiliza.
+  - **Se cerró sin la verificación en el celular (2026-11-09)**, por
+    decisión del usuario: el criterio 5 está hecho en Chrome del computador,
+    y Android e iPhone se verifican con la app desplegada (ver 019).
 - [ ] 012-tablero-y-planear — Tablero del mes, planear el mes y tarjetas, con gráficos para decidir.
   - **Prototipo visual antes de escribir código.** El de la antigua 007
     (2026-11-04) no se conservó; la 011 hizo uno nuevo (2026-11-06). Son
@@ -122,6 +125,10 @@ está validada. Marca con [x] las specs terminadas.
     en el celular abre la web en el navegador y no a pantalla completa
     (ADR 0010). Además, con la app en internet, entrar sin HTTPS enviaría
     la contraseña sin cifrar.
+  - **Pendiente de la 011:** con la app desplegada, completar las columnas
+    A (Chrome en Android) e I (Safari en iPhone) de
+    `specs/011-app-web/verificacion.md`, incluidos el lector de pantalla y
+    fijar la app de verdad.
 
 ## Fase 6 — Ansible + despliegue continuo
 - [ ] 020-configuracion-servidores

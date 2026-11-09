@@ -355,3 +355,10 @@ test("una compra con abonos solo cambia qué fue y categoría (decisión 24)", (
   assert.match(lock.reason, /abonos/);
   assert.equal(lockFor(false), null);
 });
+
+test("una compra con abonos no se puede borrar desde la web (decisión 24, RF-21)", () => {
+  const lock = lockFor(true);
+
+  assert.equal(lock.canDelete, false);
+  assert.match(lock.reason, /borrarla/);
+});

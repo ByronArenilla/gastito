@@ -215,7 +215,7 @@ el aviso sin conexión en `views/notices.js`.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-27, RF-29, RF-30.
 
-## [ ] T12 — Revisión de diseño y accesibilidad
+## [x] T12 — Revisión de diseño y accesibilidad
 Pasada completa con la sección "Diseño" de la spec.
 
 - Test primero: `contrast.test.js` sigue en verde con los valores finales.
@@ -231,7 +231,13 @@ Pasada completa con la sección "Diseño" de la spec.
 - Estado (2026-11-06): hecha en el computador con Chromium sin interfaz; la
   revisión corrigió `hidden` pisado por `display`, el desbordamiento a lo
   ancho, el tamaño de "Volver a Gastos" y la negrita sintética de las
-  cifras. Falta la verificación en Android y en iPhone.
+  cifras. El 2026-11-08 se completó la columna C salvo fijar la app de
+  verdad (borrar con Escape, copiar el enlace, reducir movimiento y los
+  estados en cada pantalla). Falta la verificación en Android y en iPhone.
+- Cerrada el 2026-11-09 por decisión del usuario, con la columna C
+  completa. Las columnas A e I, el lector de pantalla y fijar la app de
+  verdad se hacen cuando la app esté desplegada con HTTPS (019 en
+  `docs/roadmap.md`).
 
 ## [x] T13 — ADR 0015
 `docs/adr/0015-web-sin-framework-sesion-y-pruebas.md`: token en
@@ -244,7 +250,22 @@ días renovable con el uso (cambia RF-8 de la 001), pruebas con `node
 - Hecho cuando: el ADR existe con la plantilla y el plan lo cita.
 - RF: ninguno; principio 4.
 
-## [ ] T14 — Cierre: README y validación
+## [x] T15 — "Borrar gasto" deshabilitado en una compra con abonos
+Surgió en la verificación en el computador (2026-11-08): el botón seguía
+activo y, al confirmar, la API lo rechazaba. La spec lo añade en la
+decisión 24 y RF-21. Va antes del cierre (T14).
+
+- Test primero (`expense-form.test.js`): `lockFor(true)` dice que la compra
+  no se puede borrar; `lockFor(false)` sigue siendo `null`.
+- Código: en `renderEdit` (`views/record.js`), "Borrar gasto" sale con
+  `disabled` cuando hay bloqueo; la nota roja de arriba ya da la razón.
+- Verificación a mano: una compra con abonos muestra "Borrar gasto" en gris
+  y no abre el diálogo; un gasto sin abonos lo sigue borrando.
+- Hecho cuando: los tests pasan y la fila de `verificacion.md` está
+  marcada en el computador.
+- RF: RF-21.
+
+## [x] T14 — Cierre: README y validación
 - `README.md`:
   - "Puesta en marcha" con Node ≥ 22, `make run-web` y la web en
     `http://localhost:8080`;
@@ -261,6 +282,11 @@ días renovable con el uso (cambia RF-8 de la 001), pruebas con `node
 - Hecho cuando: `make test` y `make lint` están en verde y la verificación
   a mano está completa.
 - RF: cierra la spec.
-- Estado (2026-11-06): README hecho y criterios 1 a 4 y 6 en verde. Faltan
+- Estado (2026-11-08): README hecho (corregidos el token de 15 días y la
+  página `/unirse` "que llegará") y criterios 1 a 4 y 6 en verde. Faltan
   la verificación en Android e iPhone (criterio 5) y, después, marcar la
   011 en el roadmap.
+- Cerrada el 2026-11-09 por decisión del usuario: el criterio 5 queda
+  hecho en el computador, y el celular se verifica con la app desplegada
+  (019 en `docs/roadmap.md`). Roadmap actualizado: 011 terminada, 012
+  activa.
