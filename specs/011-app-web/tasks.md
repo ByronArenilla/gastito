@@ -246,6 +246,21 @@ días renovable con el uso (cambia RF-8 de la 001), pruebas con `node
 - Hecho cuando: el ADR existe con la plantilla y el plan lo cita.
 - RF: ninguno; principio 4.
 
+## [x] T15 — "Borrar gasto" deshabilitado en una compra con abonos
+Surgió en la verificación en el computador (2026-11-08): el botón seguía
+activo y, al confirmar, la API lo rechazaba. La spec lo añade en la
+decisión 24 y RF-21. Va antes del cierre (T14).
+
+- Test primero (`expense-form.test.js`): `lockFor(true)` dice que la compra
+  no se puede borrar; `lockFor(false)` sigue siendo `null`.
+- Código: en `renderEdit` (`views/record.js`), "Borrar gasto" sale con
+  `disabled` cuando hay bloqueo; la nota roja de arriba ya da la razón.
+- Verificación a mano: una compra con abonos muestra "Borrar gasto" en gris
+  y no abre el diálogo; un gasto sin abonos lo sigue borrando.
+- Hecho cuando: los tests pasan y la fila de `verificacion.md` está
+  marcada en el computador.
+- RF: RF-21.
+
 ## [ ] T14 — Cierre: README y validación
 - `README.md`:
   - "Puesta en marcha" con Node ≥ 22, `make run-web` y la web en

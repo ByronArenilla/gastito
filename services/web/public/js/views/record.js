@@ -576,6 +576,8 @@ export async function renderEdit(main, app, { id }) {
       type: "button",
       class: "button button--danger button--block",
       "data-sends": true,
+      // Con abonos no se borra (decisión 24): la nota roja de arriba dice por qué.
+      disabled: lock !== null && !lock.canDelete,
       onClick: async () => {
         const confirmed = await app.confirm({
           title: "¿Borrar este gasto?",

@@ -62,6 +62,7 @@ computador. Antes de empezar:
 | "Solo los míos" filtra. | [ ] | [ ] | [x] |
 | Editar el monto de un gasto. | [ ] | [ ] | [x] |
 | Borrar con el diálogo; Escape cancela. | [ ] | [ ] |[x] |
+| Una compra con abonos muestra "Borrar gasto" deshabilitado y no abre el diálogo. | [ ] | [ ] | [x] |
 | Un mes vacío ofrece ir a Registrar. | [ ] | [ ] | [x] |
 
 ## Espacio (T10 y T11)
