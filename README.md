@@ -129,7 +129,7 @@ y caduca tras 90 días sin abrirla. Cerrar sesión la corta al momento.
 
 **Fijar en la pantalla de inicio.** La pestaña Espacio muestra los pasos del
 navegador que estás usando: Safari en iPhone, Chrome en Android, o Chrome o
-Edge en el computador. No se descarga nada. Sin HTTPS (llega con la 019),
+Edge en el computador. No se descarga nada. Sin HTTPS (llega con la 020),
 en el celular el ícono abre la web en el navegador y no a pantalla
 completa; en el computador, `localhost` ya cuenta como seguro.
 
