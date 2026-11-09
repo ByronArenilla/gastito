@@ -3,7 +3,7 @@
 import { cardForm, cardLine, payoffResult, payoffText, purchaseMeta } from "../cards.js";
 import { h } from "../dom.js";
 import { formatPesos, monthName } from "../format.js";
-import { field, formError, OFFLINE_SAVE, setBusy, showErrors } from "./form.js";
+import { field, formError, nameConflict, OFFLINE_SAVE, setBusy, showErrors } from "./form.js";
 
 const MISSING_MESSAGES = {
   name: "Escribe el nombre de la tarjeta.",
@@ -112,7 +112,7 @@ function cardFormView(main, app, card) {
           app.notices.show({ text: `Tarjeta «${saved.name}» guardada.`, seconds: 6 });
           app.navigate(`/tarjetas/${saved.id}`);
         } catch (error) {
-          showErrors(form, error);
+          showErrors(form, nameConflict(error));
           setBusy(submit, false, busyLabel);
         }
       },

@@ -64,6 +64,12 @@ export function showErrors(form, error) {
   (first ?? box)?.focus?.();
 }
 
+/** Un `409` de nombre repetido no trae campo: se muestra junto al nombre
+ * (spec 012, RF-20 y RF-28). */
+export function nameConflict(error) {
+  return error.status === 409 ? { message: error.message, fields: { name: error.message } } : error;
+}
+
 /** Deshabilita el botón mientras se envía, para que dos toques no envíen dos
  * veces (RF-16). */
 export function setBusy(button, busy, busyLabel) {

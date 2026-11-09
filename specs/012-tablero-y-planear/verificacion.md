@@ -77,9 +77,9 @@ computador. Antes de empezar:
 
 | Paso | A | I | C |
 |---|---|---|---|
-| Crear "Mascotas"; un nombre repetido muestra el mensaje de la API. | [ ] | [ ] | [ ] |
-| Eliminarla pide confirmación y muestra el mensaje de la API. | [ ] | [ ] | [ ] |
-| Crearla de nuevo la restaura. | [ ] | [ ] | [ ] |
+| Crear "Mascotas"; un nombre repetido muestra el mensaje de la API. | [ ] | [ ] | [x] |
+| Eliminarla pide confirmación y muestra el mensaje de la API. | [ ] | [ ] | [x] |
+| Crearla de nuevo la restaura. | [ ] | [ ] | [x] |
 
 ## Diseño y accesibilidad (T11)
 

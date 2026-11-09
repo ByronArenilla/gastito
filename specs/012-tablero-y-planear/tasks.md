@@ -162,7 +162,7 @@ en el bloqueo de una compra con abonos.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-24 a RF-27.
 
-## [ ] T10 — Categorías en Espacio
+## [x] T10 — Categorías en Espacio
 `categories.js` y el bloque de categorías en `views/space.js`.
 
 - Test primero (`categories.test.js`): `categoryRequest` quita los espacios
