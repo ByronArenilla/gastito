@@ -19,7 +19,12 @@ const NBSP = " ";
 test("pesos colombianos con punto de miles y sin decimales", () => {
   assert.equal(formatPesos(1240000), `$${NBSP}1.240.000`);
   assert.equal(formatPesos(0), `$${NBSP}0`);
-  assert.equal(formatPesos(-12000), `-$${NBSP}12.000`);
+});
+
+test("un negativo lleva el signo menos tipográfico (Diseño, principio 4)", () => {
+  // U+2212, no el guion: "excedido −40.000" (spec 012, RF-8).
+  assert.equal(formatPesos(-12000), `−$${NBSP}12.000`);
+  assert.equal(formatNumber(-40000), "−40.000");
 });
 
 test("cifra sin símbolo, para el campo del monto", () => {

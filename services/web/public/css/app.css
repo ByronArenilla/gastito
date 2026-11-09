@@ -159,6 +159,13 @@ button {
   max-width: var(--content-wide);
 }
 
+/* `<main>` recibe el foco por código al cambiar de pantalla, para que el
+   lector de pantalla empiece ahí; no es un control, así que no dibuja el
+   anillo de foco alrededor de toda la página. */
+.main:focus {
+  outline: none;
+}
+
 .tabs {
   position: fixed;
   inset: auto 0 0 0;
@@ -801,4 +808,257 @@ dialog::backdrop {
 /* Párrafos seguidos de las pantallas de entrar y unirse. */
 .auth > * + * {
   margin-top: var(--space-3);
+}
+
+/* --- Spec 012: Mes, Planear, Tarjetas y compras --- */
+
+/* Totales del mes: renglones de cifras, el balance con la doble raya. */
+.ledger {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--rule-width) solid var(--ink);
+}
+
+.ledger__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-height: var(--touch);
+  padding: var(--space-2) 0;
+  border-bottom: var(--rule-width) solid var(--rule);
+}
+
+.ledger__row--total {
+  border-bottom: var(--double-rule);
+  font-weight: 600;
+}
+
+.ledger__row--total .figure {
+  font-weight: 500;
+}
+
+/* La barra del ingreso (RF-6): delgada, sin texto, 2 px entre partes. El
+   ancho de cada parte llega como `--grow` desde JavaScript (plan, Barras).
+   La separación es papel: así cada parte llena pasa 3:1 contra lo que toca
+   (contrast.test.js); "sin asignar" es la parte vacía, en `--rule`. */
+.income-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+}
+
+.income-bar__part {
+  flex: var(--grow, 0) 1 0;
+  min-width: 0;
+}
+
+.income-bar__part--items,
+.swatch--items {
+  background: var(--ink);
+}
+
+.income-bar__part--debts,
+.swatch--debts {
+  background: var(--rule-strong);
+}
+
+.income-bar__part--free,
+.swatch--free {
+  background: var(--rule);
+}
+
+.income-bar--over {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+/* Leyenda: muestra, nombre y monto, en el orden de la barra. */
+.legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-1);
+  font-size: 0.9375rem;
+}
+
+.legend li {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+}
+
+/* Una categoría del tablero y sus rubros (RF-7, decisión 8). */
+.category {
+  border-top: var(--rule-width) solid var(--ink);
+}
+
+.category__head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-3) 0 var(--space-1);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0 var(--space-3);
+  border-bottom: var(--rule-width) solid var(--rule);
+}
+
+.item__meter,
+.item__note {
+  grid-column: 1 / -1;
+}
+
+.item__note {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--size-label);
+  font-family: var(--font-figures);
+  color: var(--muted);
+}
+
+/* Medidor de un rubro (RF-8): se llena en tinta; excedido, entero en rojo. */
+.meter {
+  height: 6px;
+  background: var(--rule);
+}
+
+.meter__fill {
+  height: 100%;
+  inline-size: calc(var(--fill, 0) * 100%);
+  background: var(--ink);
+}
+
+.meter--over .meter__fill {
+  background: var(--red);
+}
+
+/* Planear (RF-12 a RF-18): cada renglón es un grupo de campos. */
+.plan-row {
+  margin: 0;
+  padding: var(--space-2) 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.2fr) auto;
+  align-items: end;
+  gap: var(--space-1) var(--space-3);
+}
+
+.plan-row--income {
+  grid-template-columns: minmax(0, 3.4fr) minmax(0, 1.2fr) auto;
+}
+
+.plan-row .input,
+.plan-row .select {
+  border-bottom: var(--rule-width) solid var(--rule-strong);
+}
+
+.plan-row .input:focus-visible,
+.plan-row .select:focus-visible {
+  border-bottom: 2px solid var(--ink);
+}
+
+.plan-row [aria-invalid="true"] {
+  border-bottom: 2px solid var(--red);
+}
+
+.plan-row .figure-input {
+  font-family: var(--font-figures);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.plan-row__status {
+  grid-column: 1 / -1;
+  min-height: 1.2em;
+  font-size: var(--size-label);
+  color: var(--muted);
+}
+
+.plan-row__status--error {
+  color: var(--red);
+}
+
+.plan-row:disabled {
+  opacity: 0.6;
+}
+
+@media (max-width: 639px) {
+  .plan-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .plan-row__name {
+    grid-column: 1 / -1;
+  }
+
+  .plan-row--income {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .plan-row--income .plan-row__name {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Plan de cuotas de una compra (RF-24). */
+.schedule {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-figures);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+}
+
+.schedule th {
+  font-size: var(--size-label);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-align: right;
+  padding: var(--space-2) 0 var(--space-2) var(--space-2);
+  border-bottom: var(--rule-width) solid var(--ink);
+}
+
+.schedule td {
+  text-align: right;
+  padding: var(--space-2) 0 var(--space-2) var(--space-2);
+  border-bottom: var(--rule-width) solid var(--rule);
+  white-space: nowrap;
+}
+
+.schedule th:first-child,
+.schedule td:first-child {
+  text-align: left;
+  padding-left: 0;
+}
+
+.schedule .is-past td {
+  color: var(--muted);
+}
+
+.schedule .is-prepayment td {
+  font-style: italic;
+}
+
+/* La tabla de cuotas se desplaza a lo ancho en un celular angosto, sin
+   desbordar la página. */
+.scroll-x {
+  overflow-x: auto;
 }

@@ -52,7 +52,7 @@ tokens y las fuentes de la 011, a 360 y a 1280 px y en los dos temas.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-1 a RF-4.
 
-## [ ] T3 — Lógica del tablero
+## [x] T3 — Lógica del tablero
 `dashboard.js` con `buildDashboard(summary)`.
 
 - Test primero (`dashboard.test.js`, con el resumen de ejemplo del plan):
@@ -70,7 +70,7 @@ tokens y las fuentes de la 011, a 360 y a 1280 px y en los dos temas.
 - Hecho cuando: los tests pasan.
 - RF: RF-5 a RF-9.
 
-## [ ] T4 — Pantalla Mes
+## [x] T4 — Pantalla Mes
 `views/month.js` (tablero), las barras, medidores y leyenda en `app.css`,
 el mes vacío y copiar el plan.
 

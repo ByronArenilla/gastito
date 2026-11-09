@@ -74,3 +74,25 @@ for (const [name, tokens] of Object.entries(themes())) {
     });
   }
 }
+
+// Barras del Mes (spec 012, sección "Accesibilidad de las barras"). Las partes
+// llenas de la barra del ingreso tocan el papel (la separación de 2 px es
+// papel), y el relleno de un medidor toca su fondo (`--rule`): todos pasan
+// 3:1 (WCAG 1.4.11). La parte "sin asignar" y el fondo del medidor son lo
+// vacío y no lo necesitan.
+const BARS = [
+  ["ink", "paper"], // rubros y relleno del medidor
+  ["rule-strong", "paper"], // deudas
+  ["red", "paper"], // medidor excedido
+  ["ink", "rule"], // relleno del medidor sobre su fondo
+  ["red", "rule"], // relleno excedido sobre su fondo
+];
+
+for (const [name, tokens] of Object.entries(themes())) {
+  for (const [fg, bg] of BARS) {
+    test(`tema ${name}: barra --${fg} sobre --${bg} pasa 3:1`, () => {
+      const ratio = contrast(tokens[fg], tokens[bg]);
+      assert.ok(ratio >= 3, `${ratio.toFixed(2)}:1`);
+    });
+  }
+}

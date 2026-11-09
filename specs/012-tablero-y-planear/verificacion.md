@@ -24,19 +24,19 @@ computador. Antes de empezar:
 | Cinco secciones a 360 px, sin cortar ninguna palabra. | [ ] | [ ] | [x] |
 | A 1280 px, las cinco al costado, apiladas arriba. | — | — | [x] |
 | `/` abre el Mes a 1280 px y Registrar a 390 px. | [ ] | [ ] | [x] |
-| Cambiar de mes en Gastos y abrir el Mes muestra el mismo mes. | [ ] | [ ] | [ ] |
+| Cambiar de mes en Gastos y abrir el Mes muestra el mismo mes. | [ ] | [ ] | [x] |
 
 ## Mes (T4)
 
 | Paso | A | I | C |
 |---|---|---|---|
-| El tablero de noviembre muestra totales, la barra del ingreso con su leyenda y las categorías con sus rubros. | [ ] | [ ] | [ ] |
-| Un rubro excedido dice "excedido −…" en rojo y su medidor se llena en rojo. | [ ] | [ ] | [ ] |
-| Lo no planeado sale como "Sin rubro" en su categoría. | [ ] | [ ] | [ ] |
-| Un plan que supera el ingreso lo dice con el monto. | [ ] | [ ] | [ ] |
-| Un mes vacío ofrece copiar el plan y planear en blanco. | [ ] | [ ] | [ ] |
-| Copiar trae el plan y dice qué rubros omitió. | [ ] | [ ] | [ ] |
-| Copiar sin plan en el mes anterior muestra el mensaje de la API. | [ ] | [ ] | [ ] |
+| El tablero de noviembre muestra totales, la barra del ingreso con su leyenda y las categorías con sus rubros. | [ ] | [ ] | [x] |
+| Un rubro excedido dice "excedido −…" en rojo y su medidor se llena en rojo. | [ ] | [ ] | [x] |
+| Lo no planeado sale como "Sin rubro" en su categoría. | [ ] | [ ] | [x] |
+| Un plan que supera el ingreso lo dice con el monto. | [ ] | [ ] | [x] |
+| Un mes vacío ofrece copiar el plan y planear en blanco. | [ ] | [ ] | [x] |
+| Copiar trae el plan y dice qué rubros omitió. | [ ] | [ ] | [x] |
+| Copiar sin plan en el mes anterior muestra el mensaje de la API. | [ ] | [ ] | [x] |
 | Una tarjeta del mes enlaza a su estado; una archivada dice "eliminada". | [ ] | [ ] | [ ] |
 
 ## Planear (T6)
