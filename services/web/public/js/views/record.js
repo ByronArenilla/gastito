@@ -322,7 +322,16 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
   // --- Enviar ---
   const errors = formError();
   const submit = h("button", { class: "button button--block", type: "submit", "data-sends": true }, submitLabel);
-  const lockNote = locked && h("p", { class: "error" }, locked.reason);
+  // La razón del bloqueo enlaza a los abonos, que se borran desde la compra
+  // (spec 012, RF-27).
+  const lockNote =
+    locked &&
+    h(
+      "p",
+      { class: "error" },
+      locked.reason,
+      locked.link && [" ", h("a", { href: locked.link }, "Ver sus abonos")],
+    );
 
   const element = h(
     "form",
@@ -550,7 +559,7 @@ export async function renderEdit(main, app, { id }) {
   let lock = null;
   if (expense.card_id !== null) {
     const schedule = await app.api.get(`${url}/installments`);
-    lock = lockFor(schedule.prepayments.length > 0);
+    lock = lockFor(schedule.prepayments.length > 0, expense.id);
   }
   const backToList = () => {
     app.drafts.set("period", periodOf(expense.spent_on));
@@ -617,7 +626,14 @@ export async function renderEdit(main, app, { id }) {
       ),
     ),
     controller.element,
-    h("div", { class: "submit" }, remove),
+    h(
+      "div",
+      { class: "submit stack" },
+      // Una compra con tarjeta enlaza a su plan de cuotas y sus abonos (RF-27).
+      expense.card_id !== null &&
+        h("a", { class: "button button--quiet button--block", href: `/compras/${expense.id}` }, "Ver cuotas y abonos"),
+      remove,
+    ),
   );
   controller.focus();
 }

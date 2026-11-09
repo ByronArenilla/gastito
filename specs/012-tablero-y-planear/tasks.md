@@ -143,7 +143,7 @@ La pantalla `/tarjetas/<id>` y "Pagar todo" con `payoffText`.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-21, RF-23.
 
-## [ ] T9 — Compras con tarjeta y abonos
+## [x] T9 — Compras con tarjeta y abonos
 `purchases.js` y `views/purchase.js`: plan de cuotas, abonar con
 "Deshacer", borrar un abono; "Ver cuotas y abonos" desde Gastos y el enlace
 en el bloqueo de una compra con abonos.

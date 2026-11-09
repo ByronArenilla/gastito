@@ -1017,28 +1017,30 @@ dialog::backdrop {
 }
 
 /* Plan de cuotas de una compra (RF-24). */
+/* 12 px (el tamaño de rótulo) y poco espacio entre columnas: las seis caben
+   en 320 px, así el saldo se ve sin desplazar a lo ancho en el celular. */
 .schedule {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-figures);
   font-variant-numeric: tabular-nums;
-  font-size: 0.875rem;
+  font-size: var(--size-label);
 }
 
 .schedule th {
   font-size: var(--size-label);
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   color: var(--muted);
   text-align: right;
-  padding: var(--space-2) 0 var(--space-2) var(--space-2);
+  padding: var(--space-2) 0 var(--space-2) var(--space-1);
   border-bottom: var(--rule-width) solid var(--ink);
 }
 
 .schedule td {
   text-align: right;
-  padding: var(--space-2) 0 var(--space-2) var(--space-2);
+  padding: var(--space-2) 0 var(--space-2) var(--space-1);
   border-bottom: var(--rule-width) solid var(--rule);
   white-space: nowrap;
 }

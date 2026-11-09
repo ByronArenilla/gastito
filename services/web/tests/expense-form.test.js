@@ -362,3 +362,9 @@ test("una compra con abonos no se puede borrar desde la web (decisión 24, RF-21
   assert.equal(lock.canDelete, false);
   assert.match(lock.reason, /borrarla/);
 });
+
+test("el bloqueo enlaza a los abonos de la compra (spec 012, RF-27)", () => {
+  const lock = lockFor(true, 7);
+
+  assert.equal(lock.link, "/compras/7");
+});

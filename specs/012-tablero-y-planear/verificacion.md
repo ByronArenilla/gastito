@@ -67,11 +67,11 @@ computador. Antes de empezar:
 
 | Paso | A | I | C |
 |---|---|---|---|
-| Abonar a la "Compra TV" bajando el plazo dice el efecto ("termina en …"). | [ ] | [ ] | [ ] |
-| "Deshacer" borra el abono. | [ ] | [ ] | [ ] |
-| Abonar bajando la cuota dice la cuota nueva. | [ ] | [ ] | [ ] |
-| Borrar un abono pide confirmación y recalcula el plan. | [ ] | [ ] | [ ] |
-| Desde el gasto en Gastos, "Ver cuotas y abonos" abre la compra; el bloqueo enlaza a ella. | [ ] | [ ] | [ ] |
+| Abonar a la "Compra TV" bajando el plazo dice el efecto ("termina en …"). | [ ] | [ ] | [x] |
+| "Deshacer" borra el abono. | [ ] | [ ] | [x] |
+| Abonar bajando la cuota dice la cuota nueva. | [ ] | [ ] | [x] |
+| Borrar un abono pide confirmación y recalcula el plan. | [ ] | [ ] | [x] |
+| Desde el gasto en Gastos, "Ver cuotas y abonos" abre la compra; el bloqueo enlaza a ella. | [ ] | [ ] | [x] |
 
 ## Categorías (T10)
 
