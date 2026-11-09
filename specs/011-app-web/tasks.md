@@ -215,7 +215,7 @@ el aviso sin conexión en `views/notices.js`.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-27, RF-29, RF-30.
 
-## [ ] T12 — Revisión de diseño y accesibilidad
+## [x] T12 — Revisión de diseño y accesibilidad
 Pasada completa con la sección "Diseño" de la spec.
 
 - Test primero: `contrast.test.js` sigue en verde con los valores finales.
@@ -234,6 +234,10 @@ Pasada completa con la sección "Diseño" de la spec.
   cifras. El 2026-11-08 se completó la columna C salvo fijar la app de
   verdad (borrar con Escape, copiar el enlace, reducir movimiento y los
   estados en cada pantalla). Falta la verificación en Android y en iPhone.
+- Cerrada el 2026-11-09 por decisión del usuario, con la columna C
+  completa. Las columnas A e I, el lector de pantalla y fijar la app de
+  verdad se hacen cuando la app esté desplegada con HTTPS (019 en
+  `docs/roadmap.md`).
 
 ## [x] T13 — ADR 0015
 `docs/adr/0015-web-sin-framework-sesion-y-pruebas.md`: token en
@@ -261,7 +265,7 @@ decisión 24 y RF-21. Va antes del cierre (T14).
   marcada en el computador.
 - RF: RF-21.
 
-## [ ] T14 — Cierre: README y validación
+## [x] T14 — Cierre: README y validación
 - `README.md`:
   - "Puesta en marcha" con Node ≥ 22, `make run-web` y la web en
     `http://localhost:8080`;
@@ -282,3 +286,7 @@ decisión 24 y RF-21. Va antes del cierre (T14).
   página `/unirse` "que llegará") y criterios 1 a 4 y 6 en verde. Faltan
   la verificación en Android e iPhone (criterio 5) y, después, marcar la
   011 en el roadmap.
+- Cerrada el 2026-11-09 por decisión del usuario: el criterio 5 queda
+  hecho en el computador, y el celular se verifica con la app desplegada
+  (019 en `docs/roadmap.md`). Roadmap actualizado: 011 terminada, 012
+  activa.

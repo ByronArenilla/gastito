@@ -12,6 +12,12 @@ fijar la app en C, Chrome no reporta errores de instalabilidad
 I y los pasos que piden un lector de pantalla o el menú de compartir del
 sistema.
 
+**La 011 se cerró el 2026-11-09 sin las columnas A e I**, por decisión del
+usuario: se marcan cuando la app esté desplegada con HTTPS (019 en
+`docs/roadmap.md`), que es cuando la app fijada se abre a pantalla completa
+en el celular (ADR 0010). Lo que falle entonces se corrige con su propia
+spec o como parte de la 019.
+
 Columnas:
 **A** = Chrome en Android, **I** = Safari en iPhone, **C** = Chrome en el
 computador. Antes de empezar:
