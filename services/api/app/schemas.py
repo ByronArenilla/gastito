@@ -621,6 +621,9 @@ class CategorySummaryOut(BaseModel):
     spent: int
     # Solo salen eliminadas si tienen rubros o gastos en el mes (decisión 18).
     deleted: bool
+    # Spec 013: lo retirado del ahorro en el mes, solo en la categoría Ahorro;
+    # `spent` ya lo descuenta (RF-36).
+    withdrawn: int = 0
 
 
 class TotalSummaryOut(BaseModel):
@@ -639,6 +642,9 @@ class TotalSummaryOut(BaseModel):
     # Ingresos menos planeado, y ingresos menos gastado: pueden ser negativos.
     unassigned: int
     balance: int
+    # Spec 013: lo retirado del ahorro en el mes. `spent` y `balance` ya lo
+    # descuentan; `spent_unplanned`, no (RF-36).
+    withdrawn: int = 0
 
 
 class DebtInstallmentOut(BaseModel):

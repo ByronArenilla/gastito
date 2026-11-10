@@ -16,6 +16,7 @@ from app.models import (
     Expense,
     Income,
     Prepayment,
+    SavingsWithdrawal,
     Space,
     User,
     utc_now,
@@ -202,6 +203,7 @@ def test_the_summary_of_the_month(
             "planned": 1_500_000,
             "spent": 1_500_000,
             "deleted": False,
+            "withdrawn": 0,
         },
         {
             "category_id": november["comida"].id,
@@ -209,6 +211,7 @@ def test_the_summary_of_the_month(
             "planned": 800_000,
             "spent": 822_000,
             "deleted": False,
+            "withdrawn": 0,
         },
         {
             "category_id": november["transporte"].id,
@@ -216,6 +219,7 @@ def test_the_summary_of_the_month(
             "planned": 0,
             "spent": 38_000,
             "deleted": False,
+            "withdrawn": 0,
         },
         {
             "category_id": november["salud"].id,
@@ -223,6 +227,7 @@ def test_the_summary_of_the_month(
             "planned": 0,
             "spent": 0,
             "deleted": False,
+            "withdrawn": 0,
         },
     ]
     assert summary["total"] == {
@@ -235,6 +240,7 @@ def test_the_summary_of_the_month(
         "spent": 2_360_000,
         "unassigned": 2_700_000,
         "balance": 2_640_000,
+        "withdrawn": 0,
     }
 
 
@@ -290,6 +296,7 @@ def test_a_month_without_plan_is_empty_and_creates_nothing(
         "spent": 0,
         "unassigned": 0,
         "balance": 0,
+        "withdrawn": 0,
     }
     assert session.scalar(select(func.count()).select_from(BudgetItem)) == 2
     assert session.scalar(select(func.count()).select_from(Income)) == 1
@@ -531,6 +538,7 @@ def test_december_debts_of_the_visa(session: Session, space: Space, visa: dict) 
         "spent": 1_922_800,
         "unassigned": 3_077_200,
         "balance": 3_077_200,
+        "withdrawn": 0,
     }
 
 
@@ -804,6 +812,7 @@ def test_december_separates_month_expenses_from_debts(
         "spent": 372_800,
         "unassigned": 4_627_200,
         "balance": 4_627_200,
+        "withdrawn": 0,
     }
 
 
@@ -858,3 +867,87 @@ def test_the_name_of_a_month_expense(
     assert names[month_and_debts["mercado"].id] == "Mercado"
     assert names[described.id] == "Éxito"
     assert names[by_category.id] == "Comida"
+
+
+# --- Retiros de ahorro (spec 013, RF-36) ---
+
+
+def test_a_withdrawal_is_subtracted_from_ahorro_and_from_spent(
+    session: Session, space: Space, user: User
+) -> None:
+    # Agosto: Sueldo 6.500.000; rubro Ahorro de 500.000 apartado entero; una
+    # urgencia de 200.000 sin rubro, cubierta con un retiro de 200.000.
+    august = date(2026, 8, 1)
+    ahorro = add_category(session, space, "Ahorro")
+    salud = add_category(session, space, "Salud")
+    add_income(session, space, "Sueldo", 6_500_000, august)
+    item = add_item(session, ahorro, "Ahorro", 500_000, august)
+    spend(session, user, 500_000, date(2026, 8, 3), item=item)
+    spend(session, user, 200_000, date(2026, 8, 14), category=salud)
+    session.add(
+        SavingsWithdrawal(
+            space_id=space.id,
+            spent_on=date(2026, 8, 14),
+            amount=200_000,
+            created_by=user.id,
+        )
+    )
+    session.flush()
+
+    summary = build_summary(session, space.id, "2026-08")
+
+    by_name = {row.name: row for row in summary.categories}
+    # Ahorro muestra lo apartado menos lo retirado, con lo retirado aparte.
+    assert (by_name["Ahorro"].spent, by_name["Ahorro"].withdrawn) == (300_000, 200_000)
+    assert (by_name["Salud"].spent, by_name["Salud"].withdrawn) == (200_000, 0)
+    # El rubro sigue con lo apartado: el retiro no es un gasto de ese rubro.
+    assert summary.budget_items[0].spent == 500_000
+    total = summary.total
+    assert total.withdrawn == 200_000
+    # Lo no planeado no cambia: la urgencia sigue siendo no planeada.
+    assert total.spent_unplanned == 200_000
+    assert total.spent_planned == 500_000
+    # 500.000 + 200.000 − 200.000: el retiro cubrió la urgencia.
+    assert total.spent == 500_000
+    assert total.balance == 6_000_000
+
+
+def test_a_month_without_withdrawals_has_none(
+    session: Session, space: Space, november: dict
+) -> None:
+    summary = build_summary(session, space.id, "2026-11")
+
+    assert summary.total.withdrawn == 0
+    assert all(row.withdrawn == 0 for row in summary.categories)
+
+
+def test_a_withdrawal_of_another_month_or_space_does_not_count(
+    session: Session, space: Space, user: User
+) -> None:
+    other = Space(name="Otro")
+    session.add(other)
+    session.flush()
+    ahorro = add_category(session, space, "Ahorro")
+    spend(session, user, 300_000, date(2026, 8, 3), category=ahorro)
+    session.add_all(
+        [
+            SavingsWithdrawal(
+                space_id=space.id,
+                spent_on=date(2026, 7, 31),
+                amount=100_000,
+                created_by=user.id,
+            ),
+            SavingsWithdrawal(
+                space_id=other.id,
+                spent_on=date(2026, 8, 10),
+                amount=100_000,
+                created_by=user.id,
+            ),
+        ]
+    )
+    session.flush()
+
+    summary = build_summary(session, space.id, "2026-08")
+
+    assert summary.total.withdrawn == 0
+    assert summary.categories[0].spent == 300_000

@@ -96,7 +96,7 @@ gastos.
   (`FOR UPDATE`) mientras deciden. `dates.month_label` da "agosto de 2026"
   para los mensajes.
 
-## [ ] T5 — API: el resumen con los retiros
+## [x] T5 — API: el resumen con los retiros
 `withdrawn` en `CategorySummaryOut` y `TotalSummaryOut`, y el descuento en
 `build_summary`.
 
@@ -107,6 +107,9 @@ gastos.
   verde).
 - Hecho cuando: los tests pasan.
 - RF: RF-36 (datos).
+- Estado (2026-11-10): hecha. `withdrawn` vale 0 por defecto, así que el
+  resumen de un mes sin retiros es el mismo de antes con un campo más; los
+  tests que comparaban el resumen completo lo incluyen.
 
 ## [ ] T6 — API: ruta, mes, ventana y "¿Estoy ahorrando?"
 `requested_report_period` y `requested_window` en `deps.py`;

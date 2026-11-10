@@ -557,6 +557,7 @@ def test_users_in_different_spaces_cannot_touch_each_others_plan(
             "spent": 30_000,
             "unassigned": 4_200_000,
             "balance": 4_970_000,
+            "withdrawn": 0,
         }
     with Session(engine) as db:
         assert (
