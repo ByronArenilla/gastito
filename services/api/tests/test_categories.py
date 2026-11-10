@@ -14,7 +14,17 @@ Login = Callable[..., dict[str, str]]
 SharedSpace = tuple[int, dict[str, str], dict[str, str]]
 
 # Spec 002, decisión 1.
-DEFAULTS = ["Hogar", "Comida", "Transporte", "Salud", "Servicios", "Ocio", "Otros"]
+# "Ahorro" va al final desde la spec 013 (decisión 21, RF-29).
+DEFAULTS = [
+    "Hogar",
+    "Comida",
+    "Transporte",
+    "Salud",
+    "Servicios",
+    "Ocio",
+    "Otros",
+    "Ahorro",
+]
 
 
 def stored_categories(engine: Engine, space_id: int) -> list[Category]:
@@ -420,18 +430,19 @@ def test_names_compare_without_case_or_accents_when_restoring(
 def test_an_active_name_still_clashes_and_enye_still_counts(
     client: TestClient, login: Login
 ) -> None:
-    # Criterio 15: "ahorro" choca con "Ahorro" activa; "Año" y "Ano" conviven
-    # aunque una de las dos esté eliminada.
+    # Criterio 15: "mascotas" choca con "Mascotas" activa; "Año" y "Ano"
+    # conviven aunque una de las dos esté eliminada. (Con "Ahorro" ya no se
+    # puede probar: desde la 013 es predefinida.)
     ana = login("ana@example.com")
     space_id = personal_space(client, ana)
-    create_category(client, ana, space_id, "Ahorro")
+    create_category(client, ana, space_id, "Mascotas")
     ano = create_category(client, ana, space_id, "Año").json()["id"]
     delete_category(client, ana, space_id, ano)
 
-    clash = create_category(client, ana, space_id, "ahorro")
+    clash = create_category(client, ana, space_id, "mascotas")
     other = create_category(client, ana, space_id, "Ano")
 
     assert clash.status_code == 409
-    assert "«Ahorro»" in clash.json()["detail"]
+    assert "«Mascotas»" in clash.json()["detail"]
     assert other.status_code == 201
     assert other.json()["id"] != ano

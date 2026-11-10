@@ -54,7 +54,7 @@ Las tintas del prototipo en `tokens.css`, claro y oscuro, y las clases
   vecinas con las matrices de Machado, Oliveira y Fernandes (2009). El par
   más justo es ciruela–pizarra en el tema oscuro (8,2 con protanopía).
 
-## [ ] T3 — API: categoría Ahorro
+## [x] T3 — API: categoría Ahorro
 "Ahorro" al final de `DEFAULT_CATEGORIES` y la migración
 `0006_savings_category`.
 
@@ -65,6 +65,10 @@ Las tintas del prototipo en `tokens.css`, claro y oscuro, y las clases
     migrar dos veces no cambia nada.
 - Hecho cuando: los tests pasan.
 - RF: RF-29, RF-30.
+- Estado (2026-11-10): hecha. Los tests de migraciones que comparaban toda
+  la tabla `categories` ahora comparan las filas que ya existían (`kept`):
+  la 0006 añade una. El test de nombres que chocan usa "Mascotas", porque
+  "Ahorro" ya es predefinida.
 
 ## [ ] T4 — API: retiros de ahorro
 Modelo `SavingsWithdrawal`, migración `0007_savings_withdrawals`,

@@ -24,7 +24,7 @@ from app.db import (
 from app.models import Base
 from tests import old_schemas
 
-HEAD = "0005"
+HEAD = "0006"
 
 
 @pytest.fixture
@@ -70,6 +70,24 @@ def snapshot(engine: Engine, columns: dict[str, list[str]]) -> dict[str, list]:
         }
 
 
+def kept(
+    engine: Engine, columns: dict[str, list[str]], before: dict[str, list]
+) -> dict[str, list]:
+    """Las filas que había antes de migrar, tal como están ahora.
+
+    Ninguna migración cambia ni borra filas (RF-35 de la 008); la 0006 sí
+    añade una categoría "Ahorro" por espacio (RF-30 de la 013), así que las
+    filas nuevas no cuentan aquí: las prueba su propio test.
+    """
+    after = snapshot(engine, columns)
+    result = {}
+    for table, old_rows in before.items():
+        position = columns[table].index("id")
+        ids = {row[position] for row in old_rows}
+        result[table] = [row for row in after[table] if row[position] in ids]
+    return result
+
+
 def preserved_columns(engine: Engine) -> dict[str, list[str]]:
     inspector = inspect(engine)
     return {
@@ -100,7 +118,7 @@ def test_migrating_twice_changes_nothing(file_engine: Engine) -> None:
     run_migrations(file_engine)
 
     assert version(file_engine) == HEAD
-    assert snapshot(file_engine, columns) == before
+    assert kept(file_engine, columns, before) == before
     assert schema_diff(file_engine) == []
 
 
@@ -126,7 +144,7 @@ def test_a_database_from_the_007_is_adopted_without_losing_data(
     run_migrations(file_engine)
 
     assert version(file_engine) == HEAD
-    assert snapshot(file_engine, columns) == before
+    assert kept(file_engine, columns, before) == before
     assert not tables(file_engine) & old_schemas.TELEGRAM_TABLES
     assert schema_diff(file_engine) == []
 
@@ -141,7 +159,10 @@ def test_existing_categories_stay_active_and_expenses_unplanned(
     run_migrations(file_engine)
 
     with file_engine.connect() as connection:
-        deleted = connection.execute(text("SELECT deleted_at FROM categories")).all()
+        # Solo la que ya existía: la 0006 añade "Ahorro" (spec 013).
+        deleted = connection.execute(
+            text("SELECT deleted_at FROM categories WHERE id = 1")
+        ).all()
         items = connection.execute(text("SELECT budget_item_id FROM expenses")).all()
     assert deleted == [(None,)]
     assert items == [(None,)]
@@ -157,7 +178,7 @@ def test_a_database_from_the_003_gets_the_tables_it_lacks(
     run_migrations(file_engine)
 
     assert version(file_engine) == HEAD
-    assert snapshot(file_engine, columns) == before
+    assert kept(file_engine, columns, before) == before
     assert schema_diff(file_engine) == []
 
 
@@ -255,7 +276,7 @@ def test_each_budget_with_an_amount_becomes_an_item_of_its_month(
     # La fila que quitaba el presupuesto no crea nada.
     assert rows(file_engine, "SELECT budget_item_id FROM expenses") == [(None,)]
     assert "budgets" not in tables(file_engine)
-    assert snapshot(file_engine, columns) == before
+    assert kept(file_engine, columns, before) == before
     assert schema_diff(file_engine) == []
 
 
@@ -327,7 +348,7 @@ def test_existing_expenses_stay_without_card(file_engine: Engine) -> None:
 
     run_migrations(file_engine)
 
-    assert snapshot(file_engine, columns) == before
+    assert kept(file_engine, columns, before) == before
     assert rows(
         file_engine,
         "SELECT id, payment_type, card_id, installments, first_due_start"
@@ -407,7 +428,7 @@ def test_existing_card_purchases_become_debts(file_engine: Engine) -> None:
     run_migrations(file_engine)
 
     assert version(file_engine) == HEAD
-    assert snapshot(file_engine, columns) == before
+    assert kept(file_engine, columns, before) == before
     assert rows(file_engine, "SELECT id, is_debt FROM expenses ORDER BY id") == [
         (1, None),
         (2, 1),
@@ -464,3 +485,58 @@ def test_a_migration_that_breaks_a_foreign_key_fails(file_engine: Engine) -> Non
             check_sqlite_foreign_keys(connection)
 
         set_sqlite_foreign_keys(connection, enabled=True)
+
+
+# --- Categoría Ahorro (spec 013, RF-30) ---
+
+
+SPACE_ROWS = [
+    "INSERT INTO spaces (id, name, created_at)"
+    " VALUES (2, 'Casa', '2026-09-01 10:00:00')",
+    "INSERT INTO spaces (id, name, created_at)"
+    " VALUES (3, 'Viaje', '2026-09-01 10:00:00')",
+    # Casa ya tiene "ahorro" activa, escrita de otra forma.
+    "INSERT INTO categories (id, space_id, name, name_key, created_at)"
+    " VALUES (2, 2, 'AHORRO', 'ahorro', '2026-09-02 10:00:00')",
+    # Viaje la tiene archivada: quien la archivó decidió no usarla.
+    "INSERT INTO categories (id, space_id, name, name_key, created_at,"
+    " deleted_at) VALUES (3, 3, 'Ahorro', 'ahorro', '2026-09-02 10:00:00',"
+    " '2026-09-03 10:00:00')",
+]
+
+
+def savings_categories(engine: Engine) -> list:
+    return rows(
+        engine,
+        "SELECT space_id, name, deleted_at IS NULL FROM categories"
+        " WHERE name_key = 'ahorro' ORDER BY space_id",
+    )
+
+
+def test_the_0006_adds_ahorro_only_to_spaces_without_it(file_engine: Engine) -> None:
+    execute(file_engine, old_schemas.SCHEMA_007 + old_schemas.BASE_ROWS)
+    migrate_to(file_engine, "0005")
+    execute(file_engine, SPACE_ROWS)
+    columns = preserved_columns(file_engine)
+    before = snapshot(file_engine, columns)
+
+    run_migrations(file_engine)
+
+    # Personal no la tenía: la recibe, activa. Casa y Viaje quedan como
+    # estaban, sin otra.
+    assert savings_categories(file_engine) == [
+        (1, "Ahorro", 1),
+        (2, "AHORRO", 1),
+        (3, "Ahorro", 0),
+    ]
+    assert kept(file_engine, columns, before) == before
+    assert schema_diff(file_engine) == []
+
+
+def test_migrating_twice_adds_ahorro_once(file_engine: Engine) -> None:
+    execute(file_engine, old_schemas.SCHEMA_007 + old_schemas.BASE_ROWS)
+
+    run_migrations(file_engine)
+    run_migrations(file_engine)
+
+    assert savings_categories(file_engine) == [(1, "Ahorro", 1)]
