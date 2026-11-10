@@ -110,3 +110,42 @@ def requested_period(period: str | None = None) -> str:
     except ValueError:
         raise INVALID_PERIOD from None
     return period
+
+
+# --- Reportes (spec 013) ---
+
+NOT_CLOSED_PERIOD = HTTPException(
+    status.HTTP_422_UNPROCESSABLE_CONTENT, "Elige un mes ya cerrado."
+)
+INVALID_WINDOW = HTTPException(
+    status.HTTP_422_UNPROCESSABLE_CONTENT,
+    "La ventana debe ser de 1, 3, 6 o 12 meses.",
+)
+WINDOWS = {"1": 1, "3": 3, "6": 6, "12": 12}
+
+
+def requested_report_period(period: str | None = None) -> str:
+    """Mes `?period=YYYY-MM` de los reportes, por defecto el anterior al
+    actual en `TZ`. Solo un mes ya cerrado (RF-3): el actual está a medias y
+    lo muestra "Este mes"."""
+    current = dates.period_of(dates.today())
+    if period is None:
+        return dates.previous_period(current)
+    try:
+        dates.period_bounds(period)
+    except ValueError:
+        raise INVALID_PERIOD from None
+    if period >= current:
+        raise NOT_CLOSED_PERIOD
+    return period
+
+
+def requested_window(months: str | None = None) -> int:
+    """Ventana `?months=` de "¿Estoy ahorrando?": 1, 3, 6 o 12, por defecto 1
+    (RF-2, RF-5). Se recibe como texto para responder en español también a
+    `?months=abc`; con `int`, FastAPI respondería con su mensaje en inglés."""
+    if months is None:
+        return 1
+    if months not in WINDOWS:
+        raise INVALID_WINDOW
+    return WINDOWS[months]

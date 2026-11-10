@@ -1081,3 +1081,100 @@ class WithdrawalOut(BaseModel):
     description: str | None
     created_by: int
     created_at: datetime
+
+
+# --- Reportes (spec 013) ---
+
+
+class SpendingLineOut(BaseModel):
+    # Una categoría, o la línea "Cuotas de tarjetas" (decisión 12).
+    kind: Literal["category", "debts"]
+    category_id: int | None
+    name: str
+    deleted: bool
+    total: int
+    # Parte del total, con el método del resto mayor: suman 100 (RF-6).
+    share: int
+
+
+class SpendingOut(BaseModel):
+    """¿En qué se me va la plata? en el mes elegido (RF-14, RF-15, RF-31)."""
+
+    # Lo gastado sin la categoría Ahorro.
+    total: int
+    unplanned: int
+    unplanned_share: int | None
+    # Lo apartado y lo retirado en Ahorro, aparte (decisión 22).
+    saved: int
+    withdrawn: int
+    lines: list[SpendingLineOut]
+
+
+class PlanningRowOut(BaseModel):
+    # Un rubro, o lo gastado sin rubro en una categoría (decisión 19).
+    kind: Literal["item", "unplanned"]
+    name: str
+    category: str
+    category_id: int
+    planned: int
+    spent: int
+    # Lo gastado menos lo planeado: positivo si se pasó.
+    diff: int
+
+
+class PlanningOut(BaseModel):
+    """¿Planeo bien? en el mes elegido, sin Ahorro (RF-18 a RF-20)."""
+
+    items: list[PlanningRowOut]
+
+
+class WindowOut(BaseModel):
+    months: int
+    periods: list[str]
+
+
+class SavingsMonthOut(BaseModel):
+    period: str
+    # Sin ingresos ni gastos: no cuenta en promedios (decisión 14).
+    empty: bool
+    # Ingreso de referencia: el del mes o el del último anterior con ingresos.
+    income: int
+    income_estimated: bool
+    # Lo apartado en Ahorro, sin descontar retiros; lo retirado; lo planeado
+    # en Ahorro; lo que quedó sin gastar, y lo ahorrado (decisión 24).
+    saved: int
+    withdrawn: int
+    saved_planned: int
+    left: int
+    total: int
+    share: int | None
+
+
+class SavingsAverageOut(BaseModel):
+    total: int
+    share: int | None
+
+
+class SavingsOut(BaseModel):
+    """¿Estoy ahorrando? en la ventana que termina en el mes (RF-21 a RF-23)."""
+
+    window: WindowOut
+    months: list[SavingsMonthOut]
+    # Con menos de dos meses con datos, nulos.
+    average: SavingsAverageOut | None
+    best: str | None
+    worst: str | None
+    # Meses con algo planeado en Ahorro, y en cuántos se apartó al menos eso.
+    planned_months: int
+    met_months: int
+
+
+class ReportsOut(BaseModel):
+    current: str
+    period: str
+    # Primer mes con ingresos, rubros o gastos: el selector no va antes.
+    first_period: str | None
+    has_data: bool
+    spending: SpendingOut
+    planning: PlanningOut
+    savings: SavingsOut

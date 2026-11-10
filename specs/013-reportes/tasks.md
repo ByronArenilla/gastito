@@ -111,7 +111,7 @@ gastos.
   resumen de un mes sin retiros es el mismo de antes con un campo más; los
   tests que comparaban el resumen completo lo incluyen.
 
-## [ ] T6 — API: ruta, mes, ventana y "¿Estoy ahorrando?"
+## [x] T6 — API: ruta, mes, ventana y "¿Estoy ahorrando?"
 `requested_report_period` y `requested_window` en `deps.py`;
 `app/reports.py` con `window_periods`, `rounded_div`, `percent`,
 `reference_income`, `incomes_by_period`, `first_period` y el reporte de
@@ -132,6 +132,10 @@ tarea); `routers/reports.py` y su registro en `main.py`.
   - `rounded_div` con el medio exacto, positivo y negativo.
 - Hecho cuando: los tests pasan.
 - RF: RF-3, RF-5, RF-6, RF-21 a RF-23.
+- Estado (2026-11-10): hecha. Un mes mal escrito responde con el mensaje de
+  formato de siempre ("El periodo debe tener el formato AAAA-MM…"), y uno
+  actual o futuro con "Elige un mes ya cerrado.". Un mes vacío de la
+  ventana sale con todo en 0 y `share` nulo.
 
 ## [ ] T7 — API: "¿En qué se me va la plata?"
 `spending_report` y `split_percent`.
