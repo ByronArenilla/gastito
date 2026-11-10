@@ -896,6 +896,42 @@ dialog::backdrop {
   height: 10px;
 }
 
+/* Tintas de libro (spec 013, RF-17): la tinta de cada categoría en los
+   reportes, en el orden de tokens.css. "Cuotas de tarjetas" va en la tinta
+   del texto: el gris de las deudas del Mes se confundía con la pizarra y
+   con "Otras" (plan 013). El nombre va siempre escrito al lado. */
+.tint-1 {
+  background: var(--tint-1);
+}
+
+.tint-2 {
+  background: var(--tint-2);
+}
+
+.tint-3 {
+  background: var(--tint-3);
+}
+
+.tint-4 {
+  background: var(--tint-4);
+}
+
+.tint-5 {
+  background: var(--tint-5);
+}
+
+.tint-6 {
+  background: var(--tint-6);
+}
+
+.tint-other {
+  background: var(--tint-other);
+}
+
+.tint-debts {
+  background: var(--ink);
+}
+
 /* Una categoría del tablero y sus rubros (RF-7, decisión 8). */
 .category {
   border-top: var(--rule-width) solid var(--ink);

@@ -51,6 +51,17 @@
   --red: #a8241c;         /* doble raya, excedido y errores */
   --muted: #566273;       /* rótulos y texto secundario */
   --focus: #18233a;       /* anillo de foco */
+
+  /* Tintas de libro (spec 013): categorías de los reportes, en este orden
+     fijo. Apagadas, con 3:1 sobre el papel, y alternando claras y oscuras
+     entre vecinas para que se distingan también con daltonismo. */
+  --tint-1: #1e457f;      /* azul de Prusia */
+  --tint-2: #406a49;      /* verde botella */
+  --tint-3: #a77f45;      /* ocre */
+  --tint-4: #7e4626;      /* óxido */
+  --tint-5: #591f54;      /* ciruela */
+  --tint-6: #3a5c74;      /* pizarra */
+  --tint-other: #7c837a;  /* "Otras": gris de renglón oscurecido hasta 3:1 */
 }
 
 /* Tema oscuro: libro de noche. No es el claro invertido: el papel pasa a azul
@@ -65,6 +76,15 @@
     --red: #ff8a7e;
     --muted: #9aa8b9;
     --focus: #e3e9df;
+
+    /* Las mismas tintas aclaradas para el papel azul tinta, no invertidas. */
+    --tint-1: #8fb5dc;
+    --tint-2: #548c75;
+    --tint-3: #d7ba79;
+    --tint-4: #bb7a60;
+    --tint-5: #dc9fde;
+    --tint-6: #879fa8;
+    --tint-other: #6c6f6d;
   }
 }
 
