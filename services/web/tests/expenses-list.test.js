@@ -73,3 +73,50 @@ test("sin descripción ni rubro, el nombre es la categoría", () => {
 
   assert.equal(describeExpense(plain, NAMES, 1).name, "Transporte");
 });
+
+// --- Retiros de ahorro en la lista (spec 013, RF-35) ---
+
+import { describeWithdrawal, mergeWithdrawals, withdrawnOf } from "../public/js/expenses-list.js";
+
+const DATED = [
+  { id: 7, amount: 200000, spent_on: "2026-08-14", created_at: "2026-08-14T15:00:00Z", created_by: 1 },
+  { id: 6, amount: 500000, spent_on: "2026-08-03", created_at: "2026-08-03T12:00:00Z", created_by: 1 },
+];
+const WITHDRAWALS = [
+  { id: 2, amount: 200000, spent_on: "2026-08-14", created_at: "2026-08-14T15:05:00Z", created_by: 2, description: "Urgencia médica" },
+];
+
+test("los retiros se mezclan con los gastos por fecha, el más reciente primero", () => {
+  const rows = mergeWithdrawals(DATED, WITHDRAWALS);
+
+  assert.deepEqual(
+    rows.map((row) => [row.kind, row.id]),
+    [
+      ["withdrawal", 2],
+      ["expense", 7],
+      ["expense", 6],
+    ],
+  );
+  assert.deepEqual(
+    groupByDay(rows).map((group) => group.day),
+    ["2026-08-14", "2026-08-03"],
+  );
+});
+
+test("el total de gastos no cuenta los retiros, que se suman aparte", () => {
+  const rows = mergeWithdrawals(DATED, WITHDRAWALS);
+
+  assert.equal(totalOf(rows), 700000);
+  assert.equal(withdrawnOf(rows), 200000);
+});
+
+test("un retiro se describe con su nota y quién lo registró", () => {
+  assert.deepEqual(describeWithdrawal(WITHDRAWALS[0], 1), {
+    name: "Retiro de ahorro",
+    meta: "Urgencia médica · registró otro miembro",
+  });
+  assert.deepEqual(describeWithdrawal({ ...WITHDRAWALS[0], description: null }, 2), {
+    name: "Retiro de ahorro",
+    meta: "Ahorro",
+  });
+});

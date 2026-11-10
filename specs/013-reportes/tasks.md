@@ -178,7 +178,7 @@ tarea); `routers/reports.py` y su registro en `main.py`.
   debajo de 300 ms: no se optimiza (principio 2). El test deja el tope en
   300 consultas.
 
-## [ ] T9 — Web: registrar, ver y editar un retiro
+## [x] T9 — Web: registrar, ver y editar un retiro
 `withdrawals.js`; "Gasto | Retiro de ahorro" en `views/record.js`; retiros
 en `expenses-list.js` y `views/expenses.js`; `views/withdrawal.js` en
 `/retiros/<id>`; `specs/013-reportes/verificacion.md` con la lista del
@@ -196,6 +196,11 @@ criterio 4.
   mensaje del `409`; sin conexión lo avisa.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-32, RF-33, RF-35 (y RF-34 en la web).
+- Estado (2026-11-10): hecha y verificada en Chromium sin interfaz a 390 px
+  contra una API temporal con los datos del prototipo. La fecha del retiro
+  es un campo de fecha con hoy por defecto (el gasto usa "Hoy | Cambiar
+  fecha"); el encabezado muestra el mes del retiro. En Gastos, el total
+  sigue siendo de gastos y lo retirado va en un renglón aparte.
 
 ## [ ] T10 — Web: el Mes con lo retirado
 La línea "Retirado del ahorro" en la categoría Ahorro (`dashboard.js` y

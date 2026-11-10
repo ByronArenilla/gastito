@@ -32,6 +32,7 @@ import {
   periodOf,
 } from "../format.js";
 import { OFFLINE_SAVE, clearErrors, field, formError, setBusy, showErrors } from "./form.js";
+import { buildNewWithdrawal } from "./withdrawal.js";
 
 const DRAFT = "record";
 
@@ -523,9 +524,34 @@ export async function renderRecord(main, app) {
     },
   });
   recordForm.onChange = (form) => app.drafts.set(DRAFT, form);
-  main.append(recordForm.element);
-  recordForm.element.prepend(h("h1", { class: "sr-only" }, "Registrar un gasto"));
-  recordForm.focus();
+
+  // "Gasto | Retiro de ahorro" (spec 013, decisión 25): el retiro tiene su
+  // propio formulario, más corto, y la elección se recuerda al volver.
+  const withdrawal = buildNewWithdrawal(app);
+  const kinds = choice(
+    [
+      { value: "expense", text: "Gasto" },
+      { value: "withdrawal", text: "Retiro de ahorro" },
+    ],
+    { full: true, label: "Qué registras", onPick: (kind) => show(kind, true) },
+  );
+  main.append(
+    h("h1", { class: "sr-only" }, "Registrar"),
+    h("div", { class: "record-kind" }, kinds.element),
+    recordForm.element,
+    withdrawal.element,
+  );
+
+  function show(kind, focus) {
+    app.drafts.set("record-kind", kind);
+    kinds.select(kind);
+    recordForm.element.hidden = kind !== "expense";
+    withdrawal.element.hidden = kind !== "withdrawal";
+    if (kind === "expense") recordForm.paint();
+    if (focus) (kind === "expense" ? recordForm : withdrawal).focus();
+  }
+  show(app.drafts.get("record-kind") ?? "expense", false);
+  (app.drafts.get("record-kind") === "withdrawal" ? withdrawal : recordForm).focus();
 }
 
 /** "Registrado: Mercado · $ 52.000" con "Deshacer" durante 10 segundos

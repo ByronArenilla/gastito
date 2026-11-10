@@ -27,6 +27,7 @@ const VIEWS = {
   card: () => import("./views/cards.js").then((module) => module.renderCard),
   cardEdit: () => import("./views/cards.js").then((module) => module.renderCardEdit),
   purchase: () => import("./views/purchase.js").then((module) => module.renderPurchase),
+  withdrawal: () => import("./views/withdrawal.js").then((module) => module.renderWithdrawal),
 };
 
 // Qué sección de la navegación marca cada pantalla.
@@ -41,6 +42,7 @@ const SECTIONS = {
   card: "cards",
   cardEdit: "cards",
   purchase: "cards",
+  withdrawal: "expenses",
   space: "space",
 };
 

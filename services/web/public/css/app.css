@@ -478,6 +478,11 @@ button {
   padding: var(--space-5) 0;
 }
 
+/* "Gasto | Retiro de ahorro" arriba de Registrar (spec 013, RF-32). */
+.record-kind {
+  padding-top: var(--space-5);
+}
+
 /* Botones de una sola elección (tipo de pago, ¿del mes o deuda?). */
 .seg {
   display: inline-flex;
@@ -633,6 +638,14 @@ button {
    navegador (negrita sintética). */
 .total .figure {
   font-weight: 500;
+}
+
+/* Lo retirado del ahorro, debajo del total y sin la doble raya: no es un
+   total, es lo que cubrió parte de él (spec 013, RF-35). */
+.total--withdrawn {
+  border-bottom: var(--rule-width) solid var(--rule);
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .month-switch {

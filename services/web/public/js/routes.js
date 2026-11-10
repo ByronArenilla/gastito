@@ -17,6 +17,7 @@ const ROUTES = [
   { pattern: /^\/tarjetas\/(?<id>\d+)$/, view: "card", access: "member" },
   { pattern: /^\/tarjetas\/(?<id>\d+)\/editar$/, view: "cardEdit", access: "member" },
   { pattern: /^\/compras\/(?<id>\d+)$/, view: "purchase", access: "member" },
+  { pattern: /^\/retiros\/(?<id>\d+)$/, view: "withdrawal", access: "member" },
   { pattern: /^\/espacio$/, view: "space", access: "member" },
   { pattern: /^\/unirse\/(?<token>[\w-]+)$/, view: "join", access: "any" },
 ];
