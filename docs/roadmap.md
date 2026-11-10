@@ -105,13 +105,21 @@ está validada. Marca con [x] las specs terminadas.
     todo, y categorías en Espacio. Cinco secciones; el inicio depende del
     ancho. Sin cambios en la API. Se verificó en Chrome del computador; el
     celular, con la 011 (ver 020).
-- [ ] 013-reportes — Reportes para decidir: cuotas comprometidas, salir de deudas, en qué se va la plata, qué tan bien se planea y cuánto se ahorra.
+- [ ] 013-reportes — Reportes para decidir (en qué se va la plata, qué tan bien se planea y cuánto se ahorra), Ahorro como categoría y retiros de ahorro.
   - Se añadió el 2026-11-09, con la 012 cerrada: la persona pidió volver a
     la fase 1 antes de Docker. Las specs siguientes corren un número; las
     specs 011 y 012 se escribieron con la numeración anterior (su
     "013-contenedores" es la 014 y su "019" es la 020).
-  - Cinco preguntas: ¿puedo con otra compra a cuotas?, ¿cuándo salgo de
-    deudas?, ¿en qué se me va la plata?, ¿planeo bien? y ¿estoy ahorrando?
+  - Tres preguntas: ¿en qué se me va la plata?, ¿planeo bien? y ¿estoy
+    ahorrando? La clarificación eligió cinco; al revisar el prototipo
+    (2026-11-10) se quitaron "¿puedo con otra compra a cuotas?", con su
+    simulador, y "¿cuándo salgo de deudas?" (decisión 18 de la spec).
+  - También al revisar el prototipo: los reportes miran un mes elegido
+    (por defecto el anterior), "Ahorro" entra en las categorías
+    predefinidas con una migración para los espacios existentes, y se
+    pueden registrar retiros de ahorro, que restan de Ahorro en el Mes
+    (decisiones 20 a 28). Cambia la decisión 1 de la 002 y el resumen de la
+    008 en lo retirado.
   - Varios meses de datos: los cálculos van en la API (principio 10), y los
     gráficos de tiempo, con su ADR (el ADR 0016 lo dejó para esta spec).
   - Atractivo en claro y en oscuro, en el celular y en el computador:
