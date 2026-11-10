@@ -137,7 +137,7 @@ tarea); `routers/reports.py` y su registro en `main.py`.
   actual o futuro con "Elige un mes ya cerrado.". Un mes vacío de la
   ventana sale con todo en 0 y `share` nulo.
 
-## [ ] T7 — API: "¿En qué se me va la plata?"
+## [x] T7 — API: "¿En qué se me va la plata?"
 `spending_report` y `split_percent`.
 
 - Test primero (`test_reports.py`):
@@ -152,6 +152,8 @@ tarea); `routers/reports.py` y su registro en `main.py`.
   - `split_percent` con empates, con una sola parte y con total 0.
 - Hecho cuando: los tests pasan.
 - RF: RF-6, RF-14, RF-15, RF-31.
+- Estado (2026-11-10): hecha. A igual monto, las líneas se ordenan por
+  nombre. `unplanned_by_category` queda lista para "¿Planeo bien?".
 
 ## [ ] T8 — API: "¿Planeo bien?" y tope de consultas
 `planning_report` y la medición del rendimiento del plan ("Riesgos").

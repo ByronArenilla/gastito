@@ -39,7 +39,7 @@ from app.models import (
     SavingsWithdrawal,
     utc_now,
 )
-from app.reports import percent, rounded_div, window_periods
+from app.reports import percent, rounded_div, split_percent, window_periods
 
 Login = Callable[..., dict[str, str]]
 
@@ -490,3 +490,72 @@ def test_without_any_income_the_share_is_none(
     month = bea.reports().json()["savings"]["months"][0]
 
     assert (month["income"], month["left"], month["share"]) == (0, -70_000, None)
+
+
+# --- ¿En qué se me va la plata? (RF-14, RF-15, RF-31) ---
+
+
+def spending_lines(body: dict) -> list[tuple]:
+    return [
+        (line["kind"], line["name"], line["deleted"], line["total"], line["share"])
+        for line in body["spending"]["lines"]
+    ]
+
+
+def test_spending_of_october(casa: Casa) -> None:
+    body = casa.reports().json()
+    spending = body["spending"]
+
+    # Comida: 900.000 + 85.000 (gasto del mes con la Visa) + 120.000 sin
+    # rubro. La Compra TV no está en Hogar: es "Cuotas de tarjetas". Ahorro
+    # no está en la lista.
+    assert spending_lines(body) == [
+        ("category", "Hogar", False, 1_800_000, 48),
+        ("category", "Comida", False, 1_105_000, 29),
+        ("debts", "Cuotas de tarjetas", False, 445_360, 12),
+        ("category", "Transporte", False, 280_000, 7),
+        ("category", "Viajes", True, 150_000, 4),
+    ]
+    assert spending["total"] == 3_780_360
+    assert sum(line["total"] for line in spending["lines"]) == spending["total"]
+    assert sum(line["share"] for line in spending["lines"]) == 100
+    # Comida sin rubro y Viajes.
+    assert (spending["unplanned"], spending["unplanned_share"]) == (270_000, 7)
+    assert (spending["saved"], spending["withdrawn"]) == (500_000, 0)
+    assert spending["lines"][2]["category_id"] is None
+
+
+def test_spending_of_august_names_the_withdrawal_apart(casa: Casa) -> None:
+    spending = casa.reports(period="2026-08").json()["spending"]
+
+    assert [line["name"] for line in spending["lines"]] == [
+        "Hogar",
+        "Comida",
+        "Transporte",
+        "Salud",
+    ]
+    assert spending["total"] == 3_255_000
+    assert (spending["saved"], spending["withdrawn"]) == (500_000, 200_000)
+    assert spending["unplanned"] == 200_000
+
+
+def test_spending_of_a_month_without_data(casa: Casa) -> None:
+    body = casa.reports(period="2026-05").json()
+
+    assert body["has_data"] is False
+    assert body["spending"]["lines"] == []
+    assert body["spending"]["total"] == 0
+    assert body["spending"]["unplanned_share"] is None
+
+
+@pytest.mark.parametrize(
+    ("amounts", "expected"),
+    [
+        ([1, 1, 1], [34, 33, 33]),
+        ([5], [100]),
+        ([0, 0], [0, 0]),
+        ([1_800_000, 1_105_000, 445_360, 280_000, 150_000], [48, 29, 12, 7, 4]),
+    ],
+)
+def test_split_percent_adds_up_to_100(amounts: list[int], expected: list[int]) -> None:
+    assert split_percent(amounts) == expected

@@ -20,6 +20,7 @@ from app.schemas import (
     SavingsAverageOut,
     SavingsMonthOut,
     SavingsOut,
+    SpendingLineOut,
     SpendingOut,
     SummaryOut,
     WindowOut,
@@ -129,10 +130,67 @@ def saved_of(summary: SummaryOut, savings_ids: set[int]) -> int:
 # --- Los reportes ---
 
 
+def unplanned_by_category(summary: SummaryOut) -> dict[int, int]:
+    """Lo gastado sin rubro en cada categoría del mes: lo gastado en ella
+    menos lo gastado en sus rubros, como el "sin rubro" del Mes de la 012.
+    En Ahorro se mide antes de descontar lo retirado (decisión 19)."""
+    in_items: dict[int, int] = {}
+    for item in summary.budget_items:
+        in_items[item.category_id] = in_items.get(item.category_id, 0) + item.spent
+    return {
+        row.category_id: row.spent + row.withdrawn - in_items.get(row.category_id, 0)
+        for row in summary.categories
+    }
+
+
 def spending_report(summary: SummaryOut, savings_ids: set[int]) -> SpendingOut:
-    """¿En qué se me va la plata? (T7)."""
+    """¿En qué se me va la plata? en el mes: lo gastado por categoría y en
+    "Cuotas de tarjetas", de mayor a menor, con su parte del total. Ahorro no
+    es gasto: va aparte (RF-14, RF-15, RF-31; decisiones 12 y 22)."""
+    lines = [
+        SpendingLineOut(
+            kind="category",
+            category_id=row.category_id,
+            name=row.name,
+            deleted=row.deleted,
+            total=row.spent,
+            share=0,
+        )
+        for row in summary.categories
+        if row.spent and row.category_id not in savings_ids
+    ]
+    if summary.total.debts:
+        lines.append(
+            SpendingLineOut(
+                kind="debts",
+                category_id=None,
+                name="Cuotas de tarjetas",
+                deleted=False,
+                total=summary.total.debts,
+                share=0,
+            )
+        )
+    # De mayor a menor; a igual monto, por nombre, para que el orden no
+    # dependa de la base.
+    lines.sort(key=lambda line: (-line.total, line.name))
+    for line, share in zip(
+        lines, split_percent([line.total for line in lines]), strict=True
+    ):
+        line.share = share
+
+    total = sum(line.total for line in lines)
+    unplanned = sum(
+        amount
+        for category_id, amount in unplanned_by_category(summary).items()
+        if category_id not in savings_ids
+    )
     return SpendingOut(
-        total=0, unplanned=0, unplanned_share=None, saved=0, withdrawn=0, lines=[]
+        total=total,
+        unplanned=unplanned,
+        unplanned_share=percent(unplanned, total),
+        saved=saved_of(summary, savings_ids),
+        withdrawn=summary.total.withdrawn,
+        lines=lines,
     )
 
 
