@@ -279,7 +279,7 @@ secciones en la vista.
   mitad derecha le faltaba `display: flex`) y se corrigió. Los porcentajes
   llevan espacio duro ("48 %"). Un mes sin datos enlaza a Planear.
 
-## [ ] T14 — Web: "¿Estoy ahorrando?"
+## [x] T14 — Web: "¿Estoy ahorrando?"
 `savingsReport` en `reports.js` y su sección con la ventana.
 
 - Test primero (`reports.test.js`): con un mes, la frase y el desglose,
@@ -290,6 +290,9 @@ secciones en la vista.
   vista.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-4, RF-21 a RF-23.
+- Estado (2026-11-10): hecha y verificada en Chromium a 1280 y 360 px con
+  1, 3, 6 y 12 meses. Cada columna apila lo apartado menos lo retirado (en
+  tinta) y lo que quedó (en gris); lo que faltó va en rojo bajo el cero.
 
 ## [ ] T15 — Revisión de diseño y accesibilidad
 Pasada completa con la sección "Diseño" de esta spec y las de la 011 y la

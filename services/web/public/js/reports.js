@@ -133,3 +133,66 @@ export function planningReport(reports) {
     })),
   };
 }
+
+/** ¿Estoy ahorrando? en la ventana que termina en el mes elegido (RF-21 a
+ * RF-23). Con un mes, la cifra en grande; con varios, una columna por mes
+ * con lo apartado (menos lo retirado) y lo que quedó, y lo que faltó bajo el
+ * cero. */
+export function savingsReport(reports) {
+  const data = reports.savings;
+  const full = data.months.filter((month) => !month.empty);
+  if (!full.length) return { empty: "Todavía no hay meses con datos." };
+
+  if (data.months.length === 1 || full.length === 1) {
+    const month = full[0];
+    const name = monthName(month.period);
+    const share = month.share === null ? "." : `, el ${percentText(month.share)} del ingreso.`;
+    const plan = month.saved_planned
+      ? month.saved >= month.saved_planned
+        ? ", lo planeado"
+        : `, de ${formatPesos(month.saved_planned)} planeados`
+      : "";
+    const withdrawn = month.withdrawn ? `, retiraste ${formatPesos(month.withdrawn)}` : "";
+    const left =
+      month.left >= 0
+        ? `quedaron ${formatPesos(month.left)} sin gastar`
+        : `faltaron ${formatPesos(-month.left)} para cubrir los gastos`;
+    return {
+      empty: null,
+      single: month,
+      answer:
+        month.total >= 0
+          ? [`En ${name} ahorraste `, { figure: formatPesos(month.total) }, share]
+          : [`En ${name} gastaste `, { figure: formatPesos(-month.total) }, " más de lo que entró."],
+      // "…, lo planeado, y quedaron…": tras un inciso, la "y" lleva coma.
+      sub: `Apartaste ${formatPesos(month.saved)} en Ahorro${plan}${withdrawn}${plan && !withdrawn ? "," : ""} y ${left}.`,
+    };
+  }
+
+  const average = data.average;
+  const missing = data.months.length - full.length;
+  const parts = [];
+  if (data.planned_months) parts.push(`Apartaste lo planeado en ${data.met_months} de ${data.planned_months} meses.`);
+  parts.push(`El mejor mes fue ${monthName(data.best)} y el peor, ${monthName(data.worst)}.`);
+  if (missing === 1) parts.push("Un mes no tiene datos y no cuenta.");
+  if (missing > 1) parts.push(`${missing} meses no tienen datos y no cuentan.`);
+  return {
+    empty: null,
+    answer:
+      average.total >= 0
+        ? ["En promedio ahorras ", { figure: formatPesos(average.total) }, ` al mes, el ${percentText(average.share)} del ingreso.`]
+        : ["En promedio gastas ", { figure: formatPesos(-average.total) }, " más de lo que entra."],
+    sub: parts.join(" "),
+    columns: data.months.map((month) => ({
+      period: month.period,
+      empty: month.empty,
+      top: month.period === data.best ? "mejor" : month.period === data.worst ? "peor" : "",
+      up: [
+        { amount: month.saved - month.withdrawn, cls: "fill-ink" },
+        { amount: Math.max(month.left, 0), cls: "fill-left" },
+      ],
+      down: Math.max(-month.left, 0),
+      month,
+    })),
+  };
+}
