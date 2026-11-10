@@ -317,7 +317,7 @@ Pasada completa con la sección "Diseño" de esta spec y las de la 011 y la
   ventana en la fuente del texto, y el mes del encabezado al registrar un
   retiro de otro mes (T9).
 
-## [ ] T16 — ADR 0017 y 0018
+## [x] T16 — ADR 0017 y 0018
 - `docs/adr/0017-graficos-de-varios-meses-con-css.md`: columnas y pilas de
   CSS con propiedades fijadas desde JavaScript, la lectura al tocar y "Ver
   cifras". Alternativas descartadas: SVG generado, Chart.js y `<canvas>`.
@@ -328,6 +328,7 @@ Pasada completa con la sección "Diseño" de esta spec y las de la 011 y la
 - Test primero: no aplica, es documentación.
 - Hecho cuando: los ADR existen con la plantilla y el plan los cita.
 - RF: ninguno; principio 4.
+- Estado (2026-11-10): hechos; el plan los enlaza en su introducción.
 
 ## [ ] T17 — Cierre: README y validación
 - `README.md`: sección "Reportes" con las tres preguntas y la ruta de la

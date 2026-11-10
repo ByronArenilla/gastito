@@ -34,9 +34,11 @@ El plan tiene ocho partes:
    mes, la ventana de "¿Estoy ahorrando?" y cada reporte.
 8. **Cierre**: revisión de diseño, ADR 0017 y 0018, y README.
 
-La forma de dibujar los gráficos de varios meses queda en el ADR 0017 (el
+La forma de dibujar los gráficos de varios meses queda en el
+[ADR 0017](../../docs/adr/0017-graficos-de-varios-meses-con-css.md) (el
 ADR 0016 la dejó para esta spec): **columnas de CSS**, como las barras de
-la 012, sin SVG ni librería.
+la 012, sin SVG ni librería. Los retiros de ahorro en su propia tabla, en
+el [ADR 0018](../../docs/adr/0018-retiros-de-ahorro-en-su-propia-tabla.md).
 
 ## Decisiones técnicas
 
