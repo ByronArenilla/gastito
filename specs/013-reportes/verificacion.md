@@ -49,16 +49,16 @@ computador. Antes de empezar:
 
 | Paso | A | I | C |
 |---|---|---|---|
-| "¿En qué se me va la plata?" en octubre: frase, barras con tintas, "Otras" y "Cuotas de tarjetas"; lo apartado aparte. | [ ] | [ ] | [ ] |
-| En agosto, la frase nombra lo apartado y lo retirado. | [ ] | [ ] | [ ] |
-| "¿Planeo bien?": las filas sin rubro y los rubros en orden, lo que se pasa en rojo con "+". | [ ] | [ ] | [ ] |
+| "¿En qué se me va la plata?" en octubre: frase, barras con tintas, "Otras" y "Cuotas de tarjetas"; lo apartado aparte. | [ ] | [ ] | [x] |
+| En agosto, la frase nombra lo apartado y lo retirado. | [ ] | [ ] | [x] |
+| "¿Planeo bien?": las filas sin rubro y los rubros en orden, lo que se pasa en rojo con "+". | [ ] | [ ] | [x] |
 | "¿Estoy ahorrando?" con 1 mes: la cifra en grande con su desglose. | [ ] | [ ] | [ ] |
 | Con 3, 6 y 12 meses: columnas, promedio, mejor y peor; el mes sin datos dice "sin datos". | [ ] | [ ] | [ ] |
 | Tocar una columna muestra su mes y su cifra. | [ ] | [ ] | [ ] |
-| "Ver cifras" se abre con teclado y muestra la tabla. | [ ] | [ ] | [ ] |
-| Un mes sin datos muestra el estado vacío con "Planear". | [ ] | [ ] | [ ] |
+| "Ver cifras" se abre con teclado y muestra la tabla. | [ ] | [ ] | [x] |
+| Un mes sin datos muestra el estado vacío con "Planear". | [ ] | [ ] | [x] |
 | 12 meses a 360 px se desplazan a lo ancho con el último mes a la vista. | [ ] | [ ] | [ ] |
-| Los nombres largos no desbordan a 320 px. | [ ] | [ ] | [ ] |
+| Los nombres largos no desbordan a 320 px. | [ ] | [ ] | [x] |
 
 ## Diseño y accesibilidad (T15)
 

@@ -258,7 +258,7 @@ condicionada a `prefers-reduced-motion`.
   quede corta). `barScale` se añadió para las barras horizontales. Se ven
   y se verifican con T13 y T14, que las usan.
 
-## [ ] T13 — Web: "¿En qué se me va la plata?" y "¿Planeo bien?"
+## [x] T13 — Web: "¿En qué se me va la plata?" y "¿Planeo bien?"
 `spendingReport`, `groupLines` y `planningReport` en `reports.js`, y sus
 secciones en la vista.
 
@@ -274,6 +274,10 @@ secciones en la vista.
   cifras" con teclado; los nombres largos no desbordan a 320 px.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-4, RF-14, RF-15, RF-17 a RF-20, RF-31.
+- Estado (2026-11-10): hecha y verificada en Chromium a 1280 y 320 px. La
+  verificación encontró que las barras de lo que se pasa no se veían (a la
+  mitad derecha le faltaba `display: flex`) y se corrigió. Los porcentajes
+  llevan espacio duro ("48 %"). Un mes sin datos enlaza a Planear.
 
 ## [ ] T14 — Web: "¿Estoy ahorrando?"
 `savingsReport` en `reports.js` y su sección con la ventana.

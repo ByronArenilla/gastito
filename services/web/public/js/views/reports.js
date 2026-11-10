@@ -2,10 +2,17 @@
 // tres reportes. La lógica vive en `reports.js` y `charts.js`; aquí solo se
 // arma el DOM y se llama a la API.
 import { h } from "../dom.js";
-import { formatMonth, shiftPeriod } from "../format.js";
+import { formatMonth, formatPesos, shiftPeriod } from "../format.js";
 import { screenError } from "../offline.js";
-import { SAVINGS_WINDOWS, monthBounds } from "../reports.js";
+import {
+  SAVINGS_WINDOWS,
+  monthBounds,
+  percentText,
+  planningReport,
+  spendingReport,
+} from "../reports.js";
 import { monthTabs } from "./month-tabs.js";
+import { divergent, figures, hbars } from "./report-charts.js";
 
 const PERIOD = "reports-period";
 const WINDOW = "reports-window";
@@ -75,9 +82,10 @@ export async function renderReports(main, app) {
     const bounds = monthBounds(reports.period, reports.first_period, reports.current);
     previous.disabled = !bounds.previous;
     next.disabled = !bounds.next;
+    const month = formatMonth(reports.period);
     body.replaceChildren(
-      reportSection("spending", "¿En qué se me va la plata?", formatMonth(reports.period)),
-      reportSection("planning", "¿Planeo bien?", formatMonth(reports.period)),
+      reportSection("spending", "¿En qué se me va la plata?", month, ...spendingBody(reports)),
+      reportSection("planning", "¿Planeo bien?", month, ...planningBody(reports)),
       savingsSection(reports),
     );
   }
@@ -104,6 +112,79 @@ export async function renderReports(main, app) {
   }
 
   await load();
+}
+
+/** La frase con la cifra en monoespaciada (RF-4); el lector de pantalla la
+ * lee entera. */
+function answer(parts) {
+  return h(
+    "p",
+    { class: "report__answer" },
+    parts.map((part) => (typeof part === "string" ? part : h("span", { class: "figure" }, part.figure))),
+  );
+}
+
+/** Un mes sin datos: lo dice y ofrece planear (decisión 14). */
+function emptyState(text) {
+  return [
+    h(
+      "div",
+      { class: "empty stack" },
+      h("p", { class: "report__answer" }, text),
+      h("p", {}, "Planea el mes y registra tus gastos: cuando termine, aquí verás cómo te fue."),
+      h("a", { class: "button button--quiet", href: "/mes/planear" }, "Planear"),
+    ),
+  ];
+}
+
+/** ¿En qué se me va la plata? (RF-14, RF-15, RF-17, RF-31). */
+function spendingBody(reports) {
+  const report = spendingReport(reports);
+  if (report.empty) return emptyState(report.empty);
+  const data = reports.spending;
+  return [
+    answer(report.answer),
+    h("p", { class: "report__sub" }, report.sub),
+    hbars(report.rows),
+    figures({
+      caption: `Lo gastado por categoría en ${formatMonth(reports.period)}, sin lo apartado en Ahorro.`,
+      head: ["Categoría", "Gastado", "Parte"],
+      rows: [
+        ...data.lines.map((line) => [
+          line.deleted ? `${line.name} (eliminada)` : line.name,
+          formatPesos(line.total),
+          percentText(line.share),
+        ]),
+        ["No planeado (incluido arriba)", formatPesos(data.unplanned), percentText(data.unplanned_share)],
+        ...(data.saved ? [["Apartado en Ahorro (aparte)", formatPesos(data.saved), ""]] : []),
+        ...(data.withdrawn ? [["Retirado del ahorro (aparte)", formatPesos(-data.withdrawn), ""]] : []),
+      ],
+      total: ["Total gastado", formatPesos(data.total), percentText(100)],
+    }),
+  ];
+}
+
+/** ¿Planeo bien? (RF-18 a RF-20): las filas sin rubro dicen "· sin rubro". */
+function planningBody(reports) {
+  const report = planningReport(reports);
+  if (report.empty) return emptyState(report.empty);
+  const name = (row) =>
+    row.unplanned ? [row.name, h("span", { class: "muted" }, " · sin rubro")] : row.name;
+  return [
+    answer(report.answer),
+    h("p", { class: "report__sub" }, report.sub),
+    divergent(report.rows.map((row) => ({ name: name(row), figure: row.figure, value: row.value }))),
+    figures({
+      caption: `Planeado y gastado por rubro en ${formatMonth(reports.period)}. Lo gastado sin rubro tiene planeado 0; Ahorro no entra: lo mide "¿Estoy ahorrando?".`,
+      head: ["Rubro", "Planeado", "Gastado", "Diferencia"],
+      rows: report.rows.map((row) => [
+        row.unplanned ? `Sin rubro · ${row.category}` : `${row.name} · ${row.category}`,
+        formatPesos(row.planned),
+        formatPesos(row.spent),
+        { text: row.figure, over: row.value > 0 },
+      ]),
+    }),
+  ];
 }
 
 /** Un reporte: rótulo con la pregunta, el mes o la ventana que mira, y su

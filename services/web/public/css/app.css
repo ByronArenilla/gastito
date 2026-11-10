@@ -1203,6 +1203,11 @@ dialog::backdrop {
   gap: var(--space-3);
 }
 
+/* Las ventanas son palabras, no cifras: en la fuente del texto. */
+.report__window button {
+  font-family: var(--font-text);
+}
+
 /* En el celular, las cuatro ventanas en dos filas de dos (prototipo). */
 @media (max-width: 419px) {
   .report__window {
@@ -1311,8 +1316,13 @@ dialog::backdrop {
   height: 10px;
 }
 
-.divergent__left {
+.divergent__left,
+.divergent__right {
   display: flex;
+  min-width: 0;
+}
+
+.divergent__left {
   justify-content: flex-end;
   border-right: var(--rule-width) solid var(--ink);
 }
