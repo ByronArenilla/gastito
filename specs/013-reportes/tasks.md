@@ -239,7 +239,7 @@ sin conexión; `monthBounds` y `SAVINGS_WINDOWS` en `reports.js`.
   paso, `main.js` deja el `<main>` sin clases al cambiar de pantalla: el
   `main--wide` de la 012 se quedaba en la pantalla siguiente.
 
-## [ ] T12 — Web: escalas y piezas de gráfico
+## [x] T12 — Web: escalas y piezas de gráfico
 `charts.js` con `columnScale`, `stackScale` y `divergentScale`; en
 `views/reports.js`, las piezas comunes (columnas, pilas, barras divergentes,
 lectura al tocar, "Ver cifras") y su CSS en `app.css`, con la animación
@@ -253,6 +253,10 @@ condicionada a `prefers-reduced-motion`.
   - Divergentes: el mismo máximo a los dos lados.
 - Hecho cuando: los tests pasan.
 - RF: RF-24, RF-26, RF-27 (piezas).
+- Estado (2026-11-10): hecha. Las piezas DOM viven en
+  `views/report-charts.js` (y no en `views/reports.js`, para que la vista
+  quede corta). `barScale` se añadió para las barras horizontales. Se ven
+  y se verifican con T13 y T14, que las usan.
 
 ## [ ] T13 — Web: "¿En qué se me va la plata?" y "¿Planeo bien?"
 `spendingReport`, `groupLines` y `planningReport` en `reports.js`, y sus

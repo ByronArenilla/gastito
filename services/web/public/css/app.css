@@ -1210,3 +1210,356 @@ dialog::backdrop {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Gráficos de los reportes (ADR 0017): <div> con tamaños como propiedades
+   CSS (`--size`, `--zero`, `--part`) fijadas desde JavaScript, como las
+   barras del Mes (ADR 0016). Todos llevan `aria-hidden`: la frase y "Ver
+   cifras" dicen lo mismo (RF-26). */
+
+.report__answer {
+  font-size: 1.25rem;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.report__answer .figure {
+  font-weight: 500;
+}
+
+.report__sub {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+/* Barras horizontales: nombre, monto y parte; debajo, la barra en su tinta. */
+.hbars {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--rule-width) solid var(--ink);
+}
+
+.hbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 3.5em;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0 var(--space-3);
+  border-bottom: var(--rule-width) solid var(--rule);
+}
+
+.hbar__name {
+  overflow-wrap: anywhere;
+}
+
+.hbar__share {
+  color: var(--muted);
+  font-size: var(--size-label);
+  text-align: right;
+}
+
+.hbar__track {
+  grid-column: 1 / -1;
+  display: block;
+  height: 8px;
+}
+
+.hbar__fill {
+  display: block;
+  height: 100%;
+  inline-size: calc(var(--size, 0) * 100%);
+}
+
+/* Barras divergentes desde una línea de cero (RF-19). */
+.divergent__axis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding-bottom: var(--space-1);
+  font-family: var(--font-figures);
+  font-size: var(--size-label);
+  color: var(--muted);
+}
+
+.divergent__axis span:last-child {
+  text-align: right;
+}
+
+.divergent__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--rule-width) solid var(--ink);
+}
+
+.divergent__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0 var(--space-3);
+  border-bottom: var(--rule-width) solid var(--rule);
+}
+
+.divergent__name {
+  overflow-wrap: anywhere;
+}
+
+.divergent__track {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 10px;
+}
+
+.divergent__left {
+  display: flex;
+  justify-content: flex-end;
+  border-right: var(--rule-width) solid var(--ink);
+}
+
+.divergent__left > span,
+.divergent__right > span {
+  inline-size: calc(var(--size, 0) * 100%);
+  height: 100%;
+}
+
+.fill-ink {
+  background: var(--ink);
+}
+
+.fill-red {
+  background: var(--red);
+}
+
+.fill-left {
+  background: var(--rule-strong);
+}
+
+/* Columnas por mes con línea de cero (RF-22). En el celular, 12 meses se
+   desplazan a lo ancho sin desbordar la página. */
+.chart {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.readout {
+  min-height: 1.4em;
+  font-family: var(--font-figures);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.readout b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.chart-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.cols {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(var(--touch), 1fr);
+}
+
+.col {
+  display: grid;
+  grid-template-rows: auto 148px auto;
+  align-content: start;
+  justify-items: center;
+  gap: var(--space-1);
+  padding-inline: 2px;
+}
+
+.col__top {
+  min-height: 1.3em;
+  font-family: var(--font-figures);
+  font-size: 0.6875rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.col__top--strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.col__plot {
+  position: relative;
+  width: 100%;
+}
+
+.col__zero {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--zero, 0) * 100%);
+  border-top: var(--rule-width) solid var(--ink);
+}
+
+/* Lo de arriba del cero, apilado con 2 px de papel entre partes. */
+.col__up {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  width: min(28px, 64%);
+  bottom: calc(var(--zero, 0) * 100%);
+  height: calc(var(--size, 0) * 100%);
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.col__up > span {
+  flex: var(--part) 0 0;
+  min-height: 0;
+}
+
+.col__up > span + span {
+  border-bottom: 2px solid var(--paper);
+}
+
+/* Lo que baja del cero, en rojo. */
+.col__down {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  width: min(28px, 64%);
+  top: calc((1 - var(--zero, 0)) * 100%);
+  height: calc(var(--size, 0) * 100%);
+}
+
+.col__label {
+  font-family: var(--font-figures);
+  font-size: 0.6875rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.25;
+}
+
+.col__label b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.col.is-read .col__label {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.col--empty .col__plot::before {
+  content: "sin datos";
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  translate: -50% 0;
+  writing-mode: vertical-rl;
+  rotate: 180deg;
+  font-family: var(--font-figures);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.legend--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+}
+
+.legend--inline li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* La cifra en grande de "¿Estoy ahorrando?" con un mes (RF-23). */
+.big {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--rule-width) solid var(--ink);
+}
+
+.big__value {
+  font-family: var(--font-figures);
+  font-size: var(--size-amount);
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.big__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: var(--rule-width) solid var(--rule);
+}
+
+/* "Ver cifras" (RF-26): `<details>` se abre con teclado sin JavaScript. */
+.figures summary {
+  min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.figures__table caption {
+  padding-bottom: var(--space-2);
+  font-family: var(--font-text);
+  font-size: 0.8125rem;
+  text-align: left;
+  color: var(--muted);
+}
+
+.figures__table td.over {
+  color: var(--red);
+}
+
+.figures__total td {
+  border-bottom: var(--double-rule);
+  font-weight: 500;
+}
+
+/* Las barras crecen al aparecer, solo si nadie pidió menos movimiento
+   (RF-27). */
+@media (prefers-reduced-motion: no-preference) {
+  .col__up {
+    transform-origin: bottom;
+    animation: grow-y 200ms ease-out both;
+  }
+
+  .col__down {
+    transform-origin: top;
+    animation: grow-y 200ms ease-out both;
+  }
+
+  .hbar__fill,
+  .divergent__right > span {
+    transform-origin: left;
+    animation: grow-x 200ms ease-out both;
+  }
+
+  .divergent__left > span {
+    transform-origin: right;
+    animation: grow-x 200ms ease-out both;
+  }
+}
+
+@keyframes grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
