@@ -146,6 +146,15 @@ function categoryBlock(category) {
         h("span", { class: "muted" }, "Sin rubro"),
         h("span", { class: "figure" }, formatPesos(category.unplanned)),
       ),
+    // Lo retirado del ahorro en el mes (spec 013, RF-36): la cifra de la
+    // categoría ya lo descuenta.
+    category.withdrawn > 0 &&
+      h(
+        "div",
+        { class: "item" },
+        h("span", { class: "muted" }, "Retirado del ahorro"),
+        h("span", { class: "figure" }, formatPesos(-category.withdrawn)),
+      ),
   );
 }
 

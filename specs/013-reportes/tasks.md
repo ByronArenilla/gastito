@@ -202,7 +202,7 @@ criterio 4.
   fecha"); el encabezado muestra el mes del retiro. En Gastos, el total
   sigue siendo de gastos y lo retirado va en un renglón aparte.
 
-## [ ] T10 — Web: el Mes con lo retirado
+## [x] T10 — Web: el Mes con lo retirado
 La línea "Retirado del ahorro" en la categoría Ahorro (`dashboard.js` y
 `views/month.js`).
 
@@ -212,6 +212,9 @@ La línea "Retirado del ahorro" en la categoría Ahorro (`dashboard.js` y
   $ 500.000 y la línea; el balance del mes cambia en lo retirado.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-36.
+- Estado (2026-11-10): hecha y verificada en Chromium a 1280 px: agosto
+  muestra Ahorro "300.000 de 500.000", el rubro con $ 500.000 y "Retirado
+  del ahorro −$ 200.000"; Gastado $ 5.623.000 y Balance $ 877.000.
 
 ## [ ] T11 — Web: navegación, mes y ventana
 `/mes/reportes` en `routes.js`; el selector "Este mes | Reportes" en el

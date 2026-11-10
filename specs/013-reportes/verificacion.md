@@ -33,8 +33,8 @@ computador. Antes de empezar:
 
 | Paso | A | I | C |
 |---|---|---|---|
-| Agosto muestra Ahorro con lo neto y la línea "Retirado del ahorro". | [ ] | [ ] | [ ] |
-| El balance del mes descuenta lo retirado. | [ ] | [ ] | [ ] |
+| Agosto muestra Ahorro con lo neto y la línea "Retirado del ahorro". | [ ] | [ ] | [x] |
+| El balance del mes descuenta lo retirado. | [ ] | [ ] | [x] |
 
 ## Navegación, mes y ventana (T11)
 
