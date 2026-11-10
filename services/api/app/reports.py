@@ -16,6 +16,7 @@ from app.models import BudgetItem, Expense, Income
 from app.savings import savings_category_ids
 from app.schemas import (
     PlanningOut,
+    PlanningRowOut,
     ReportsOut,
     SavingsAverageOut,
     SavingsMonthOut,
@@ -195,8 +196,40 @@ def spending_report(summary: SummaryOut, savings_ids: set[int]) -> SpendingOut:
 
 
 def planning_report(summary: SummaryOut, savings_ids: set[int]) -> PlanningOut:
-    """¿Planeo bien? (T8)."""
-    return PlanningOut(items=[])
+    """¿Planeo bien? en el mes: cada rubro con lo planeado, lo gastado y la
+    diferencia, y una fila "sin rubro" por categoría con planeado 0. Sin
+    Ahorro: para él, gastar menos es apartar menos (RF-18, RF-19; decisiones
+    19 y 23). De lo que más se pasa a lo que más sobra; a igual diferencia,
+    por nombre."""
+    names = {row.category_id: row.name for row in summary.categories}
+    rows = [
+        PlanningRowOut(
+            kind="item",
+            name=item.name,
+            category=names[item.category_id],
+            category_id=item.category_id,
+            planned=item.planned,
+            spent=item.spent,
+            diff=item.spent - item.planned,
+        )
+        for item in summary.budget_items
+        if item.category_id not in savings_ids
+    ]
+    rows += [
+        PlanningRowOut(
+            kind="unplanned",
+            name=names[category_id],
+            category=names[category_id],
+            category_id=category_id,
+            planned=0,
+            spent=amount,
+            diff=amount,
+        )
+        for category_id, amount in unplanned_by_category(summary).items()
+        if amount > 0 and category_id not in savings_ids
+    ]
+    rows.sort(key=lambda row: (-row.diff, row.name))
+    return PlanningOut(items=rows)
 
 
 def savings_report(

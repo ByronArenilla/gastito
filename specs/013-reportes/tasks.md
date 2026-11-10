@@ -155,7 +155,7 @@ tarea); `routers/reports.py` y su registro en `main.py`.
 - Estado (2026-11-10): hecha. A igual monto, las líneas se ordenan por
   nombre. `unplanned_by_category` queda lista para "¿Planeo bien?".
 
-## [ ] T8 — API: "¿Planeo bien?" y tope de consultas
+## [x] T8 — API: "¿Planeo bien?" y tope de consultas
 `planning_report` y la medición del rendimiento del plan ("Riesgos").
 
 - Test primero (`test_reports.py`):
@@ -172,6 +172,11 @@ tarea); `routers/reports.py` y su registro en `main.py`.
 - Hecho cuando: los tests pasan y la medición está anotada.
 - RF: RF-18 a RF-20 (datos). El tope de consultas y la medición vienen del
   plan, no de un RF.
+- Estado (2026-11-10): hecha. Medición: `?months=12` con el espacio de
+  ejemplo hace **117 consultas** y tarda **unos 48 ms** (5 peticiones, de
+  47 a 49 ms) con SQLite, la base local de `.env.example`. Está muy por
+  debajo de 300 ms: no se optimiza (principio 2). El test deja el tope en
+  300 consultas.
 
 ## [ ] T9 — Web: registrar, ver y editar un retiro
 `withdrawals.js`; "Gasto | Retiro de ahorro" en `views/record.js`; retiros

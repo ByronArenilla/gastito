@@ -26,7 +26,7 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
-from sqlalchemy import Engine
+from sqlalchemy import Engine, event
 from sqlalchemy.orm import Session
 
 from app import dates
@@ -559,3 +559,77 @@ def test_spending_of_a_month_without_data(casa: Casa) -> None:
 )
 def test_split_percent_adds_up_to_100(amounts: list[int], expected: list[int]) -> None:
     assert split_percent(amounts) == expected
+
+
+# --- ¿Planeo bien? (RF-18 a RF-20) ---
+
+
+def planning_rows(body: dict) -> list[tuple]:
+    return [
+        (
+            row["kind"],
+            row["name"],
+            row["category"],
+            row["planned"],
+            row["spent"],
+            row["diff"],
+        )
+        for row in body["planning"]["items"]
+    ]
+
+
+def test_planning_of_october(casa: Casa) -> None:
+    body = casa.reports().json()
+
+    # El gasto del mes con la Visa cuenta en el rubro Mercado; la Compra TV
+    # (deuda) no aparece; Ahorro no entra (decisión 23).
+    assert planning_rows(body) == [
+        ("unplanned", "Viajes", "Viajes", 0, 150_000, 150_000),
+        ("unplanned", "Comida", "Comida", 0, 120_000, 120_000),
+        ("item", "Mercado", "Comida", 900_000, 985_000, 85_000),
+        ("item", "Arriendo", "Hogar", 1_800_000, 1_800_000, 0),
+        ("item", "Gasolina", "Transporte", 300_000, 280_000, -20_000),
+    ]
+    viajes = body["planning"]["items"][0]
+    assert viajes["category_id"] == casa.categories["Viajes"]
+
+
+def test_a_category_without_items_is_all_unplanned(casa: Casa) -> None:
+    body = casa.reports(period="2026-07").json()
+
+    rows = planning_rows(body)
+    assert rows[0] == ("unplanned", "Ropa", "Ropa", 0, 280_000, 280_000)
+    assert ("item", "Mercado", "Comida", 900_000, 990_000, 90_000) in rows
+    assert all(row[2] != "Ahorro" for row in rows)
+
+
+def test_a_withdrawal_is_not_an_unplanned_expense(casa: Casa) -> None:
+    rows = planning_rows(casa.reports(period="2026-08").json())
+
+    assert ("unplanned", "Salud", "Salud", 0, 200_000, 200_000) in rows
+    assert [row[1] for row in rows if row[0] == "unplanned"] == ["Salud"]
+
+
+def test_planning_of_a_month_without_data(casa: Casa) -> None:
+    assert casa.reports(period="2026-05").json()["planning"]["items"] == []
+
+
+# --- Tope de consultas (plan, "Riesgos") ---
+
+
+def test_twelve_months_stay_under_300_queries(casa: Casa, engine: Engine) -> None:
+    # No mide velocidad, que depende de la máquina: avisa si una consulta
+    # termina dentro de un bucle (N+1).
+    queries = []
+
+    def count(*_args: object) -> None:
+        queries.append(1)
+
+    event.listen(engine, "before_cursor_execute", count)
+    try:
+        response = casa.reports(months=12)
+    finally:
+        event.remove(engine, "before_cursor_execute", count)
+
+    assert response.status_code == 200
+    assert len(queries) <= 300, len(queries)
