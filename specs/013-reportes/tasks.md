@@ -70,7 +70,7 @@ Las tintas del prototipo en `tokens.css`, claro y oscuro, y las clases
   la 0006 añade una. El test de nombres que chocan usa "Mascotas", porque
   "Ahorro" ya es predefinida.
 
-## [ ] T4 — API: retiros de ahorro
+## [x] T4 — API: retiros de ahorro
 Modelo `SavingsWithdrawal`, migración `0007_savings_withdrawals`,
 `app/savings.py` (categoría Ahorro, apartado, retirado, límite y guarda),
 `routers/savings_withdrawals.py` y la guarda en `PATCH` y `DELETE` de
@@ -90,6 +90,11 @@ gastos.
     modelos.
 - Hecho cuando: los tests pasan.
 - RF: RF-32 a RF-34, RF-37.
+- Estado (2026-11-10): hecha. La fecha usa el mismo formato que un gasto
+  con su propio mensaje ("La fecha del retiro no puede ser posterior a
+  hoy."). Retiros y cambios de lo apartado bloquean la fila del espacio
+  (`FOR UPDATE`) mientras deciden. `dates.month_label` da "agosto de 2026"
+  para los mensajes.
 
 ## [ ] T5 — API: el resumen con los retiros
 `withdrawn` en `CategorySummaryOut` y `TotalSummaryOut`, y el descuento en

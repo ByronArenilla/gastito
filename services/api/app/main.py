@@ -18,6 +18,7 @@ from app.routers import (
     invitations,
     plan,
     prepayments,
+    savings_withdrawals,
     spaces,
 )
 
@@ -52,6 +53,7 @@ app.include_router(incomes.router)
 app.include_router(invitations.router)
 app.include_router(plan.router)
 app.include_router(prepayments.router)
+app.include_router(savings_withdrawals.router)
 app.include_router(spaces.router)
 
 

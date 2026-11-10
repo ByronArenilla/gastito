@@ -27,6 +27,7 @@ from app.deps import current_user, member_space, requested_period
 from app.models import BudgetItem, Card, Expense, Prepayment, Space, User
 from app.routers.cards import first_due_start, usable_card
 from app.routers.categories import usable_category
+from app.savings import SavedBelowWithdrawn, check_saved_change
 from app.schemas import (
     CARD_REQUIRED_MESSAGE,
     DEBIT_WITHOUT_CARD_MESSAGE,
@@ -70,6 +71,15 @@ HAS_PREPAYMENTS = HTTPException(
     "La compra tiene abonos: solo puedes cambiar su descripción y su categoría. "
     "Para cambiar lo demás o borrarla, borra primero sus abonos.",
 )
+
+
+def check_savings(db: Session, expense: Expense, after: dict | None) -> None:
+    """Lo apartado en Ahorro no puede quedar por debajo de lo retirado en su
+    mes (spec 013, RF-34). `after` son los valores nuevos; `None`, borrar."""
+    try:
+        check_saved_change(db, expense, after)
+    except SavedBelowWithdrawn as error:
+        raise HTTPException(status.HTTP_409_CONFLICT, error.message()) from None
 
 
 def has_prepayments(db: Session, expense: Expense) -> bool:
@@ -366,6 +376,7 @@ def update_expense(
     if changes.keys() - EDITABLE_WITH_PREPAYMENTS and has_prepayments(db, expense):
         raise HAS_PREPAYMENTS
     changes.update(payment_changes(db, expense, changes))
+    check_savings(db, expense, changes)
 
     for field, value in changes.items():
         setattr(expense, field, value)
@@ -391,6 +402,7 @@ def delete_expense(
     # Un abono es plata que salió: no se borra con la compra (RF-16).
     if has_prepayments(db, expense):
         raise HAS_PREPAYMENTS
+    check_savings(db, expense, None)
 
     # Por `id` y `space_id`: la sentencia nunca toca otra fila (RF-18).
     db.execute(

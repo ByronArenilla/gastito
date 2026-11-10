@@ -1016,3 +1016,62 @@ class SimulationIn(BaseModel):
 class SimulationOut(BaseModel):
     first_due_period: str
     installments: list[InstallmentOut]
+
+
+# --- Retiros de ahorro (spec 013) ---
+
+
+def check_withdrawal_not_future(value: date) -> date:
+    # La misma regla que un gasto (RF-32), con su propio nombre en el mensaje.
+    if value > dates.today():
+        raise PydanticCustomError(
+            "future_withdrawal",
+            "La fecha del retiro no puede ser posterior a hoy.",
+        )
+    return value
+
+
+WithdrawalOn = Annotated[
+    date, BeforeValidator(parse_spent_on), AfterValidator(check_withdrawal_not_future)
+]
+
+
+class WithdrawalIn(BaseModel):
+    # Monto y nota con las reglas de un gasto (RF-32). Sin categoría, rubro
+    # ni tipo de pago: un retiro siempre sale de Ahorro (decisión 25). Sin
+    # `space_id` ni `created_by`: salen de la ruta y de la sesión.
+    amount: Amount
+    spent_on: WithdrawalOn = Field(default_factory=lambda: dates.today())
+    description: Description = None
+
+
+class WithdrawalPatch(BaseModel):
+    # La ruta aplica solo `model_fields_set`, como al editar un gasto.
+    amount: Amount | None = None
+    spent_on: WithdrawalOn | None = None
+    # `null` aquí sí vale: quita la nota.
+    description: Description = None
+
+    @field_validator("amount", "spent_on", mode="before")
+    @classmethod
+    def reject_null(cls, value: object) -> object:
+        # Sin esto, `None` pasaría por el `| None` del tipo y el retiro se
+        # quedaría sin monto o sin fecha.
+        if value is None:
+            raise PydanticCustomError(
+                "null_not_allowed",
+                "Este campo no puede quedar vacío; si no quieres cambiarlo, "
+                "no lo envíes.",
+            )
+        return value
+
+
+class WithdrawalOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    amount: int
+    spent_on: date
+    description: str | None
+    created_by: int
+    created_at: datetime

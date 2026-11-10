@@ -24,7 +24,7 @@ from app.db import (
 from app.models import Base
 from tests import old_schemas
 
-HEAD = "0006"
+HEAD = "0007"
 
 
 @pytest.fixture

@@ -383,3 +383,30 @@ class Prepayment(Base):
     reduces: Mapped[str] = mapped_column(String(11))
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+
+
+class SavingsWithdrawal(Base):
+    """Retiro de ahorro: plata que se saca de lo apartado en la categoría
+    Ahorro en un mes, para cubrir gastos de ese mes (spec 013, decisión 25).
+
+    Tabla propia y no un gasto: no tiene categoría, rubro ni tipo de pago
+    (ADR 0018). Nunca pasa de lo apartado en su mes (RF-33); lo comprueba la
+    API, porque depende de otras filas.
+    """
+
+    __tablename__ = "savings_withdrawals"
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="ck_savings_withdrawals_amount_positive"),
+        # El listado y el límite filtran por espacio y mes, como los gastos.
+        Index("ix_savings_withdrawals_space_id_spent_on", "space_id", "spent_on"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    space_id: Mapped[int] = mapped_column(ForeignKey("spaces.id", ondelete="CASCADE"))
+    # Día calendario, como `Expense.spent_on`: el mes sale de aquí (ADR 0007).
+    spent_on: Mapped[date] = mapped_column(Date)
+    amount: Mapped[int] = mapped_column(BigInteger)
+    description: Mapped[str | None] = mapped_column(String(200))
+    # Salir del espacio solo borra la membresía: el retiro conserva su autor.
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
