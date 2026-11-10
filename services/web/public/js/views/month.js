@@ -7,6 +7,7 @@ import { h } from "../dom.js";
 import { formatMonth, formatNumber, formatPesos, monthName, parseAmount, shiftPeriod } from "../format.js";
 import { missingText, needsConfirm, rowRequest, statementRequest } from "../plan-rows.js";
 import { OFFLINE_SAVE } from "./form.js";
+import { monthTabs } from "./month-tabs.js";
 
 const PART_NAMES = { items: "Rubros", debts: "Deudas", free: "Sin asignar" };
 
@@ -204,7 +205,7 @@ export async function renderMonth(main, app) {
   const title = h("h1", { "aria-live": "polite" });
   const body = h("div", { class: "screen" });
   main.classList.add("main--wide");
-  main.append(h("div", { class: "screen" }, monthHead(app, title, load), body));
+  main.append(h("div", { class: "screen" }, monthTabs("month"), monthHead(app, title, load), body));
 
   function paint(summary) {
     const board = buildDashboard(summary);

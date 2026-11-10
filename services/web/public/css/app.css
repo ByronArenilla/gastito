@@ -1113,3 +1113,100 @@ dialog::backdrop {
 .scroll-x {
   overflow-x: auto;
 }
+
+/* --- Reportes (spec 013) --- */
+
+/* Hasta 1040 px de ancho, el reparto de la decisión 17. */
+.main--reports {
+  max-width: calc(1040px + 2 * var(--gutter));
+}
+
+.reports-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* "Este mes | Reportes" (RF-1): dos enlaces con la forma de `.seg`. */
+.month-tabs {
+  display: inline-flex;
+  border: var(--rule-width) solid var(--ink);
+  border-radius: var(--radius);
+}
+
+.month-tabs a {
+  min-height: var(--touch);
+  padding: 0 var(--space-4);
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.month-tabs a + a {
+  border-left: var(--rule-width) solid var(--ink);
+}
+
+.month-tabs a[aria-current="page"] {
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.month-switch__name {
+  min-width: 10.5em;
+  text-align: center;
+  font-weight: 600;
+  font-size: var(--size-strong);
+}
+
+.month-switch button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Un reporte debajo de otro; desde 1280 px, "¿En qué se me va la plata?" y
+   "¿Planeo bien?" lado a lado y "¿Estoy ahorrando?" a todo el ancho. */
+.reports {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8) var(--space-7);
+}
+
+@media (min-width: 1280px) {
+  .reports {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report--savings {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Entre reportes, la doble raya roja de los totales, como capítulos. */
+.report {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  min-width: 0;
+  padding-top: var(--space-4);
+  border-top: var(--double-rule);
+}
+
+.report__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+/* En el celular, las cuatro ventanas en dos filas de dos (prototipo). */
+@media (max-width: 419px) {
+  .report__window {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -11,6 +11,10 @@ test("cada ruta encuentra su pantalla y si pide sesión", () => {
   assert.deepEqual(matchRoute("/espacio"), { view: "space", params: {}, access: "member" });
 });
 
+test("los reportes viven en /mes/reportes (spec 013)", () => {
+  assert.deepEqual(matchRoute("/mes/reportes"), { view: "reports", params: {}, access: "member" });
+});
+
 test("un retiro de ahorro se abre en /retiros/<id> (spec 013)", () => {
   assert.deepEqual(matchRoute("/retiros/12"), { view: "withdrawal", params: { id: 12 }, access: "member" });
 });

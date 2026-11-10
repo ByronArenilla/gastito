@@ -40,10 +40,10 @@ computador. Antes de empezar:
 
 | Paso | A | I | C |
 |---|---|---|---|
-| Del Mes a Reportes y de vuelta con "Este mes \| Reportes", también con teclado. | [ ] | [ ] | [ ] |
-| Por defecto, el mes anterior; las flechas se detienen en el primer mes con datos y en el mes anterior al actual. | [ ] | [ ] | [ ] |
-| Cambiar a agosto y a 6 meses, ir a Gastos y volver los conserva; recargar vuelve al mes anterior y a 1 mes. | [ ] | [ ] | [ ] |
-| Sin conexión, Reportes lo avisa como el resto de la app. | [ ] | [ ] | [ ] |
+| Del Mes a Reportes y de vuelta con "Este mes \| Reportes", también con teclado. | [ ] | [ ] | [x] |
+| Por defecto, el mes anterior; las flechas se detienen en el primer mes con datos y en el mes anterior al actual. | [ ] | [ ] | [x] |
+| Cambiar a agosto y a 6 meses, ir a Gastos y volver los conserva; recargar vuelve al mes anterior y a 1 mes. | [ ] | [ ] | [x] |
+| Sin conexión, Reportes lo avisa como el resto de la app. | [ ] | [ ] | [x] |
 
 ## Reportes (T13, T14)
 

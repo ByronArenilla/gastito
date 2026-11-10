@@ -50,6 +50,7 @@ INDEX = (serve.PUBLIC / "index.html").read_bytes()
         "/unirse/abc-_9",
         "/mes",
         "/mes/planear",
+        "/mes/reportes",
         "/tarjetas/3",
         "/compras/12",
         "/retiros/12",

@@ -9,6 +9,7 @@ const ROUTES = [
   { pattern: /^\/crear-cuenta$/, view: "register", access: "guest" },
   { pattern: /^\/mes$/, view: "month", access: "member" },
   { pattern: /^\/mes\/planear$/, view: "plan", access: "member" },
+  { pattern: /^\/mes\/reportes$/, view: "reports", access: "member" },
   { pattern: /^\/registrar$/, view: "record", access: "member" },
   { pattern: /^\/gastos$/, view: "expenses", access: "member" },
   { pattern: /^\/gastos\/(?<id>\d+)$/, view: "edit", access: "member" },

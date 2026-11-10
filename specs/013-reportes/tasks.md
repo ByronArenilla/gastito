@@ -216,7 +216,7 @@ La línea "Retirado del ahorro" en la categoría Ahorro (`dashboard.js` y
   muestra Ahorro "300.000 de 500.000", el rubro con $ 500.000 y "Retirado
   del ahorro −$ 200.000"; Gastado $ 5.623.000 y Balance $ 877.000.
 
-## [ ] T11 — Web: navegación, mes y ventana
+## [x] T11 — Web: navegación, mes y ventana
 `/mes/reportes` en `routes.js`; el selector "Este mes | Reportes" en el
 Mes; `views/reports.js` con el selector de mes, la ventana de ahorro
 (recordados en `app.drafts`), la petición y los estados de carga, error y
@@ -234,6 +234,10 @@ sin conexión; `monthBounds` y `SAVINGS_WINDOWS` en `reports.js`.
   sin conexión lo avisa.
 - Hecho cuando: los tests pasan y la verificación está marcada.
 - RF: RF-1 a RF-3, RF-28.
+- Estado (2026-11-10): hecha y verificada en Chromium a 1280 px. "Este mes |
+  Reportes" vive en `views/month-tabs.js` y lo usan las dos pantallas. De
+  paso, `main.js` deja el `<main>` sin clases al cambiar de pantalla: el
+  `main--wide` de la 012 se quedaba en la pantalla siguiente.
 
 ## [ ] T12 — Web: escalas y piezas de gráfico
 `charts.js` con `columnScale`, `stackScale` y `divergentScale`; en
