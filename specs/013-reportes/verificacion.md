@@ -64,10 +64,10 @@ computador. Antes de empezar:
 
 | Paso | A | I | C |
 |---|---|---|---|
-| Desde 1280 px: "¿En qué se me va la plata?" y "¿Planeo bien?" lado a lado, "¿Estoy ahorrando?" a todo el ancho. | — | — | [ ] |
-| Todo con teclado y foco visible. | [ ] | [ ] | [ ] |
-| Zoom al 200 % (*reflow* a 320 px) sin desbordar. | — | — | [ ] |
-| Los gráficos están ocultos al lector de pantalla y la tabla se lee. | [ ] | [ ] | [ ] |
-| Con `prefers-reduced-motion`, nada se anima. | [ ] | [ ] | [ ] |
-| Los dos temas: tintas, rojo y tinta legibles. | [ ] | [ ] | [ ] |
-| Ningún emoji, sombra ni degradado; cifras a la derecha. | [ ] | [ ] | [ ] |
+| Desde 1280 px: "¿En qué se me va la plata?" y "¿Planeo bien?" lado a lado, "¿Estoy ahorrando?" a todo el ancho. | — | — | [x] |
+| Todo con teclado y foco visible. | [ ] | [ ] | [x] |
+| Zoom al 200 % (*reflow* a 320 px) sin desbordar. | — | — | [x] |
+| Los gráficos están ocultos al lector de pantalla y la tabla se lee. | [ ] | [ ] | [x] |
+| Con `prefers-reduced-motion`, nada se anima. | [ ] | [ ] | [x] |
+| Los dos temas: tintas, rojo y tinta legibles. | [ ] | [ ] | [x] |
+| Ningún emoji, sombra ni degradado; cifras a la derecha. | [ ] | [ ] | [x] |

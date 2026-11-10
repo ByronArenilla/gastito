@@ -294,7 +294,7 @@ secciones en la vista.
   1, 3, 6 y 12 meses. Cada columna apila lo apartado menos lo retirado (en
   tinta) y lo que quedó (en gris); lo que faltó va en rojo bajo el cero.
 
-## [ ] T15 — Revisión de diseño y accesibilidad
+## [x] T15 — Revisión de diseño y accesibilidad
 Pasada completa con la sección "Diseño" de esta spec y las de la 011 y la
 012, sobre Reportes, Registrar, Gastos y el Mes.
 
@@ -307,6 +307,15 @@ Pasada completa con la sección "Diseño" de esta spec y las de la 011 y la
   degradado; cifras a la derecha.
 - Hecho cuando: la columna C de `verificacion.md` está completa.
 - RF: RF-24 a RF-27.
+- Estado (2026-11-10): columna C completa, con Chromium sin interfaz a 320,
+  360, 390, 640 (zoom al 200 %) y 1280 px, en los dos temas. El foco pasa
+  por las pestañas, las flechas de mes, "Ver cifras" y las ventanas con
+  anillo visible; los gráficos están ocultos al lector de pantalla y las
+  tablas no; con `prefers-reduced-motion` no hay animación; ningún elemento
+  de Reportes tiene sombra ni degradado. Lo que corrigió la revisión: las
+  barras de lo que se pasa en "¿Planeo bien?" (T13), los botones de la
+  ventana en la fuente del texto, y el mes del encabezado al registrar un
+  retiro de otro mes (T9).
 
 ## [ ] T16 — ADR 0017 y 0018
 - `docs/adr/0017-graficos-de-varios-meses-con-css.md`: columnas y pilas de
