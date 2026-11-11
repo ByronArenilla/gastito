@@ -1,9 +1,10 @@
 """Ahorro: la categoría, lo apartado y lo retirado en un mes (spec 013).
 
-Lo apartado en un mes es lo gastado en la categoría Ahorro con la regla del
-resumen: una deuda con tarjeta no cuenta el día de la compra (spec 009).
-Un retiro nunca pasa de lo apartado en su mes menos lo ya retirado (RF-33),
-y por eso lo apartado no puede bajar de lo retirado (RF-34).
+Lo apartado en un mes es lo planeado en sus rubros de Ahorro: el ahorro se
+aparta al planearlo y no se registra como gasto (decisión 29, RF-38). Un
+retiro nunca pasa de lo apartado en su mes menos lo ya retirado (RF-33), y
+por eso un rubro de Ahorro no puede bajar ni borrarse si deja lo retirado
+por encima (RF-34).
 
 Funciones sin HTTP, que se prueban con una sesión de base de datos
 (principio 10). Todas las consultas filtran por `space_id` (principio 13).
@@ -11,11 +12,11 @@ Funciones sin HTTP, que se prueban con una sesión de base de datos
 
 from datetime import date
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app import dates
-from app.models import Category, Expense, SavingsWithdrawal, Space
+from app.models import BudgetItem, Category, SavingsWithdrawal, Space
 from app.schemas import format_pesos
 
 # La clave de "Ahorro" con la comparación de nombres de la 002: también es
@@ -34,26 +35,22 @@ def savings_category_ids(db: Session, space_id: int) -> set[int]:
     )
 
 
-def counts_as_saved(
-    category_id: int, card_id: int | None, is_debt: bool | None, savings_ids: set[int]
-) -> bool:
-    """Si un gasto con estos datos es plata apartada: de Ahorro y no deuda."""
-    return category_id in savings_ids and not (card_id is not None and is_debt)
+def is_savings_category(db: Session, space_id: int, category_id: int) -> bool:
+    """Si la categoría es Ahorro: un gasto no puede ir en ella (RF-38)."""
+    return category_id in savings_category_ids(db, space_id)
 
 
 def saved_in(db: Session, space_id: int, period: str) -> int:
-    """Lo apartado en Ahorro en el mes."""
+    """Lo apartado en Ahorro en el mes: lo planeado en sus rubros."""
     savings_ids = savings_category_ids(db, space_id)
     if not savings_ids:
         return 0
-    start, end = dates.period_bounds(period)
+    start, _ = dates.period_bounds(period)
     total = db.scalar(
-        select(func.coalesce(func.sum(Expense.amount), 0)).where(
-            Expense.space_id == space_id,
-            Expense.category_id.in_(savings_ids),
-            or_(Expense.card_id.is_(None), Expense.is_debt.is_(False)),
-            Expense.spent_on >= start,
-            Expense.spent_on < end,
+        select(func.coalesce(func.sum(BudgetItem.amount), 0)).where(
+            BudgetItem.space_id == space_id,
+            BudgetItem.category_id.in_(savings_ids),
+            BudgetItem.period_start == start,
         )
     )
     # `int()`: en PostgreSQL, `SUM` de un `bigint` llega como `Decimal`.
@@ -107,7 +104,7 @@ class WithdrawalTooLarge(Exception):
 
 
 class SavedBelowWithdrawn(Exception):
-    """Un cambio en un gasto deja lo apartado de un mes por debajo de lo
+    """Un cambio en un rubro deja lo apartado de un mes por debajo de lo
     retirado (RF-34)."""
 
     def __init__(self, period: str, withdrawn: int, saved_after: int) -> None:
@@ -140,45 +137,33 @@ def check_withdrawal(
         raise WithdrawalTooLarge(period, saved, withdrawn)
 
 
-def check_saved_change(db: Session, expense: Expense, after: dict | None) -> None:
-    """Lanza `SavedBelowWithdrawn` si cambiar el gasto a `after` (o borrarlo,
-    con `None`) deja lo apartado de algún mes por debajo de lo retirado.
+def check_item_change(db: Session, item: BudgetItem, after: dict | None) -> None:
+    """Lanza `SavedBelowWithdrawn` si cambiar el rubro a `after` (o borrarlo,
+    con `None`) deja lo apartado de su mes por debajo de lo retirado.
 
     Se mide antes de escribir: lo guardado aún tiene los valores viejos. Un
-    gasto que se mueve de mes resta en el viejo y suma en el nuevo; solo los
-    meses que bajan se comprueban. Un gasto que no es de Ahorro no consulta
-    nada más.
+    rubro no cambia de mes (decisión 12 de la 008), así que solo mira el
+    suyo. Un rubro que no es de Ahorro no consulta nada más.
     """
-    savings_ids = savings_category_ids(db, expense.space_id)
-    before = counts_as_saved(
-        expense.category_id, expense.card_id, expense.is_debt, savings_ids
-    )
-    if not before:
+    savings_ids = savings_category_ids(db, item.space_id)
+    if item.category_id not in savings_ids:
         # Lo apartado solo puede subir: nada que comprobar.
         return
 
-    deltas = {dates.period_of(expense.spent_on): -expense.amount}
+    new_amount = 0
     if after is not None:
-        values = {
-            "category_id": expense.category_id,
-            "card_id": expense.card_id,
-            "is_debt": expense.is_debt,
-            "amount": expense.amount,
-            "spent_on": expense.spent_on,
-        } | after
-        if counts_as_saved(
-            values["category_id"], values["card_id"], values["is_debt"], savings_ids
-        ):
-            period = dates.period_of(values["spent_on"])
-            deltas[period] = deltas.get(period, 0) + values["amount"]
+        values = {"category_id": item.category_id, "amount": item.amount} | after
+        if values["category_id"] in savings_ids:
+            new_amount = values["amount"]
+    delta = new_amount - item.amount
+    if delta >= 0:
+        return
 
-    lock_space(db, expense.space_id)
-    for period, delta in deltas.items():
-        if delta >= 0:
-            continue
-        withdrawn = withdrawn_in(db, expense.space_id, period)
-        if not withdrawn:
-            continue
-        saved_after = saved_in(db, expense.space_id, period) + delta
-        if saved_after < withdrawn:
-            raise SavedBelowWithdrawn(period, withdrawn, saved_after)
+    lock_space(db, item.space_id)
+    period = dates.period_of(item.period_start)
+    withdrawn = withdrawn_in(db, item.space_id, period)
+    if not withdrawn:
+        return
+    saved_after = saved_in(db, item.space_id, period) + delta
+    if saved_after < withdrawn:
+        raise SavedBelowWithdrawn(period, withdrawn, saved_after)

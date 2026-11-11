@@ -17,6 +17,8 @@ import {
   missing,
   newForm,
   parseInstallments,
+  recordableCategories,
+  recordableItems,
   simulationRequest,
   simulationSummary,
   suggestItems,
@@ -49,7 +51,8 @@ export function createData(app) {
   async function loadSummary(period) {
     const summary = await app.api.get(`${base}/summary`, period ? { period } : undefined);
     for (const row of summary.categories) categoryNames.set(row.category_id, row.name);
-    itemsByPeriod.set(summary.period, summary.budget_items);
+    // Ahorro no se registra: se aparta al planear (spec 013, decisión 29).
+    itemsByPeriod.set(summary.period, recordableItems(summary.budget_items, summary.categories));
     return summary;
   }
 
@@ -73,7 +76,7 @@ export function createData(app) {
       ]);
       // El mes actual en `TZ` lo dice la API (decisión 12).
       currentPeriod = summary.period;
-      categories = activeCategories;
+      categories = recordableCategories(activeCategories);
       cards = activeCards;
       for (const category of activeCategories) categoryNames.set(category.id, category.name);
     },

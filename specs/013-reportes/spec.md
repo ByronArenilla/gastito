@@ -4,7 +4,8 @@
 - Estado: aprobada (2026-11-10); cambiada el mismo día al revisar el
   prototipo: tres reportes (decisión 18), un mes elegido (decisión 20),
   Ahorro como categoría (decisiones 21 a 24) y retiros de ahorro
-  (decisiones 25 a 28)
+  (decisiones 25 a 28). El 2026-11-11, el ahorro se aparta al planearlo y
+  no se registra (decisión 29)
 - Base: spec 002 (categorías predefinidas), spec 008 (rubros, ingresos y
   resumen), spec 009 (tarjetas y cuotas), spec 010 (gasto del mes o deuda),
   spec 011 (la web y su diseño), spec 012 (Mes y barras), ADR 0011, ADR
@@ -60,7 +61,8 @@ Y lo que los hace posibles:
 - Llevar el saldo total del ahorro (cuánto hay ahorrado sumando todos los
   meses) o retirar de lo apartado en meses anteriores (decisión 28).
 - Cambiar cómo el Mes de la 012 muestra la categoría Ahorro, salvo lo
-  retirado: apartar más de lo planeado se sigue viendo como excedido.
+  retirado y que sus rubros se ven apartados desde que se planean
+  (decisión 29).
 - Cambiar las reglas de las specs 008 a 010, salvo una: lo retirado resta
   de Ahorro en el resumen (RF-36). Los reportes leen los mismos datos con
   las mismas reglas.
@@ -77,8 +79,8 @@ Y lo que los hace posibles:
 - **Categoría Ahorro**: la categoría del espacio cuyo nombre es "Ahorro",
   con la comparación de nombres de la spec 002 (mayúsculas y tildes no
   cuentan), activa o archivada.
-- **Apartado**: lo registrado en la categoría Ahorro en un mes, con rubro o
-  sin él.
+- **Apartado**: lo planeado en los rubros de la categoría Ahorro en un mes.
+  Se aparta al planearlo: no se registra como un gasto (decisión 29).
 - **Retiro de ahorro**: plata que se saca de lo apartado en un mes, para
   cubrir gastos de ese mes. Tiene monto, fecha, nota opcional y quién lo
   registró.
@@ -178,7 +180,8 @@ Y lo que los hace posibles:
     cada espacio que no tenga ya una categoría con ese nombre, activa o
     archivada. Lo pidió la persona: el ahorro se planea como un rubro y se
     registra como un gasto, en su categoría. Cambia la decisión 1 de la
-    spec 002; la 002 no se edita.
+    spec 002; la 002 no se edita. (La decisión 29 cambió cómo se aparta:
+    al planear, no al registrar.)
 22. **En "¿En qué se me va la plata?", lo apartado en Ahorro no cuenta como
     gasto**: no está en la lista ni en los porcentajes, y la frase lo
     nombra aparte ("Además, apartaste $ 500.000 en Ahorro").
@@ -208,6 +211,21 @@ Y lo que los hace posibles:
     gastito no lleva el saldo total del ahorro. Como consecuencia, tampoco
     se puede borrar o cambiar lo apartado si eso deja lo retirado por
     encima: la app lo impide y dice por qué.
+
+## Cambio del 2026-11-11
+
+29. **El ahorro se aparta al planearlo; no se registra.** Ahorro aparece
+    solo en Planear, como categoría de sus rubros. Registrar no la ofrece
+    ni sugiere sus rubros, y la API rechaza un gasto en Ahorro. Lo
+    apartado en un mes es lo planeado en sus rubros de Ahorro: un rubro
+    "Ahorro" de $ 500.000 en agosto aparta $ 500.000 desde que se planea,
+    y en el Mes se ve "500.000 de 500.000". Lo pidió la persona: no tiene
+    sentido registrar un ahorro; se registran gastos y se retira ahorro.
+    Cambia la decisión 21 ("se registra como un gasto") y la 28: lo que
+    no puede dejar lo retirado por encima es bajar o borrar un rubro de
+    Ahorro, no un gasto. En "¿Estoy ahorrando?", lo apartado ya no puede
+    quedar por debajo de lo planeado; en su lugar se cuentan los meses en
+    que no se retiró nada ("No tocaste el ahorro en 4 de 5 meses").
 
 ## Requisitos funcionales
 
@@ -258,9 +276,9 @@ Y lo que los hace posibles:
   rechazarlo con `422` y decir cuánto se puede retirar ("En agosto
   apartaste $ 500.000 y ya retiraste $ 200.000: puedes retirar hasta
   $ 300.000.") (decisión 28).
-- **RF-34** SI editar o borrar un gasto deja lo retirado de un mes por
+- **RF-34** SI editar o borrar un rubro deja lo retirado de un mes por
   encima de lo apartado en ese mes, ENTONCES la API DEBE rechazarlo con
-  `409`, sin cambiar nada, y decir por qué (decisión 28).
+  `409`, sin cambiar nada, y decir por qué (decisiones 28 y 29).
 - **RF-35** Gastos DEBE listar los retiros del mes con su fecha, "Retiro de
   ahorro", su nota y el monto con "+". Un retiro DEBE poder editarse y
   borrarse; borrar DEBE pedir confirmación (decisión 27).
@@ -272,6 +290,11 @@ Y lo que los hace posibles:
 - **RF-37** Los retiros DEBEN pertenecer a un espacio: solo sus miembros
   DEBEN poder crearlos, verlos, editarlos y borrarlos, y uno de otro
   espacio DEBE responder `404` (principio 13).
+- **RF-38** Registrar y editar un gasto NO DEBEN ofrecer la categoría
+  Ahorro ni sus rubros. SI un gasto, al crearlo o editarlo, queda en la
+  categoría Ahorro o en uno de sus rubros, ENTONCES la API DEBE rechazarlo
+  con `422` y decir que el ahorro se aparta al planearlo. El resumen DEBE
+  contar cada rubro de Ahorro como gastado por lo planeado (decisión 29).
 
 ### Retirados
 
@@ -313,15 +336,14 @@ Y lo que los hace posibles:
 
 ### 3. ¿Estoy ahorrando?
 
-- **RF-21** El reporte DEBE mostrar, por mes de la ventana, lo apartado y lo
-  planeado en la categoría Ahorro, lo retirado, lo que quedó sin gastar y
-  lo ahorrado, con su parte del ingreso de referencia (decisiones 13, 24 y
-  25).
+- **RF-21** El reporte DEBE mostrar, por mes de la ventana, lo apartado en
+  la categoría Ahorro, lo retirado, lo que quedó sin gastar y lo ahorrado,
+  con su parte del ingreso de referencia (decisiones 13, 24, 25 y 29).
 - **RF-22** El gráfico DEBE mostrar, por mes, lo apartado menos lo
   retirado y lo que quedó sin gastar en una misma columna; lo que quedó, en rojo y bajo la línea de
   cero cuando es negativo. CUANDO la ventana tiene más de un mes, DEBE
   mostrar también el promedio de lo ahorrado, el mejor mes, el peor y en
-  cuántos meses se apartó lo planeado.
+  cuántos de los meses con algo apartado no se retiró nada (decisión 29).
 - **RF-23** CUANDO la ventana es un mes, el reporte DEBE mostrar lo ahorrado
   en grande, con lo apartado, lo retirado, lo que quedó y su parte del
   ingreso.
@@ -404,14 +426,14 @@ La spec se da por cumplida cuando, además de los tests por requisito:
 1. pytest prueba en la API, con un espacio de datos de ejemplo de varios
    meses: "Ahorro" en las predefinidas y la migración que la crea sin
    duplicarla; los retiros de ahorro con su límite, el `409` al borrar lo
-   apartado y su efecto en el resumen; el gasto del mes por categoría con "Cuotas de tarjetas", lo
+   apartado (un rubro de Ahorro) y su efecto en el resumen; el gasto del mes por categoría con "Cuotas de tarjetas", lo
    no planeado y lo apartado aparte; los rubros del mes que se pasan y
    sobran y las filas sin rubro, sin Ahorro; lo apartado, lo que quedó y lo
    ahorrado por mes, con el ingreso de referencia de un mes sin ingresos; la
    ventana que termina en el mes elegido; un mes sin datos fuera de los
    promedios; que los repartos suman el total; que otro espacio no ve nada;
-   y el `422` de un mes no cerrado o una ventana inválida (RF-5, RF-6, RF-14
-   a RF-23, RF-29 a RF-37).
+   el `422` de un gasto en Ahorro; y el `422` de un mes no cerrado o una
+   ventana inválida (RF-5, RF-6, RF-14 a RF-23, RF-29 a RF-38).
 2. `node --test` prueba sin navegador las frases de cada reporte, las
    escalas de los gráficos, la agrupación en "Otras" y los límites del
    selector de mes (RF-3, RF-4, RF-17).
@@ -429,8 +451,8 @@ La spec se da por cumplida cuando, además de los tests por requisito:
 - **020-https-dominio:** la verificación en el celular incluye los
   reportes.
 - **README:** una sección "Reportes" con las tres preguntas y la ruta de la
-  API; "Ahorro" en la lista de categorías predefinidas, y cómo registrar un
-  retiro de ahorro.
+  API; "Ahorro" en la lista de categorías predefinidas, que se aparta al
+  planear, y cómo registrar un retiro de ahorro.
 - **AGENTS.md:** el glosario puede añadir "reporte", "mes elegido" y
   "ahorro" y "retiro de ahorro" si la persona lo pide; esta spec no lo
   cambia.

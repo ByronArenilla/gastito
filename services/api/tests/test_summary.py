@@ -869,20 +869,50 @@ def test_the_name_of_a_month_expense(
     assert names[by_category.id] == "Comida"
 
 
-# --- Retiros de ahorro (spec 013, RF-36) ---
+# --- Ahorro y sus retiros (spec 013, RF-36 y RF-38) ---
+
+
+def test_a_savings_item_is_saved_when_planned(
+    session: Session, space: Space, user: User
+) -> None:
+    # Agosto: Sueldo 6.500.000; rubro Ahorro de 500.000 sin nada registrado
+    # y Mercado de 900.000 con 300.000 gastados. Lo apartado se aparta al
+    # planearlo (decisión 29).
+    august = date(2026, 8, 1)
+    ahorro = add_category(session, space, "Ahorro")
+    comida = add_category(session, space, "Comida")
+    add_income(session, space, "Sueldo", 6_500_000, august)
+    add_item(session, ahorro, "Ahorro", 500_000, august)
+    mercado = add_item(session, comida, "Mercado", 900_000, august)
+    spend(session, user, 300_000, date(2026, 8, 3), item=mercado)
+
+    summary = build_summary(session, space.id, "2026-08")
+
+    by_item = {row.name: row for row in summary.budget_items}
+    assert (by_item["Ahorro"].spent, by_item["Ahorro"].remaining) == (500_000, 0)
+    assert (by_item["Mercado"].spent, by_item["Mercado"].remaining) == (
+        300_000,
+        600_000,
+    )
+    by_name = {row.name: row for row in summary.categories}
+    assert (by_name["Ahorro"].planned, by_name["Ahorro"].spent) == (500_000, 500_000)
+    total = summary.total
+    assert (total.spent_planned, total.spent_unplanned) == (800_000, 0)
+    assert total.spent == 800_000
+    assert total.balance == 5_700_000
 
 
 def test_a_withdrawal_is_subtracted_from_ahorro_and_from_spent(
     session: Session, space: Space, user: User
 ) -> None:
-    # Agosto: Sueldo 6.500.000; rubro Ahorro de 500.000 apartado entero; una
-    # urgencia de 200.000 sin rubro, cubierta con un retiro de 200.000.
+    # Agosto: Sueldo 6.500.000; rubro Ahorro de 500.000, apartado al
+    # planearlo; una urgencia de 200.000 sin rubro, cubierta con un retiro
+    # de 200.000.
     august = date(2026, 8, 1)
     ahorro = add_category(session, space, "Ahorro")
     salud = add_category(session, space, "Salud")
     add_income(session, space, "Sueldo", 6_500_000, august)
-    item = add_item(session, ahorro, "Ahorro", 500_000, august)
-    spend(session, user, 500_000, date(2026, 8, 3), item=item)
+    add_item(session, ahorro, "Ahorro", 500_000, august)
     spend(session, user, 200_000, date(2026, 8, 14), category=salud)
     session.add(
         SavingsWithdrawal(
@@ -928,7 +958,7 @@ def test_a_withdrawal_of_another_month_or_space_does_not_count(
     session.add(other)
     session.flush()
     ahorro = add_category(session, space, "Ahorro")
-    spend(session, user, 300_000, date(2026, 8, 3), category=ahorro)
+    add_item(session, ahorro, "Ahorro", 300_000, date(2026, 8, 1))
     session.add_all(
         [
             SavingsWithdrawal(

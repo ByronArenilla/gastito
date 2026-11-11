@@ -1140,11 +1140,11 @@ class SavingsMonthOut(BaseModel):
     # Ingreso de referencia: el del mes o el del último anterior con ingresos.
     income: int
     income_estimated: bool
-    # Lo apartado en Ahorro, sin descontar retiros; lo retirado; lo planeado
-    # en Ahorro; lo que quedó sin gastar, y lo ahorrado (decisión 24).
+    # Lo apartado en Ahorro (lo planeado en sus rubros), sin descontar
+    # retiros; lo retirado; lo que quedó sin gastar, y lo ahorrado
+    # (decisiones 24 y 29).
     saved: int
     withdrawn: int
-    saved_planned: int
     left: int
     total: int
     share: int | None
@@ -1164,9 +1164,9 @@ class SavingsOut(BaseModel):
     average: SavingsAverageOut | None
     best: str | None
     worst: str | None
-    # Meses con algo planeado en Ahorro, y en cuántos se apartó al menos eso.
+    # Meses con algo apartado en Ahorro, y en cuántos no se retiró nada.
     planned_months: int
-    met_months: int
+    untouched_months: int
 
 
 class ReportsOut(BaseModel):

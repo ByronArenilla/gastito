@@ -13,7 +13,8 @@ Columnas:
 computador. Antes de empezar:
 
 - `make run-api` y `make run-web` corriendo.
-- Un espacio con varios meses de plan y gastos, un rubro Ahorro, la Visa
+- Un espacio con varios meses de plan y gastos, un rubro Ahorro (lo
+  apartado; decisión 29), la Visa
   con una compra a cuotas, un mes sin datos y un retiro de ahorro. Todo se
   crea desde la web (README, "Plan del mes", "Tarjetas" y "Reportes").
 
@@ -59,6 +60,22 @@ computador. Antes de empezar:
 | Un mes sin datos muestra el estado vacío con "Planear". | [ ] | [ ] | [x] |
 | 12 meses a 360 px se desplazan a lo ancho con el último mes a la vista. | [ ] | [ ] | [x] |
 | Los nombres largos no desbordan a 320 px. | [ ] | [ ] | [x] |
+
+## El ahorro se aparta al planearlo (T17)
+
+Con Chromium sin interfaz a 390 y 1280 px, contra una API temporal con
+octubre y noviembre de 2026: Sueldo $ 6.500.000, Mercado $ 900.000 y un
+rubro Ahorro de $ 500.000 en cada mes, y un retiro de $ 200.000 en
+noviembre.
+
+| Paso | A | I | C |
+|---|---|---|---|
+| Registrar no ofrece Ahorro entre las categorías ni sugiere el rubro Ahorro ("1 rubro de noviembre": Mercado). | [ ] | [ ] | [x] |
+| Planear sí ofrece Ahorro como categoría de un rubro. | [ ] | [ ] | [x] |
+| El Mes muestra Ahorro "300.000 de 500.000", el rubro Ahorro con $ 500.000 y "Retirado del ahorro −$ 200.000" sin registrar ningún gasto; Gastado $ 600.000 y Balance $ 5.900.000. | [ ] | [ ] | [x] |
+| Un retiro cabe en lo planeado: con $ 200.000 retirados, $ 300.001 más responde "puedes retirar hasta $ 300.000". | [ ] | [ ] | [x] |
+| Quitar el rubro Ahorro con un retiro no abre confirmación y el renglón muestra el mensaje del `409`; el rubro sigue. | [ ] | [ ] | [x] |
+| "¿Estoy ahorrando?" de octubre: "Apartaste $ 500.000 en Ahorro y quedaron $ 5.050.000 sin gastar.", sin "lo planeado". | [ ] | [ ] | [x] |
 
 ## Diseño y accesibilidad (T15)
 

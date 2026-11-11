@@ -9,12 +9,15 @@
   Ahorro (T3), los retiros (T4), el resumen con los retiros (T5) y los
   reportes (T6 a T8). Después la web: los retiros en Registrar, Gastos y el
   Mes (T9, T10), y los reportes (T11 a T14). Al final, la revisión de
-  diseño (T15), los ADR (T16) y el cierre (T17).
+  diseño (T15), los ADR (T16), el ahorro solo en Planear (T17) y el
+  cierre (T18).
 - Lo que se verifica a mano va en `verificacion.md`, que crea T9.
 - 2026-11-10, al revisar el prototipo: se quitaron dos reportes (decisión
   18), los reportes miran un mes elegido (20), Ahorro es una categoría
   (21 a 24) y se registran retiros de ahorro (25 a 28). Las tareas se
   rehicieron.
+- 2026-11-11, antes del cierre: el ahorro se aparta al planearlo y no se
+  registra (decisión 29). Se añadió T17 y el cierre pasó a T18.
 
 ## [x] T1 — Prototipo de los reportes
 Una página HTML desechable con datos de ejemplo de varios meses, con los
@@ -330,7 +333,47 @@ Pasada completa con la sección "Diseño" de esta spec y las de la 011 y la
 - RF: ninguno; principio 4.
 - Estado (2026-11-10): hechos; el plan los enlaza en su introducción.
 
-## [ ] T17 — Cierre: README y validación
+## [x] T17 — El ahorro se aparta al planearlo
+Lo apartado pasa a ser lo planeado en los rubros de Ahorro (decisión 29).
+En la API: `saved_in` suma rubros; la guarda (`409`) pasa de los gastos a
+los rubros (`check_item_change` en `PATCH` y `DELETE` de rubros); un gasto
+en Ahorro responde `422`; el resumen cuenta cada rubro de Ahorro gastado
+por lo planeado; "¿Estoy ahorrando?" cambia `saved_planned` y
+`met_months` por `untouched_months`. En la web: Registrar no ofrece Ahorro
+ni sus rubros (`recordableCategories`, `recordableItems`), y las frases de
+"¿Estoy ahorrando?" y del límite del retiro.
+
+- Test primero:
+  - `test_savings_withdrawals.py`: lo apartado sale de un rubro de Ahorro
+    de $ 500.000; sin rubro de Ahorro, nada que retirar; la guarda al
+    borrar el rubro, bajarle el monto y cambiarle la categoría (`409`, nada
+    cambia); subirle el monto o tocar un rubro de otra categoría pasa.
+  - `test_expenses.py` o `test_savings_withdrawals.py`: un gasto con
+    categoría Ahorro o en un rubro de Ahorro, al crearlo o editarlo →
+    `422`; una compra con tarjeta en Ahorro, igual.
+  - `test_summary.py`: el rubro de Ahorro con `spent` = `planned` sin
+    gastos; la categoría con lo planeado menos lo retirado; `total.spent`
+    y `balance` con lo apartado.
+  - `test_reports.py`: el espacio de ejemplo planea su Ahorro;
+    `untouched_months`.
+  - `expense-form.test.js`: sin Ahorro en las categorías ni en los rubros.
+  - `reports.test.js`: las frases nuevas de "¿Estoy ahorrando?".
+- Verificación a mano: Registrar no muestra Ahorro ni el rubro Ahorro;
+  Planear sí; el Mes muestra Ahorro "500.000 de 500.000" sin registrar
+  nada; un retiro cabe en lo planeado; borrar el rubro con un retiro
+  muestra el `409`.
+- Hecho cuando: los tests pasan y la verificación está marcada.
+- RF: RF-21, RF-22, RF-33, RF-34, RF-38.
+- Estado (2026-11-11): hecha y verificada en Chromium a 390 y 1280 px. La
+  verificación encontró que, en Planear, quitar el rubro Ahorro pedía
+  confirmación diciendo que sus gastos quedaban sin rubro (el resumen lo
+  cuenta gastado por lo planeado); `needsConfirm` recibe ahora las
+  categorías Ahorro y no la pide. Un gasto de Ahorro registrado antes de
+  este cambio (solo pudo hacerse en esta rama) sigue editándose mientras no
+  se le cambie la categoría. La categoría Ahorro guarda su 422 en la API
+  con `is_savings_category`; la 0006 no cambia.
+
+## [ ] T18 — Cierre: README y validación
 - `README.md`: sección "Reportes" con las tres preguntas y la ruta de la
   API; "Ahorro" en las predefinidas; cómo registrar un retiro de ahorro.
 - `docs/roadmap.md`: marcar `013-reportes` como terminada y dejar

@@ -120,7 +120,8 @@ def has_data(summary: SummaryOut) -> bool:
 
 
 def saved_of(summary: SummaryOut, savings_ids: set[int]) -> int:
-    """Lo apartado en Ahorro en el mes, sin descontar retiros."""
+    """Lo apartado en Ahorro en el mes, sin descontar retiros: lo planeado en
+    sus rubros, que el resumen cuenta como gastado (decisión 29)."""
     return sum(
         row.spent + row.withdrawn
         for row in summary.categories
@@ -236,7 +237,8 @@ def savings_report(
     summaries: list[SummaryOut], incomes: dict[str, int], savings_ids: set[int]
 ) -> SavingsOut:
     """¿Estoy ahorrando? en la ventana: lo apartado, lo retirado, lo que quedó
-    sin gastar y lo ahorrado de cada mes (RF-21 a RF-23, decisión 24)."""
+    sin gastar y lo ahorrado de cada mes (RF-21 a RF-23, decisiones 24 y
+    29)."""
     months = []
     for summary in summaries:
         reference = reference_income(incomes, summary.period)
@@ -255,11 +257,6 @@ def savings_report(
                 income_estimated=estimated and not empty,
                 saved=saved,
                 withdrawn=withdrawn,
-                saved_planned=sum(
-                    item.planned
-                    for item in summary.budget_items
-                    if item.category_id in savings_ids
-                ),
                 left=0 if empty else left,
                 total=0 if empty else total,
                 share=None if empty or reference is None else percent(total, income),
@@ -277,7 +274,8 @@ def savings_report(
         # A igual cifra, el primero.
         best = max(full, key=lambda month: month.total).period
         worst = min(full, key=lambda month: month.total).period
-    planned = [month for month in full if month.saved_planned]
+    # Lo apartado es lo planeado (decisión 29): lo que se mide es si se tocó.
+    planned = [month for month in full if month.saved]
     return SavingsOut(
         window=WindowOut(months=len(months), periods=[m.period for m in months]),
         months=months,
@@ -285,7 +283,7 @@ def savings_report(
         best=best,
         worst=worst,
         planned_months=len(planned),
-        met_months=sum(month.saved >= month.saved_planned for month in planned),
+        untouched_months=sum(not month.withdrawn for month in planned),
     )
 
 

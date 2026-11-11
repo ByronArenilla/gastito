@@ -61,7 +61,7 @@ function october() {
         { kind: "item", name: "Gasolina", category: "Transporte", category_id: 3, planned: 300000, spent: 280000, diff: -20000 },
       ],
     },
-    savings: { window: { months: 1, periods: ["2026-10"] }, months: [], average: null, best: null, worst: null, planned_months: 0, met_months: 0 },
+    savings: { window: { months: 1, periods: ["2026-10"] }, months: [], average: null, best: null, worst: null, planned_months: 0, untouched_months: 0 },
   };
 }
 
@@ -191,7 +191,6 @@ const month = (period, values = {}) => ({
   income_estimated: false,
   saved: 500000,
   withdrawn: 0,
-  saved_planned: 500000,
   left: 118640,
   total: 618640,
   share: 10,
@@ -207,7 +206,7 @@ function withSavings(months, extra = {}) {
     best: null,
     worst: null,
     planned_months: 0,
-    met_months: 0,
+    untouched_months: 0,
     ...extra,
   };
   return reports;
@@ -217,7 +216,7 @@ test("con un mes: lo ahorrado en grande y su desglose", () => {
   const report = savingsReport(withSavings([month("2026-10")]));
 
   assert.equal(answerText(report.answer), `En octubre ahorraste ${formatPesos(618640)}, el 10 % del ingreso.`);
-  assert.equal(report.sub, `Apartaste ${formatPesos(500000)} en Ahorro, lo planeado, y quedaron ${formatPesos(118640)} sin gastar.`);
+  assert.equal(report.sub, `Apartaste ${formatPesos(500000)} en Ahorro y quedaron ${formatPesos(118640)} sin gastar.`);
   assert.equal(report.single.total, 618640);
 });
 
@@ -226,7 +225,7 @@ test("con un retiro, el desglose lo nombra", () => {
 
   assert.equal(
     savingsReport(withSavings([august])).sub,
-    `Apartaste ${formatPesos(500000)} en Ahorro, lo planeado, retiraste ${formatPesos(200000)} y quedaron ${formatPesos(2945000)} sin gastar.`,
+    `Apartaste ${formatPesos(500000)} en Ahorro, retiraste ${formatPesos(200000)} y quedaron ${formatPesos(2945000)} sin gastar.`,
   );
 });
 
@@ -234,30 +233,30 @@ test("un mes que gastó más de lo que entró lo dice con −", () => {
   const report = savingsReport(withSavings([month("2026-10", { saved: 300000, left: -780360, total: -480360, share: -7 })]));
 
   assert.equal(answerText(report.answer), `En octubre gastaste ${formatPesos(480360)} más de lo que entró.`);
-  assert.match(report.sub, /de .*500\.000 planeados, y faltaron .*780\.360 para cubrir los gastos\.$/);
+  assert.match(report.sub, /^Apartaste .*300\.000 en Ahorro y faltaron .*780\.360 para cubrir los gastos\.$/);
 });
 
 test("sin ingreso no hay parte del ingreso", () => {
-  const report = savingsReport(withSavings([month("2026-10", { income: 0, share: null, saved: 0, saved_planned: 0, left: -70000, total: -70000 })]));
+  const report = savingsReport(withSavings([month("2026-10", { income: 0, share: null, saved: 0, left: -70000, total: -70000 })]));
 
   assert.equal(answerText(report.answer), `En octubre gastaste ${formatPesos(70000)} más de lo que entró.`);
 });
 
-test("con varios meses: promedio, meses con lo planeado, mejor, peor y el mes sin datos", () => {
+test("con varios meses: promedio, meses sin tocar el ahorro, mejor, peor y el mes sin datos", () => {
   const months = [
-    month("2026-05", { empty: true, income: 0, saved: 0, saved_planned: 0, left: 0, total: 0, share: null }),
+    month("2026-05", { empty: true, income: 0, saved: 0, left: 0, total: 0, share: null }),
     month("2026-06", { left: 2890000, total: 3390000, share: 52 }),
     month("2026-09", { saved: 0, left: 3530000, total: 3530000, share: 54, income_estimated: true }),
     month("2026-10"),
   ];
   const report = savingsReport(
-    withSavings(months, { average: { total: 2512880, share: 39 }, best: "2026-09", worst: "2026-10", planned_months: 3, met_months: 2 }),
+    withSavings(months, { average: { total: 2512880, share: 39 }, best: "2026-09", worst: "2026-10", planned_months: 2, untouched_months: 1 }),
   );
 
   assert.equal(answerText(report.answer), `En promedio ahorras ${formatPesos(2512880)} al mes, el 39 % del ingreso.`);
   assert.equal(
     report.sub,
-    "Apartaste lo planeado en 2 de 3 meses. El mejor mes fue septiembre y el peor, octubre. Un mes no tiene datos y no cuenta.",
+    "No tocaste el ahorro en 1 de 2 meses. El mejor mes fue septiembre y el peor, octubre. Un mes no tiene datos y no cuenta.",
   );
   assert.deepEqual(
     report.columns.map((c) => [c.period, c.empty, c.top, c.up.map((p) => p.amount), c.down]),
@@ -286,8 +285,15 @@ test("en las columnas, lo retirado baja lo apartado y lo que faltó va bajo el c
   );
 });
 
+test("sin nada apartado en la ventana no se habla de tocar el ahorro", () => {
+  const months = [month("2026-09", { saved: 0 }), month("2026-10", { saved: 0 })];
+  const report = savingsReport(withSavings(months, { average: { total: 118640, share: 2 }, best: "2026-09", worst: "2026-09" }));
+
+  assert.doesNotMatch(report.sub, /tocaste/);
+});
+
 test("sin ningún mes con datos", () => {
-  const empty = month("2026-10", { empty: true, income: 0, saved: 0, saved_planned: 0, left: 0, total: 0, share: null });
+  const empty = month("2026-10", { empty: true, income: 0, saved: 0, left: 0, total: 0, share: null });
 
   assert.equal(savingsReport(withSavings([empty])).empty, "Todavía no hay meses con datos.");
 });

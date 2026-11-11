@@ -53,3 +53,14 @@ en los reportes, y nunca pasa de lo apartado en su mes.
 - Aprendí a bloquear una fila "padre" para proteger un límite que depende de
   varias filas, y que en SQLite `FOR UPDATE` no hace nada: el test prueba la
   regla, no la concurrencia.
+
+## Actualización (2026-11-11)
+
+La decisión 29 de la spec cambió cómo se aparta: el ahorro se aparta al
+planear un rubro de Ahorro y no se registra como gasto (la API responde
+`422` a un gasto en Ahorro). Lo apartado en un mes es lo planeado en esos
+rubros, así que la guarda del `409` pasó de los gastos a los rubros: bajar
+o borrar un rubro de Ahorro no puede dejar lo retirado por encima. La
+tabla propia de los retiros no cambia, y la razón es aún más clara: con
+Ahorro fuera de los gastos, un retiro como gasto negativo sería el único
+gasto de esa categoría.

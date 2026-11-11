@@ -147,11 +147,6 @@ export function savingsReport(reports) {
     const month = full[0];
     const name = monthName(month.period);
     const share = month.share === null ? "." : `, el ${percentText(month.share)} del ingreso.`;
-    const plan = month.saved_planned
-      ? month.saved >= month.saved_planned
-        ? ", lo planeado"
-        : `, de ${formatPesos(month.saved_planned)} planeados`
-      : "";
     const withdrawn = month.withdrawn ? `, retiraste ${formatPesos(month.withdrawn)}` : "";
     const left =
       month.left >= 0
@@ -164,15 +159,15 @@ export function savingsReport(reports) {
         month.total >= 0
           ? [`En ${name} ahorraste `, { figure: formatPesos(month.total) }, share]
           : [`En ${name} gastaste `, { figure: formatPesos(-month.total) }, " más de lo que entró."],
-      // "…, lo planeado, y quedaron…": tras un inciso, la "y" lleva coma.
-      sub: `Apartaste ${formatPesos(month.saved)} en Ahorro${plan}${withdrawn}${plan && !withdrawn ? "," : ""} y ${left}.`,
+      sub: `Apartaste ${formatPesos(month.saved)} en Ahorro${withdrawn} y ${left}.`,
     };
   }
 
   const average = data.average;
   const missing = data.months.length - full.length;
   const parts = [];
-  if (data.planned_months) parts.push(`Apartaste lo planeado en ${data.met_months} de ${data.planned_months} meses.`);
+  // Lo apartado es lo planeado (decisión 29): lo que dice algo es si se tocó.
+  if (data.planned_months) parts.push(`No tocaste el ahorro en ${data.untouched_months} de ${data.planned_months} meses.`);
   parts.push(`El mejor mes fue ${monthName(data.best)} y el peor, ${monthName(data.worst)}.`);
   if (missing === 1) parts.push("Un mes no tiene datos y no cuenta.");
   if (missing > 1) parts.push(`${missing} meses no tienen datos y no cuentan.`);

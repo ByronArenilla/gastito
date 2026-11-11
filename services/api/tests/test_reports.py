@@ -7,9 +7,9 @@ están calculadas a mano en cada test):
 - Mayo de 2026: sin ingresos ni gastos.
 - Sueldo 6.500.000 en junio, julio, agosto y octubre. Septiembre tiene
   gastos pero no ingresos planeados: usa los de agosto, estimados.
-- Rubros de junio a octubre: Arriendo 1.800.000 (justo), Mercado 900.000,
-  Gasolina 300.000 y Ahorro 500.000 (en julio se apartan 300.000 y en
-  septiembre nada).
+- Rubros de junio a octubre: Arriendo 1.800.000 (justo), Mercado 900.000
+  y Gasolina 300.000. Ahorro se aparta al planearlo (decisión 29): un rubro
+  de 500.000, salvo en julio (300.000) y septiembre (ninguno).
 - Sin rubro: Ropa 280.000 en julio (Ropa no tiene rubros); Comida 120.000 y
   Viajes 150.000 en octubre (Viajes está archivada).
 - Agosto: una urgencia de 200.000 en Salud, cubierta con un retiro de
@@ -112,8 +112,10 @@ class Casa:
                 ("Arriendo", "Hogar", 1_800_000),
                 ("Mercado", "Comida", 900_000),
                 ("Gasolina", "Transporte", 300_000),
-                ("Ahorro", "Ahorro", 500_000),
+                ("Ahorro", "Ahorro", AHORRO[index]),
             ]:
+                if not amount:
+                    continue
                 item = BudgetItem(
                     space_id=self.id,
                     period_start=start,
@@ -129,20 +131,18 @@ class Casa:
                 ("Arriendo", 1_800_000),
                 ("Mercado", MERCADO[index]),
                 ("Gasolina", GASOLINA[index]),
-                ("Ahorro", AHORRO[index]),
             ]:
-                if amount:
-                    db.add(
-                        Expense(
-                            space_id=self.id,
-                            category_id=items[name].category_id,
-                            budget_item_id=items[name].id,
-                            created_by=self.user_id,
-                            amount=amount,
-                            payment_type="debit",
-                            spent_on=day,
-                        )
+                db.add(
+                    Expense(
+                        space_id=self.id,
+                        category_id=items[name].category_id,
+                        budget_item_id=items[name].id,
+                        created_by=self.user_id,
+                        amount=amount,
+                        payment_type="debit",
+                        spent_on=day,
                     )
+                )
             self.items = items
 
         expense(280_000, date(2026, 7, 12), "Ropa")
@@ -341,7 +341,6 @@ def savings_rows(body: dict) -> list[tuple]:
             m["income_estimated"],
             m["saved"],
             m["withdrawn"],
-            m["saved_planned"],
             m["left"],
             m["total"],
             m["share"],
@@ -364,7 +363,6 @@ def test_savings_of_one_month(casa: Casa) -> None:
             False,
             500_000,
             0,
-            500_000,
             2_219_640,
             2_719_640,
             42,
@@ -380,7 +378,7 @@ def test_savings_of_six_months(casa: Casa) -> None:
 
     assert savings["window"]["periods"] == ["2026-05", *MONTHS]
     assert savings_rows(body) == [
-        ("2026-05", True, 0, False, 0, 0, 0, 0, 0, None),
+        ("2026-05", True, 0, False, 0, 0, 0, 0, None),
         # 6.500.000 − 3.610.000 = 2.890.000 + 500.000 apartados.
         (
             "2026-06",
@@ -389,12 +387,11 @@ def test_savings_of_six_months(casa: Casa) -> None:
             False,
             500_000,
             0,
-            500_000,
             2_890_000,
             3_390_000,
             52,
         ),
-        # Con Ropa (280.000) y solo 300.000 apartados.
+        # Con Ropa (280.000) y 300.000 apartados.
         (
             "2026-07",
             False,
@@ -402,7 +399,6 @@ def test_savings_of_six_months(casa: Casa) -> None:
             False,
             300_000,
             0,
-            500_000,
             2_870_000,
             3_170_000,
             49,
@@ -416,13 +412,12 @@ def test_savings_of_six_months(casa: Casa) -> None:
             False,
             500_000,
             200_000,
-            500_000,
             2_945_000,
             3_245_000,
             50,
         ),
         # Sin ingresos planeados: los de agosto, estimados. Nada apartado.
-        ("2026-09", False, 6_500_000, True, 0, 0, 500_000, 3_530_000, 3_530_000, 54),
+        ("2026-09", False, 6_500_000, True, 0, 0, 3_530_000, 3_530_000, 54),
         (
             "2026-10",
             False,
@@ -430,7 +425,6 @@ def test_savings_of_six_months(casa: Casa) -> None:
             False,
             500_000,
             0,
-            500_000,
             2_219_640,
             2_719_640,
             42,
@@ -440,8 +434,9 @@ def test_savings_of_six_months(casa: Casa) -> None:
     # 2.719.640) / 5 = 3.210.928, el 49 % de 32.500.000.
     assert savings["average"] == {"total": 3_210_928, "share": 49}
     assert (savings["best"], savings["worst"]) == ("2026-09", "2026-10")
-    # Se apartó lo planeado en junio, agosto y octubre.
-    assert (savings["planned_months"], savings["met_months"]) == (5, 3)
+    # Se apartó algo en junio, julio, agosto y octubre, y no se retiró nada
+    # en junio, julio y octubre (decisión 29).
+    assert (savings["planned_months"], savings["untouched_months"]) == (4, 3)
 
 
 def test_the_window_ends_in_the_chosen_month(casa: Casa) -> None:

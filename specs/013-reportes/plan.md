@@ -1,12 +1,13 @@
 # Plan 013 — Reportes para decidir
 
 - Spec: `spec.md` (estado: aprobada; tres reportes, mes elegido, Ahorro
-  como categoría y retiros de ahorro, decisiones 18 a 28)
+  como categoría y retiros de ahorro, decisiones 18 a 28; el ahorro se
+  aparta al planearlo, decisión 29)
 - Servicios afectados: `services/api` (categoría Ahorro, retiros, resumen,
   migraciones y ruta de reportes) y `services/web` (Reportes dentro del
   Mes; Registrar, Gastos y Mes con los retiros).
 - Estado: aprobado (2026-11-10); ajustado el mismo día con lo decidido al
-  revisar el prototipo
+  revisar el prototipo, y el 2026-11-11 con la decisión 29 (tarea T17)
 
 La 013 sigue el camino de la 012. En la API, un módulo nuevo,
 `app/reports.py`, arma los tres reportes **reutilizando** `build_summary`,
@@ -49,8 +50,10 @@ el [ADR 0018](../../docs/adr/0018-retiros-de-ahorro-en-su-propia-tabla.md).
 | Cuál es la categoría Ahorro | La del espacio con `name_key == "ahorro"`, activa o archivada | Concepto de la spec. Es la comparación de nombres de la 002; si alguien la llamó "ahorro" o "AHORRO", es la misma. |
 | Dónde se guardan los retiros | Tabla nueva `savings_withdrawals` (`id`, `space_id`, `spent_on`, `amount`, `description`, `created_by`, `created_at`) con su migración `0007`, y `CHECK (amount > 0)` | ADR 0018. Un retiro no tiene categoría, rubro ni tipo de pago: meterlo en `expenses` obligaría a volver nulas columnas que hoy son obligatorias y a cuidar en cada regla de gastos (tarjetas, rubros, resumen) que un "gasto" no sea un retiro. |
 | Rutas de los retiros | `POST`, `GET ?period=`, `PATCH /{id}` y `DELETE /{id}` bajo `/spaces/{space_id}/savings-withdrawals`, con `member_space` | RF-32, RF-35 y RF-37. Las mismas formas que los gastos; monto, fecha y nota usan los tipos `Amount`, `SpentOn` y `Description` de `schemas.py`, así que las reglas y los mensajes son los mismos (RF-32). |
-| Límite del retiro | `withdrawal_room(db, space_id, period, exclude_id)` = lo apartado en Ahorro en el mes − lo retirado (sin el retiro que se edita). Crear o editar por encima → `422` con el mes, lo apartado, lo retirado y lo que se puede retirar | RF-33. Lo apartado es lo gastado en la categoría Ahorro con la regla del resumen (sin deudas). Editar la fecha de un retiro lo mide contra su mes nuevo. |
-| Guarda al cambiar lo apartado | `PATCH` y `DELETE` de un gasto calculan, antes de guardar, lo apartado en los meses que tocan (el viejo y el nuevo, si cambia la fecha o la categoría) y responden `409` si lo retirado queda por encima | RF-34. Solo importa si el gasto es o pasa a ser de Ahorro; los demás no consultan nada más. |
+| Límite del retiro | `withdrawal_room(db, space_id, period, exclude_id)` = lo apartado en Ahorro en el mes − lo retirado (sin el retiro que se edita). Crear o editar por encima → `422` con el mes, lo apartado, lo retirado y lo que se puede retirar | RF-33. Lo apartado es lo planeado en los rubros de Ahorro del mes (decisión 29). Editar la fecha de un retiro lo mide contra su mes nuevo. |
+| Guarda al cambiar lo apartado | `PATCH` y `DELETE` de un rubro calculan, antes de guardar, lo apartado en su mes con el cambio y responden `409` si lo retirado queda por encima | RF-34 y decisión 29. Solo importa si el rubro es de Ahorro: bajarle el monto, cambiarle la categoría o borrarlo. Un rubro no cambia de mes (decisión 12 de la 008). |
+| Ahorro no se registra | `PATCH` y `POST` de gastos responden `422` si el gasto queda en la categoría Ahorro (por la categoría enviada o por la de su rubro). Registrar no ofrece Ahorro ni sus rubros (`recordableCategories` y `recordableItems` en `expense-form.js`) | RF-38 y decisión 29. Un gasto viejo de Ahorro (solo pudo crearse en esta rama) se edita mientras no se le cambie la categoría. |
+| Lo apartado en el resumen | Cada rubro de Ahorro tiene `spent` = `planned`; la categoría Ahorro, lo planeado menos lo retirado. `total.spent` y `spent_planned` suman lo apartado | RF-38. Así el Mes, el balance y "¿Estoy ahorrando?" siguen las fórmulas de antes: lo apartado cuenta en lo gastado y lo retirado lo descuenta. |
 | Dos personas a la vez | La comprobación y el cambio van en la misma transacción, con `SELECT … FOR UPDATE` sobre los retiros del mes | Mismo patrón que los abonos de la 009. En SQLite (tests) `FOR UPDATE` no hace nada; en PostgreSQL evita que dos retiros simultáneos pasen el límite. |
 | El resumen con los retiros | `CategorySummaryOut.withdrawn` (0 salvo en Ahorro) y `TotalSummaryOut.withdrawn`; `spent` de Ahorro = apartado − retirado; `total.spent` y `balance` descuentan lo retirado; `spent_unplanned` se calcula antes de descontarlo | RF-36. Si se descontara antes, la resta "lo gastado en categorías − lo gastado en rubros" daría un no planeado más pequeño de lo real. |
 | El Mes con los retiros | `dashboard.js` añade en la categoría Ahorro una línea "Retirado del ahorro −$ 200.000", como la línea "sin rubro" | RF-36 y decisión 26. El medidor del rubro Ahorro sigue con lo apartado; la cifra de la categoría, con lo neto. |
@@ -61,11 +64,11 @@ el [ADR 0018](../../docs/adr/0018-retiros-de-ahorro-en-su-propia-tabla.md).
 | Primer mes con datos | `first_period` en la respuesta: el menor mes con un ingreso, un rubro o un gasto del espacio (tres consultas con `MIN`), o `null` | RF-3: la web no deja ir antes. Sin él, se podría retroceder sin fin por meses vacíos. |
 | Datos de cada mes | `build_summary(db, space_id, period)` por cada mes de la ventana (el mes elegido es el último) | Spec, "Qué NO entra": las mismas reglas. El resumen ya separa lo gastado por categoría, por rubro, las deudas del mes y lo no planeado. Son hasta 12 resúmenes; ver "Riesgos". |
 | Lo gastado sin rubro por categoría | `spent` de la categoría en el resumen menos lo gastado en sus rubros | Decisión 19. Es la misma resta que hace el Mes de la 012 para su "sin rubro" (`dashboard.js`), ahora en la API. Las deudas no entran: el resumen ya las deja fuera de las categorías. |
-| Ahorrado | Por mes: `saved` = lo apartado (Ahorro sin descontar retiros); `withdrawn` = lo retirado; `saved_planned` = suma de sus rubros; `left` = ingreso de referencia − `total.spent`; `total` = `saved` − `withdrawn` + `left` | Decisiones 24 y 25. `total.spent` ya incluye lo apartado y descuenta lo retirado, así que nada se cuenta dos veces. |
+| Ahorrado | Por mes: `saved` = lo apartado (Ahorro sin descontar retiros); `withdrawn` = lo retirado; `left` = ingreso de referencia − `total.spent`; `total` = `saved` − `withdrawn` + `left` | Decisiones 24 y 25. `total.spent` ya incluye lo apartado y descuenta lo retirado, así que nada se cuenta dos veces. |
 | Ingreso de referencia | Una consulta: suma de ingresos por `period_start` del espacio. `reference_income(by_period, period)` toma el del mes o el del último mes anterior que tenga, y marca `estimated` | Concepto de la spec. |
 | Porcentajes | Parte de un ingreso: entero redondeado con el medio hacia arriba. Partes de un total ("¿En qué se me va la plata?"): **método del resto mayor**, para que sumen 100 | RF-6. Redondear cada parte por separado puede sumar 99 o 101. |
 | Promedios | División entera redondeada con el medio alejándose de cero (`rounded_div`), también para negativos | RF-6 y decisión 14: solo cuentan los meses con datos (ingresos o gastos). |
-| Mejor y peor mes | Los calcula la API: `best` y `worst` (mayor y menor `total`), y `met_months` / `planned_months` (meses con rubro de ahorro en que se apartó al menos lo planeado) | Son hechos de los datos (decisión 8), no presentación. |
+| Mejor y peor mes | Los calcula la API: `best` y `worst` (mayor y menor `total`), y `untouched_months` / `planned_months` (meses con algo apartado en que no se retiró nada; decisión 29) | Son hechos de los datos (decisión 8), no presentación. |
 | "Otras" y tintas | La web: las seis categorías con más gasto toman las tintas 1 a 6 por ese orden, el resto se suma en "Otras". "Cuotas de tarjetas" va aparte, en `--ink` | RF-17. Agrupar no cambia ningún monto, y el criterio 2 lo prueba en `node --test`. En el prototipo, `--rule-strong` (el gris de las deudas del Mes) se confundía con la pizarra y con "Otras". |
 | Gráficos | Columnas y barras de `<div>` con propiedades CSS fijadas desde JavaScript (`--size`, `--zero`, `--part`), como el ADR 0016. Sin SVG | Ver ADR 0017. El texto queda a su tamaño real y se ajusta al ancho solo con CSS. |
 | Colores de "¿Estoy ahorrando?" | Apartado en `--ink`, lo que quedó encima en `--rule-strong`, lo que faltó en `--red` bajo la línea de cero | Decisión 24. Dos partes que se distinguen por luminosidad, con 2 px de papel entre ellas; el rojo solo para lo negativo (011). |
@@ -93,7 +96,8 @@ el [ADR 0018](../../docs/adr/0018-retiros-de-ahorro-en-su-propia-tabla.md).
         models.py                  + SavingsWithdrawal                         [RF-32]
         savings.py        (nuevo)  categoría Ahorro, apartado, límite, guarda  [RF-33, RF-34]
         routers/savings_withdrawals.py (nuevo) crear, listar, editar, borrar [RF-32 a RF-35, RF-37]
-        routers/expenses.py        + guarda al editar o borrar lo apartado     [RF-34]
+        routers/expenses.py        + 422 a un gasto en Ahorro                  [RF-38]
+        routers/budget_items.py    + guarda al bajar o borrar lo apartado      [RF-34]
         summary.py                 + lo retirado en Ahorro y en los totales    [RF-36]
         reports.py        (nuevo)  mes, ventana, ingreso de referencia, los tres reportes [RF-5, RF-6, RF-14 a RF-23, RF-31]
         routers/reports.py (nuevo) GET /spaces/{id}/reports                    [RF-5]
@@ -174,11 +178,11 @@ membresía (`member_space`), como el resumen. Respuesta, con `current` en
         "months": [{ "period": "2026-10", "empty": false,
                      "income": 6500000, "income_estimated": false,
                      "saved": 500000, "withdrawn": 0,
-                     "saved_planned": 500000, "left": 118640,
+                     "left": 118640,
                      "total": 618640, "share": 10 }, ...],
         "average": { "total": 1680728, "share": 24 },     // o null
         "best": "2026-06", "worst": "2026-10",            // o null
-        "planned_months": 5, "met_months": 4
+        "planned_months": 5, "untouched_months": 4
       }
     }
 
@@ -219,14 +223,18 @@ Funciones con sesión, todas filtradas por `space_id` (principio 13):
 
     { "detail": "En agosto apartaste $ 500.000 y ya retiraste $ 400.000: puedes retirar hasta $ 100.000." }
 
-Borrar un gasto de Ahorro que deja lo retirado por encima → `409`:
+Bajar o borrar un rubro de Ahorro que deja lo retirado por encima → `409`:
 
-    { "detail": "En agosto retiraste $ 200.000 del ahorro; sin este gasto, lo apartado quedaría en $ 0. Borra o cambia el retiro primero." }
+    { "detail": "En agosto retiraste $ 200.000 del ahorro; con este cambio, lo apartado quedaría en $ 0. Cambia o borra el retiro primero." }
+
+Un gasto en Ahorro → `422`:
+
+    { "detail": "El ahorro no se registra: se aparta al planear un rubro en Ahorro. Para sacar plata del ahorro, registra un retiro." }
 
 `app/savings.py`, sin HTTP (principio 10): `savings_category_ids`,
 `saved_in(db, space_id, period)`, `withdrawn_in(db, space_id, period,
-exclude_id=None)`, `withdrawal_room(...)` y `check_saved_change(db,
-expense, new_values)`.
+exclude_id=None)`, `check_withdrawal(...)` y `check_item_change(db,
+item, new_values)`.
 
 ## Web
 
@@ -341,9 +349,11 @@ $ 500.000."
 - Límite: con $ 500.000 apartados, retirar $ 500.000 sí y $ 500.001 no;
   dos retiros que juntos pasan; editar uno por encima; cambiar su fecha a
   un mes sin nada apartado; sin categoría Ahorro, nada que retirar.
-- Guarda: borrar el gasto de Ahorro de un mes con retiros → `409` y nada
-  cambia; bajar su monto, cambiarle la categoría o la fecha, igual; un
-  gasto de otra categoría no se ve afectado.
+- Guarda: borrar el rubro de Ahorro de un mes con retiros → `409` y nada
+  cambia; bajar su monto o cambiarle la categoría, igual; un rubro de otra
+  categoría no se ve afectado.
+- Un gasto en Ahorro, con categoría o con rubro, al crearlo o editarlo →
+  `422` (decisión 29).
 - Resumen: Ahorro con `spent` neto y `withdrawn`; `total.spent` y
   `balance` descuentan lo retirado; `spent_unplanned` no cambia.
 - Otro espacio: `404` al ver, editar o borrar un retiro ajeno.
@@ -430,11 +440,10 @@ I para la 020.
     app, es el primer candidato para las métricas y los dashboards
     (specs 023 y 024).
 - **El Mes de la 012 trata Ahorro como cualquier categoría**, salvo lo
-  retirado: apartar más de lo planeado se ve "excedido" en rojo. Queda
-  fuera de esta spec ("Qué NO entra"); si molesta, es una spec pequeña
-  aparte.
-- **El límite del retiro ata lo apartado.** Para borrar un gasto de Ahorro
-  con retiros en su mes hay que cambiar antes el retiro. Es lo que pide la
+  retirado y que sus rubros se ven apartados enteros desde que se planean
+  (decisión 29).
+- **El límite del retiro ata lo apartado.** Para bajar o borrar un rubro de
+  Ahorro con retiros en su mes hay que cambiar antes el retiro. Es lo que pide la
   decisión 28; el mensaje del `409` dice qué hacer.
 - **La 013 crece**: además de los reportes, toca Registrar, Gastos, el Mes
   y el resumen. Las tareas lo separan para que cada una quede pequeña.

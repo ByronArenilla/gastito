@@ -27,7 +27,7 @@ from app.deps import current_user, member_space, requested_period
 from app.models import BudgetItem, Card, Expense, Prepayment, Space, User
 from app.routers.cards import first_due_start, usable_card
 from app.routers.categories import usable_category
-from app.savings import SavedBelowWithdrawn, check_saved_change
+from app.savings import is_savings_category
 from app.schemas import (
     CARD_REQUIRED_MESSAGE,
     DEBIT_WITHOUT_CARD_MESSAGE,
@@ -73,13 +73,18 @@ HAS_PREPAYMENTS = HTTPException(
 )
 
 
-def check_savings(db: Session, expense: Expense, after: dict | None) -> None:
-    """Lo apartado en Ahorro no puede quedar por debajo de lo retirado en su
-    mes (spec 013, RF-34). `after` son los valores nuevos; `None`, borrar."""
-    try:
-        check_saved_change(db, expense, after)
-    except SavedBelowWithdrawn as error:
-        raise HTTPException(status.HTTP_409_CONFLICT, error.message()) from None
+SAVINGS_NOT_RECORDED = HTTPException(
+    status.HTTP_422_UNPROCESSABLE_CONTENT,
+    "El ahorro no se registra: se aparta al planear un rubro en Ahorro. "
+    "Para sacar plata del ahorro, registra un retiro.",
+)
+
+
+def check_not_savings(db: Session, space_id: int, category_id: int) -> None:
+    """Un gasto no va en Ahorro, ni con su categoría ni en uno de sus rubros:
+    el ahorro se aparta al planearlo (spec 013, RF-38, decisión 29)."""
+    if is_savings_category(db, space_id, category_id):
+        raise SAVINGS_NOT_RECORDED
 
 
 def has_prepayments(db: Session, expense: Expense) -> bool:
@@ -185,6 +190,7 @@ def create_expense(
         category_id = item.category_id
     else:
         category_id = usable_category(db, space.id, data.category_id).id
+    check_not_savings(db, space.id, category_id)
 
     expense = Expense(
         **data.model_dump(exclude={"category_id"}),
@@ -376,7 +382,11 @@ def update_expense(
     if changes.keys() - EDITABLE_WITH_PREPAYMENTS and has_prepayments(db, expense):
         raise HAS_PREPAYMENTS
     changes.update(payment_changes(db, expense, changes))
-    check_savings(db, expense, changes)
+    # La categoría nueva, enviada o la del rubro elegido, no puede ser Ahorro.
+    # Un gasto de Ahorro de antes de la decisión 29 sigue editándose mientras
+    # no se le cambie la categoría.
+    if changes.get("category_id", expense.category_id) != expense.category_id:
+        check_not_savings(db, expense.space_id, changes["category_id"])
 
     for field, value in changes.items():
         setattr(expense, field, value)
@@ -402,7 +412,6 @@ def delete_expense(
     # Un abono es plata que salió: no se borra con la compra (RF-16).
     if has_prepayments(db, expense):
         raise HAS_PREPAYMENTS
-    check_savings(db, expense, None)
 
     # Por `id` y `space_id`: la sentencia nunca toca otra fila (RF-18).
     db.execute(

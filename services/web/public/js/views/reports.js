@@ -228,12 +228,7 @@ function savingsBody(reports) {
       "div",
       { class: "big" },
       h("span", { class: month.total < 0 ? "big__value over" : "big__value" }, formatPesos(month.total)),
-      row(
-        month.saved_planned
-          ? ["Apartado en Ahorro ", h("span", { class: "muted" }, `de ${formatPesos(month.saved_planned)}`)]
-          : "Apartado en Ahorro",
-        formatPesos(month.saved),
-      ),
+      row("Apartado en Ahorro", formatPesos(month.saved)),
       month.withdrawn > 0 && row("Retirado del ahorro", formatPesos(-month.withdrawn)),
       row("Quedó sin gastar", formatPesos(month.left), month.left < 0 ? "figure over" : "figure"),
       row(`Ingreso planeado${month.income_estimated ? " (estimado)" : ""}`, formatPesos(month.income)),
@@ -267,15 +262,14 @@ function savingsBody(reports) {
     chart,
     figures({
       caption: "Lo apartado en Ahorro, lo retirado, lo que quedó sin gastar y lo ahorrado (apartado − retirado + quedó), por mes.",
-      head: ["Mes", "Ingreso", "Apartado", "Planeado", "Retirado", "Quedó", "Ahorrado", "Parte"],
+      head: ["Mes", "Ingreso", "Apartado", "Retirado", "Quedó", "Ahorrado", "Parte"],
       rows: months.map((month) =>
         month.empty
-          ? [formatMonthShort(month.period), "sin datos", "", "", "", "", "", ""]
+          ? [formatMonthShort(month.period), "sin datos", "", "", "", "", ""]
           : [
               formatMonthShort(month.period),
               `${formatPesos(month.income)}${month.income_estimated ? " (est.)" : ""}`,
               formatPesos(month.saved),
-              month.saved_planned ? formatPesos(month.saved_planned) : "—",
               month.withdrawn ? formatPesos(-month.withdrawn) : "—",
               { text: formatPesos(month.left), over: month.left < 0 },
               { text: formatPesos(month.total), over: month.total < 0 },
@@ -283,7 +277,7 @@ function savingsBody(reports) {
             ],
       ),
       total: reports.savings.average
-        ? ["Promedio", "", "", "", "", "", formatPesos(reports.savings.average.total), percentText(reports.savings.average.share)]
+        ? ["Promedio", "", "", "", "", formatPesos(reports.savings.average.total), percentText(reports.savings.average.share)]
         : null,
     }),
   ];
