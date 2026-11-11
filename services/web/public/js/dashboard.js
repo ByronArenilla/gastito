@@ -42,7 +42,9 @@ function item(row) {
 }
 
 /** Las categorías del mes con sus rubros dentro y lo no planeado como "sin
- * rubro" (RF-7, decisión 8). Las que no tienen rubros ni gastos no salen. */
+ * rubro" (RF-7, decisión 8). Las que no tienen rubros ni gastos no salen.
+ * En Ahorro, `spent` ya descuenta lo retirado del ahorro, que va aparte en
+ * `withdrawn` (spec 013, RF-36); lo sin rubro se mide antes de descontarlo. */
 function categories(summary) {
   return summary.categories
     .map((category) => {
@@ -57,7 +59,11 @@ function categories(summary) {
         spent: category.spent,
         exceeded: category.spent > category.planned,
         items,
-        unplanned: Math.max(category.spent - sum(items, (row) => row.spent), 0),
+        withdrawn: category.withdrawn ?? 0,
+        unplanned: Math.max(
+          category.spent + (category.withdrawn ?? 0) - sum(items, (row) => row.spent),
+          0,
+        ),
       };
     })
     .filter((category) => category.items.length > 0 || category.spent > 0);

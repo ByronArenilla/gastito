@@ -21,7 +21,9 @@ from app.models import Category, Space, category_key, utc_now
 from app.schemas import CategoryDeletedOut, CategoryIn, CategoryOut
 
 # Se copian en cada espacio nuevo, en este orden (spec 002, decisiones 1 y 2).
-# Cambiarlas solo afecta a los espacios que se creen después.
+# Cambiarlas solo afecta a los espacios que se creen después: "Ahorro" (spec
+# 013, decisión 21) llega a los que ya existían por la migración 0006, y por
+# eso va al final, para que el orden sea el mismo en todos.
 DEFAULT_CATEGORIES = (
     "Hogar",
     "Comida",
@@ -30,6 +32,7 @@ DEFAULT_CATEGORIES = (
     "Servicios",
     "Ocio",
     "Otros",
+    "Ahorro",
 )
 
 router = APIRouter(prefix="/spaces/{space_id}/categories", tags=["categories"])

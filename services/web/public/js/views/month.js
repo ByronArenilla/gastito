@@ -6,7 +6,9 @@ import { buildDashboard, copyNotice } from "../dashboard.js";
 import { h } from "../dom.js";
 import { formatMonth, formatNumber, formatPesos, monthName, parseAmount, shiftPeriod } from "../format.js";
 import { missingText, needsConfirm, rowRequest, statementRequest } from "../plan-rows.js";
+import { isSavingsName } from "../withdrawals.js";
 import { OFFLINE_SAVE } from "./form.js";
+import { monthTabs } from "./month-tabs.js";
 
 const PART_NAMES = { items: "Rubros", debts: "Deudas", free: "Sin asignar" };
 
@@ -146,6 +148,15 @@ function categoryBlock(category) {
         h("span", { class: "muted" }, "Sin rubro"),
         h("span", { class: "figure" }, formatPesos(category.unplanned)),
       ),
+    // Lo retirado del ahorro en el mes (spec 013, RF-36): la cifra de la
+    // categoría ya lo descuenta.
+    category.withdrawn > 0 &&
+      h(
+        "div",
+        { class: "item" },
+        h("span", { class: "muted" }, "Retirado del ahorro"),
+        h("span", { class: "figure" }, formatPesos(-category.withdrawn)),
+      ),
   );
 }
 
@@ -195,7 +206,7 @@ export async function renderMonth(main, app) {
   const title = h("h1", { "aria-live": "polite" });
   const body = h("div", { class: "screen" });
   main.classList.add("main--wide");
-  main.append(h("div", { class: "screen" }, monthHead(app, title, load), body));
+  main.append(h("div", { class: "screen" }, monthTabs("month"), monthHead(app, title, load), body));
 
   function paint(summary) {
     const board = buildDashboard(summary);
@@ -395,7 +406,7 @@ function planRow(ctx, kind, original, { categories = [] } = {}) {
       say(OFFLINE_SAVE, true);
       return;
     }
-    if (isItem && needsConfirm(saved)) {
+    if (isItem && needsConfirm(saved, ctx.savingsIds)) {
       const confirmed = await app.confirm({
         title: `¿Quitar «${saved.name}»?`,
         body: `Sus gastos de ${monthName(period)} (${formatPesos(saved.spent)}) no se borran: quedan sin rubro, en su categoría.`,
@@ -562,7 +573,11 @@ export async function renderPlan(main, app) {
     const period = summary.period;
     title.textContent = capitalize(formatMonth(period));
     app.setMonth(period);
-    const ctx = { app, base, period, pending };
+    // Las categorías Ahorro: sus rubros no tienen gastos (spec 013).
+    const savingsIds = new Set(
+      summary.categories.filter((row) => isSavingsName(row.name)).map((row) => row.category_id),
+    );
+    const ctx = { app, base, period, pending, savingsIds };
     // Las categorías activas; la de un rubro cuya categoría se eliminó sigue
     // en su lista para no cambiarla sin querer (RF-42 de la 008).
     const options = categories.map((row) => ({ id: row.id, name: row.name }));

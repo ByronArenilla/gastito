@@ -88,6 +88,14 @@ test("quitar un rubro con gastos pide confirmación; sin gastos, no (decisión 1
   assert.equal(needsConfirm({ spent: 0 }), false);
 });
 
+test("quitar un rubro de Ahorro no pide confirmación: no tiene gastos (spec 013, decisión 29)", () => {
+  // El resumen lo cuenta gastado por lo planeado, pero no tiene gastos.
+  const savings = new Set([9]);
+
+  assert.equal(needsConfirm({ categoryId: 9, spent: 500000 }, savings), false);
+  assert.equal(needsConfirm({ categoryId: 2, spent: 520000 }, savings), true);
+});
+
 test("el extracto: escrito se guarda, vacío se quita, igual no se envía", () => {
   assert.deepEqual(statementRequest(null, "1.020.000"), { action: "put", body: { amount: 1020000 } });
   assert.deepEqual(statementRequest(990000, "1.020.000"), { action: "put", body: { amount: 1020000 } });

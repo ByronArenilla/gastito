@@ -9,6 +9,7 @@ const ROUTES = [
   { pattern: /^\/crear-cuenta$/, view: "register", access: "guest" },
   { pattern: /^\/mes$/, view: "month", access: "member" },
   { pattern: /^\/mes\/planear$/, view: "plan", access: "member" },
+  { pattern: /^\/mes\/reportes$/, view: "reports", access: "member" },
   { pattern: /^\/registrar$/, view: "record", access: "member" },
   { pattern: /^\/gastos$/, view: "expenses", access: "member" },
   { pattern: /^\/gastos\/(?<id>\d+)$/, view: "edit", access: "member" },
@@ -17,6 +18,7 @@ const ROUTES = [
   { pattern: /^\/tarjetas\/(?<id>\d+)$/, view: "card", access: "member" },
   { pattern: /^\/tarjetas\/(?<id>\d+)\/editar$/, view: "cardEdit", access: "member" },
   { pattern: /^\/compras\/(?<id>\d+)$/, view: "purchase", access: "member" },
+  { pattern: /^\/retiros\/(?<id>\d+)$/, view: "withdrawal", access: "member" },
   { pattern: /^\/espacio$/, view: "space", access: "member" },
   { pattern: /^\/unirse\/(?<token>[\w-]+)$/, view: "join", access: "any" },
 ];

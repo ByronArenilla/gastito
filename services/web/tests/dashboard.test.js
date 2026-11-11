@@ -216,3 +216,33 @@ test("al copiar el plan, el aviso dice qué rubros se omitieron y por qué", () 
     "Se copió el plan de diciembre a enero. No se copiaron «Veterinario» y «Comida gato»: sus categorías están eliminadas.",
   );
 });
+
+// --- Lo retirado del ahorro (spec 013, RF-36) ---
+
+test("Ahorro muestra lo neto y lo retirado aparte; las demás, nada retirado", () => {
+  // Agosto: rubro Ahorro de 500.000 apartado entero y 200.000 retirados. El
+  // resumen ya trae Ahorro neto (300.000) y lo retirado.
+  const summary = november();
+  summary.budget_items.push({ id: 9, name: "Ahorro", category_id: 8, planned: 500000, spent: 500000, remaining: 0 });
+  summary.categories.push({ category_id: 8, name: "Ahorro", planned: 500000, spent: 300000, deleted: false, withdrawn: 200000 });
+
+  const byName = Object.fromEntries(buildDashboard(summary).categories.map((c) => [c.name, c]));
+
+  assert.equal(byName.Ahorro.spent, 300000);
+  assert.equal(byName.Ahorro.withdrawn, 200000);
+  // El retiro no es "sin rubro": lo apartado está todo en su rubro.
+  assert.equal(byName.Ahorro.unplanned, 0);
+  assert.equal(byName.Ahorro.items[0].spent, 500000);
+  assert.equal(byName.Comida.withdrawn, 0);
+});
+
+test("todo lo apartado retirado: Ahorro sigue en el Mes por su rubro", () => {
+  const summary = november();
+  summary.budget_items.push({ id: 9, name: "Ahorro", category_id: 8, planned: 500000, spent: 500000, remaining: 0 });
+  summary.categories.push({ category_id: 8, name: "Ahorro", planned: 500000, spent: 0, deleted: false, withdrawn: 500000 });
+
+  const ahorro = buildDashboard(summary).categories.find((c) => c.name === "Ahorro");
+
+  assert.equal(ahorro.spent, 0);
+  assert.equal(ahorro.withdrawn, 500000);
+});

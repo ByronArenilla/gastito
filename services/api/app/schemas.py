@@ -621,6 +621,9 @@ class CategorySummaryOut(BaseModel):
     spent: int
     # Solo salen eliminadas si tienen rubros o gastos en el mes (decisión 18).
     deleted: bool
+    # Spec 013: lo retirado del ahorro en el mes, solo en la categoría Ahorro;
+    # `spent` ya lo descuenta (RF-36).
+    withdrawn: int = 0
 
 
 class TotalSummaryOut(BaseModel):
@@ -639,6 +642,9 @@ class TotalSummaryOut(BaseModel):
     # Ingresos menos planeado, y ingresos menos gastado: pueden ser negativos.
     unassigned: int
     balance: int
+    # Spec 013: lo retirado del ahorro en el mes. `spent` y `balance` ya lo
+    # descuentan; `spent_unplanned`, no (RF-36).
+    withdrawn: int = 0
 
 
 class DebtInstallmentOut(BaseModel):
@@ -1016,3 +1022,159 @@ class SimulationIn(BaseModel):
 class SimulationOut(BaseModel):
     first_due_period: str
     installments: list[InstallmentOut]
+
+
+# --- Retiros de ahorro (spec 013) ---
+
+
+def check_withdrawal_not_future(value: date) -> date:
+    # La misma regla que un gasto (RF-32), con su propio nombre en el mensaje.
+    if value > dates.today():
+        raise PydanticCustomError(
+            "future_withdrawal",
+            "La fecha del retiro no puede ser posterior a hoy.",
+        )
+    return value
+
+
+WithdrawalOn = Annotated[
+    date, BeforeValidator(parse_spent_on), AfterValidator(check_withdrawal_not_future)
+]
+
+
+class WithdrawalIn(BaseModel):
+    # Monto y nota con las reglas de un gasto (RF-32). Sin categoría, rubro
+    # ni tipo de pago: un retiro siempre sale de Ahorro (decisión 25). Sin
+    # `space_id` ni `created_by`: salen de la ruta y de la sesión.
+    amount: Amount
+    spent_on: WithdrawalOn = Field(default_factory=lambda: dates.today())
+    description: Description = None
+
+
+class WithdrawalPatch(BaseModel):
+    # La ruta aplica solo `model_fields_set`, como al editar un gasto.
+    amount: Amount | None = None
+    spent_on: WithdrawalOn | None = None
+    # `null` aquí sí vale: quita la nota.
+    description: Description = None
+
+    @field_validator("amount", "spent_on", mode="before")
+    @classmethod
+    def reject_null(cls, value: object) -> object:
+        # Sin esto, `None` pasaría por el `| None` del tipo y el retiro se
+        # quedaría sin monto o sin fecha.
+        if value is None:
+            raise PydanticCustomError(
+                "null_not_allowed",
+                "Este campo no puede quedar vacío; si no quieres cambiarlo, "
+                "no lo envíes.",
+            )
+        return value
+
+
+class WithdrawalOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    amount: int
+    spent_on: date
+    description: str | None
+    created_by: int
+    created_at: datetime
+
+
+# --- Reportes (spec 013) ---
+
+
+class SpendingLineOut(BaseModel):
+    # Una categoría, o la línea "Cuotas de tarjetas" (decisión 12).
+    kind: Literal["category", "debts"]
+    category_id: int | None
+    name: str
+    deleted: bool
+    total: int
+    # Parte del total, con el método del resto mayor: suman 100 (RF-6).
+    share: int
+
+
+class SpendingOut(BaseModel):
+    """¿En qué se me va la plata? en el mes elegido (RF-14, RF-15, RF-31)."""
+
+    # Lo gastado sin la categoría Ahorro.
+    total: int
+    unplanned: int
+    unplanned_share: int | None
+    # Lo apartado y lo retirado en Ahorro, aparte (decisión 22).
+    saved: int
+    withdrawn: int
+    lines: list[SpendingLineOut]
+
+
+class PlanningRowOut(BaseModel):
+    # Un rubro, o lo gastado sin rubro en una categoría (decisión 19).
+    kind: Literal["item", "unplanned"]
+    name: str
+    category: str
+    category_id: int
+    planned: int
+    spent: int
+    # Lo gastado menos lo planeado: positivo si se pasó.
+    diff: int
+
+
+class PlanningOut(BaseModel):
+    """¿Planeo bien? en el mes elegido, sin Ahorro (RF-18 a RF-20)."""
+
+    items: list[PlanningRowOut]
+
+
+class WindowOut(BaseModel):
+    months: int
+    periods: list[str]
+
+
+class SavingsMonthOut(BaseModel):
+    period: str
+    # Sin ingresos ni gastos: no cuenta en promedios (decisión 14).
+    empty: bool
+    # Ingreso de referencia: el del mes o el del último anterior con ingresos.
+    income: int
+    income_estimated: bool
+    # Lo apartado en Ahorro (lo planeado en sus rubros), sin descontar
+    # retiros; lo retirado; lo que quedó sin gastar, y lo ahorrado
+    # (decisiones 24 y 29).
+    saved: int
+    withdrawn: int
+    left: int
+    total: int
+    share: int | None
+
+
+class SavingsAverageOut(BaseModel):
+    total: int
+    share: int | None
+
+
+class SavingsOut(BaseModel):
+    """¿Estoy ahorrando? en la ventana que termina en el mes (RF-21 a RF-23)."""
+
+    window: WindowOut
+    months: list[SavingsMonthOut]
+    # Con menos de dos meses con datos, nulos.
+    average: SavingsAverageOut | None
+    best: str | None
+    worst: str | None
+    # Meses con algo apartado en Ahorro, y en cuántos no se retiró nada.
+    planned_months: int
+    untouched_months: int
+
+
+class ReportsOut(BaseModel):
+    current: str
+    period: str
+    # Primer mes con ingresos, rubros o gastos: el selector no va antes.
+    first_period: str | None
+    has_data: bool
+    spending: SpendingOut
+    planning: PlanningOut
+    savings: SavingsOut

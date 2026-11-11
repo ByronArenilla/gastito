@@ -5,6 +5,10 @@ Las deudas con tarjeta no cuentan en su categoría: cuentan como Deudas en
 los meses en que se pagan sus cuotas (decisiones 1 y 6 de la 009). Un gasto
 del mes con tarjeta cuenta en su mes, como un débito (spec 010).
 
+Un rubro de Ahorro cuenta gastado por lo planeado: el ahorro se aparta al
+planearlo (spec 013, RF-38). Lo retirado del ahorro resta de la categoría
+Ahorro y de lo gastado del mes (RF-36).
+
 Funciones sin nada de HTTP, que se prueban con una sesión de base de datos
 (principio 10). Todas las consultas filtran por `space_id` (RF-29).
 """
@@ -17,6 +21,7 @@ from sqlalchemy.orm import Session
 from app import dates
 from app.debts import card_debts
 from app.models import BudgetItem, Category, Expense, Income
+from app.savings import SAVINGS_KEY, savings_category_ids, withdrawn_in
 from app.schemas import (
     CategorySummaryOut,
     IncomeSummaryOut,
@@ -79,6 +84,7 @@ def build_summary(db: Session, space_id: int, period: str) -> SummaryOut:
     start, end = dates.period_bounds(period)
     spent_items = spent_by_item(db, space_id, start, end)
     spent_categories = spent_by_category(db, space_id, start, end)
+    savings_ids = savings_category_ids(db, space_id)
 
     incomes = [
         IncomeSummaryOut(id=income.id, name=income.name, amount=income.amount)
@@ -88,27 +94,44 @@ def build_summary(db: Session, space_id: int, period: str) -> SummaryOut:
             .order_by(Income.id)
         )
     ]
-    items = [
-        ItemSummaryOut(
-            id=item.id,
-            name=item.name,
-            category_id=item.category_id,
-            planned=item.amount,
-            spent=spent_items.get(item.id, 0),
-            remaining=item.amount - spent_items.get(item.id, 0),
+    items = []
+    # Lo apartado al planear, por categoría de Ahorro (decisión 29).
+    saved_categories: dict[int, int] = {}
+    for item in db.scalars(
+        select(BudgetItem)
+        .where(BudgetItem.space_id == space_id, BudgetItem.period_start == start)
+        .order_by(BudgetItem.id)
+    ):
+        spent_item = spent_items.get(item.id, 0)
+        if item.category_id in savings_ids:
+            spent_item = item.amount
+            saved_categories[item.category_id] = (
+                saved_categories.get(item.category_id, 0) + item.amount
+            )
+        items.append(
+            ItemSummaryOut(
+                id=item.id,
+                name=item.name,
+                category_id=item.category_id,
+                planned=item.amount,
+                spent=spent_item,
+                remaining=item.amount - spent_item,
+            )
         )
-        for item in db.scalars(
-            select(BudgetItem)
-            .where(BudgetItem.space_id == space_id, BudgetItem.period_start == start)
-            .order_by(BudgetItem.id)
-        )
-    ]
+    for category_id, saved in saved_categories.items():
+        spent_categories[category_id] = spent_categories.get(category_id, 0) + saved
 
     planned_categories: dict[int, int] = {}
     for item in items:
         planned_categories[item.category_id] = (
             planned_categories.get(item.category_id, 0) + item.planned
         )
+
+    # Lo retirado del ahorro sale de lo apartado en Ahorro (spec 013). Si un
+    # espacio tuviera dos categorías con esa clave (una archivada), se
+    # descuenta de la primera con algo apartado.
+    withdrawn = withdrawn_in(db, space_id, period)
+    pending_withdrawn = withdrawn
 
     categories = []
     for category in db.scalars(
@@ -121,13 +144,18 @@ def build_summary(db: Session, space_id: int, period: str) -> SummaryOut:
         # totales por categoría cuadran sin llenar la lista (decisión 18).
         if deleted and category.id not in planned_categories and not spent:
             continue
+        taken = 0
+        if category.name_key == SAVINGS_KEY and pending_withdrawn and spent:
+            taken = min(spent, pending_withdrawn)
+            pending_withdrawn -= taken
         categories.append(
             CategorySummaryOut(
                 category_id=category.id,
                 name=category.name,
                 planned=planned,
-                spent=spent,
+                spent=spent - taken,
                 deleted=deleted,
+                withdrawn=taken,
             )
         )
 
@@ -138,9 +166,11 @@ def build_summary(db: Session, space_id: int, period: str) -> SummaryOut:
     # La deuda del mes cuenta sola en lo planeado y en lo gastado (decisión 3
     # de la 009, RF-38).
     planned = sum(row.planned for row in items) + debt_total
-    spent_planned = sum(spent_items.values())
+    spent_planned = sum(row.spent for row in items)
     spent_own_day = sum(spent_categories.values())
-    spent = spent_own_day + debt_total
+    # Lo no planeado se mide antes de descontar lo retirado: un retiro no es
+    # un gasto con rubro (RF-36).
+    spent = spent_own_day - withdrawn + debt_total
     return SummaryOut(
         period=period,
         incomes=incomes,
@@ -157,5 +187,6 @@ def build_summary(db: Session, space_id: int, period: str) -> SummaryOut:
             spent=spent,
             unassigned=income - planned,
             balance=income - spent,
+            withdrawn=withdrawn,
         ),
     )

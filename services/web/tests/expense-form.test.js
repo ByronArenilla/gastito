@@ -10,6 +10,8 @@ import {
   missing,
   nameKey,
   newForm,
+  recordableCategories,
+  recordableItems,
   suggestItems,
   typeDescription,
 } from "../public/js/expense-form.js";
@@ -40,6 +42,34 @@ test("las sugerencias contienen lo escrito, sin mayúsculas ni tildes", () => {
   assert.deepEqual(suggestItems(ITEMS, "ano"), []);
   // Sin texto, todos los rubros del mes.
   assert.equal(suggestItems(ITEMS, "  ").length, 4);
+});
+
+test("Registrar no ofrece la categoría Ahorro (spec 013, decisión 29)", () => {
+  const categories = [
+    { id: 2, name: "Comida" },
+    { id: 9, name: "Ahorro" },
+    { id: 10, name: " AHORRO " },
+    { id: 11, name: "Ahorros" },
+  ];
+
+  assert.deepEqual(
+    recordableCategories(categories).map((category) => category.name),
+    ["Comida", "Ahorros"],
+  );
+});
+
+test("Registrar no sugiere los rubros de Ahorro", () => {
+  // Las categorías del resumen del mes: `category_id` y nombre.
+  const summaryCategories = [
+    { category_id: 2, name: "Comida" },
+    { category_id: 9, name: "Ahorro" },
+  ];
+  const items = [...ITEMS, { id: 5, name: "Ahorro", category_id: 9, planned: 500000, spent: 500000, remaining: 0 }];
+
+  assert.deepEqual(
+    recordableItems(items, summaryCategories).map((item) => item.id),
+    [1, 2, 3, 4],
+  );
 });
 
 test("elegir un rubro lo liga y toma su nombre y su categoría", () => {

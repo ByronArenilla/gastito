@@ -1,5 +1,8 @@
 """Rubros del plan de un mes: crear, editar y borrar (spec 008, RF-1 a RF-9).
 
+Un rubro de Ahorro es lo apartado en su mes: no puede bajar ni borrarse si
+deja lo retirado del ahorro por encima (spec 013, RF-34).
+
 Las rutas reciben el espacio por `member_space`, nunca consultando por
 `space_id` directamente (RF-28; RF-28 y RF-29 de la 001). No hay ruta para
 leer los rubros: los trae el resumen del mes (plan 008).
@@ -19,6 +22,7 @@ from app.deps import member_space
 from app.models import BudgetItem, Expense, Space
 from app.plan import stored_name
 from app.routers.categories import usable_category
+from app.savings import SavedBelowWithdrawn, check_item_change
 from app.schemas import BudgetItemIn, BudgetItemOut, BudgetItemPatch
 
 router = APIRouter(prefix="/spaces/{space_id}/budget-items", tags=["budget-items"])
@@ -53,6 +57,15 @@ def space_item(
     if item is None:
         raise ITEM_NOT_FOUND
     return item
+
+
+def check_savings(db: Session, item: BudgetItem, after: dict | None) -> None:
+    """Lo apartado en Ahorro no puede quedar por debajo de lo retirado en su
+    mes (spec 013, RF-34). `after` son los valores nuevos; `None`, borrar."""
+    try:
+        check_item_change(db, item, after)
+    except SavedBelowWithdrawn as error:
+        raise HTTPException(status.HTTP_409_CONFLICT, error.message()) from None
 
 
 def commit_or_duplicate(db: Session, item: BudgetItem, name: str) -> None:
@@ -121,6 +134,8 @@ def update_budget_item(
     new_category = changes.get("category_id", item.category_id)
     if new_category != item.category_id:
         usable_category(db, item.space_id, new_category)
+    check_savings(db, item, changes)
+    if new_category != item.category_id:
         # Por `budget_item_id` y `space_id`: nunca toca gastos de otro espacio.
         db.execute(
             update(Expense)
@@ -145,6 +160,7 @@ def delete_budget_item(
     """Borra el rubro sin pedir confirmación. Sus gastos no se borran: quedan
     no planeados, con la categoría que tenía el rubro, que ya era la suya
     (RF-8, decisión 8)."""
+    check_savings(db, item, None)
     db.execute(
         update(Expense)
         .where(

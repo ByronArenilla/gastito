@@ -50,8 +50,10 @@ INDEX = (serve.PUBLIC / "index.html").read_bytes()
         "/unirse/abc-_9",
         "/mes",
         "/mes/planear",
+        "/mes/reportes",
         "/tarjetas/3",
         "/compras/12",
+        "/retiros/12",
     ],
 )
 def test_app_routes_return_the_page(base_url: str, path: str) -> None:

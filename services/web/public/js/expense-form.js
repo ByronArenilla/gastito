@@ -9,6 +9,7 @@
 // Si no se elige ninguno, se pide la categoría y el texto es la descripción.
 
 import { monthName, periodOf } from "./format.js";
+import { isSavingsName } from "./withdrawals.js";
 
 /** Cuotas que se eligen con un toque (RF-12); las demás, de 1 a 48, se
  * escriben. */
@@ -57,6 +58,21 @@ export function newForm({ paymentType = "debit", cardId = null, date = null } = 
     // hasta que se elige (decisión 26).
     inPlan: null,
   };
+}
+
+/** Las categorías que se pueden elegir al registrar: todas menos Ahorro,
+ * que se aparta al planear (spec 013, decisión 29). */
+export function recordableCategories(categories) {
+  return categories.filter((category) => !isSavingsName(category.name));
+}
+
+/** Los rubros que Registrar sugiere: los del mes menos los de Ahorro.
+ * `categories` son las del resumen, con `category_id` y nombre. */
+export function recordableItems(items, categories) {
+  const savings = new Set(
+    categories.filter((row) => isSavingsName(row.name)).map((row) => row.category_id),
+  );
+  return items.filter((item) => !savings.has(item.category_id));
 }
 
 /** Los rubros cuyo nombre contiene lo escrito (RF-8). Sin texto, todos. */

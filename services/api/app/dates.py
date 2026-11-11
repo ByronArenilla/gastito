@@ -97,3 +97,29 @@ def first_due_period(spent_on: date, cutoff_day: int, due_day: int) -> str:
     if due <= cutoff:
         due = _day_in_month(*_next_month(cutoff), due_day)
     return period_of(due)
+
+
+MONTH_NAMES = (
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+)
+
+
+def month_label(period: str) -> str:
+    """El periodo como se dice en los mensajes: de `2026-08` sale `agosto de
+    2026` (spec 013).
+
+    Lanza `ValueError` si `period` no es un mes `YYYY-MM`.
+    """
+    start, _ = period_bounds(period)
+    return f"{MONTH_NAMES[start.month - 1]} de {start.year}"

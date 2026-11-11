@@ -4,7 +4,7 @@ Lista del criterio 4 de la spec. Se marca cada paso en cada navegador.
 Las marcas de **C** se comprueban con Chromium sin interfaz, conducido por
 su protocolo de depuración, a 390 y 1280 px y en los dos temas, contra una
 API con datos de ejemplo. Las columnas **A** e **I** se marcan junto con las
-de la 011, cuando la app esté desplegada con HTTPS (019 en
+de la 011, cuando la app esté desplegada con HTTPS (020 en
 `docs/roadmap.md`).
 
 Columnas:

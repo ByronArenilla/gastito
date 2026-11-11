@@ -1,8 +1,17 @@
 // Pestaña Gastos (spec 011, RF-17 a RF-22): los gastos del mes por fecha de
 // compra, con flechas de mes, "Solo los míos" y el total. Cada gasto abre su
-// edición en `/gastos/<id>`.
+// edición en `/gastos/<id>`. Desde la spec 013, también los retiros de
+// ahorro, que abren `/retiros/<id>` (RF-35).
 import { h } from "../dom.js";
-import { describeExpense, groupByDay, onlyMine, totalOf } from "../expenses-list.js";
+import {
+  describeExpense,
+  describeWithdrawal,
+  groupByDay,
+  mergeWithdrawals,
+  onlyMine,
+  totalOf,
+  withdrawnOf,
+} from "../expenses-list.js";
 import { formatDay, formatMonth, formatPesos, shiftPeriod } from "../format.js";
 
 export async function renderExpenses(main, app) {
@@ -67,8 +76,9 @@ export async function renderExpenses(main, app) {
     app.setMonth(period);
     list.replaceChildren(h("div", { class: "loading", "aria-hidden": "true" }));
     try {
-      const [expenses, summary] = await Promise.all([
+      const [expenses, withdrawals, summary] = await Promise.all([
         app.api.get(`${base}/expenses`, { period }),
+        app.api.get(`${base}/savings-withdrawals`, { period }),
         app.api.get(`${base}/summary`, { period }),
       ]);
       const names = {
@@ -76,7 +86,8 @@ export async function renderExpenses(main, app) {
         categories: new Map(summary.categories.map((row) => [row.category_id, row.name])),
         cards: new Map(cards.map((card) => [card.id, card.name])),
       };
-      const shown = mine ? onlyMine(expenses, app.me.id) : expenses;
+      const rows = mergeWithdrawals(expenses, withdrawals);
+      const shown = mine ? onlyMine(rows, app.me.id) : rows;
       paint(shown, names);
     } catch (error) {
       list.replaceChildren(h("p", { class: "error", role: "alert" }, error.message));
@@ -96,6 +107,7 @@ export async function renderExpenses(main, app) {
       );
       return;
     }
+    const withdrawn = withdrawnOf(expenses);
     list.replaceChildren(
       h(
         "div",
@@ -103,18 +115,28 @@ export async function renderExpenses(main, app) {
         h("span", {}, `Total de ${formatMonth(period)}`),
         h("span", { class: "figure" }, formatPesos(totalOf(expenses))),
       ),
+      withdrawn > 0 &&
+        h(
+          "div",
+          { class: "total total--withdrawn" },
+          h("span", {}, "Retirado del ahorro"),
+          h("span", { class: "figure" }, `+${formatPesos(withdrawn)}`),
+        ),
       ...groupByDay(expenses).map((group) =>
         h(
           "section",
           { "aria-label": formatDay(group.day) },
           h("h3", { class: "day label" }, formatDay(group.day)),
-          group.expenses.map((expense) => {
-            const { name, meta } = describeExpense(expense, names, app.me.id);
+          group.expenses.map((row) => {
+            const withdrawal = row.kind === "withdrawal";
+            const { name, meta } = withdrawal
+              ? describeWithdrawal(row, app.me.id)
+              : describeExpense(row, names, app.me.id);
             return h(
               "a",
-              { class: "entry", href: `/gastos/${expense.id}` },
+              { class: "entry", href: withdrawal ? `/retiros/${row.id}` : `/gastos/${row.id}` },
               h("span", {}, name),
-              h("span", { class: "figure" }, formatPesos(expense.amount)),
+              h("span", { class: "figure" }, `${withdrawal ? "+" : ""}${formatPesos(row.amount)}`),
               h("span", { class: "entry__meta" }, meta),
             );
           }),

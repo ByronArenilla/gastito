@@ -22,17 +22,20 @@ const VIEWS = {
   join: () => import("./views/join.js").then((module) => module.renderJoin),
   month: () => import("./views/month.js").then((module) => module.renderMonth),
   plan: () => import("./views/month.js").then((module) => module.renderPlan),
+  reports: () => import("./views/reports.js").then((module) => module.renderReports),
   cards: () => import("./views/cards.js").then((module) => module.renderCards),
   cardNew: () => import("./views/cards.js").then((module) => module.renderCardNew),
   card: () => import("./views/cards.js").then((module) => module.renderCard),
   cardEdit: () => import("./views/cards.js").then((module) => module.renderCardEdit),
   purchase: () => import("./views/purchase.js").then((module) => module.renderPurchase),
+  withdrawal: () => import("./views/withdrawal.js").then((module) => module.renderWithdrawal),
 };
 
 // Qué sección de la navegación marca cada pantalla.
 const SECTIONS = {
   month: "month",
   plan: "month",
+  reports: "month",
   record: "record",
   edit: "expenses",
   expenses: "expenses",
@@ -41,6 +44,7 @@ const SECTIONS = {
   card: "cards",
   cardEdit: "cards",
   purchase: "cards",
+  withdrawal: "expenses",
   space: "space",
 };
 
@@ -151,6 +155,9 @@ async function render() {
   shell.toggleAttribute("data-guest", !member);
   markSection(route.view);
   app.setMonth(null);
+  // Cada pantalla pone su ancho (`main--wide`, `main--reports`): sin esto,
+  // el de la anterior se quedaba.
+  main.className = "main";
   main.replaceChildren(h("div", { class: "loading", "aria-hidden": "true" }));
 
   try {

@@ -1,7 +1,7 @@
 # Roadmap — gastito
 
 > **Fase actual:** 2 — Docker
-> **Spec activa:** 013-contenedores
+> **Spec activa:** 014-contenedores
 >
 > Este es el único lugar donde se actualiza el estado del proyecto.
 
@@ -80,7 +80,7 @@ está validada. Marca con [x] las specs terminadas.
     reutiliza.
   - **Se cerró sin la verificación en el celular (2026-11-09)**, por
     decisión del usuario: el criterio 5 está hecho en Chrome del computador,
-    y Android e iPhone se verifican con la app desplegada (ver 019).
+    y Android e iPhone se verifican con la app desplegada (ver 020).
 - [x] 012-tablero-y-planear — Tablero del mes, planear el mes y tarjetas, con gráficos para decidir.
   - **Prototipo visual antes de escribir código.** El de la antigua 007
     (2026-11-04) no se conservó; la 011 hizo uno nuevo (2026-11-06). Son
@@ -104,13 +104,39 @@ está validada. Marca con [x] las specs terminadas.
     Planear como tabla que guarda por renglón, Tarjetas con abonos y pagar
     todo, y categorías en Espacio. Cinco secciones; el inicio depende del
     ancho. Sin cambios en la API. Se verificó en Chrome del computador; el
-    celular, con la 011 (ver 019).
+    celular, con la 011 (ver 020).
+- [x] 013-reportes — Reportes para decidir (en qué se va la plata, qué tan bien se planea y cuánto se ahorra), Ahorro como categoría y retiros de ahorro.
+  - Se añadió el 2026-11-09, con la 012 cerrada: la persona pidió volver a
+    la fase 1 antes de Docker. Las specs siguientes corren un número; las
+    specs 011 y 012 se escribieron con la numeración anterior (su
+    "013-contenedores" es la 014 y su "019" es la 020).
+  - Tres preguntas: ¿en qué se me va la plata?, ¿planeo bien? y ¿estoy
+    ahorrando? La clarificación eligió cinco; al revisar el prototipo
+    (2026-11-10) se quitaron "¿puedo con otra compra a cuotas?", con su
+    simulador, y "¿cuándo salgo de deudas?" (decisión 18 de la spec).
+  - También al revisar el prototipo: los reportes miran un mes elegido
+    (por defecto el anterior), "Ahorro" entra en las categorías
+    predefinidas con una migración para los espacios existentes, y se
+    pueden registrar retiros de ahorro, que restan de Ahorro en el Mes
+    (decisiones 20 a 28). Cambia la decisión 1 de la 002 y el resumen de la
+    008 en lo retirado.
+  - Varios meses de datos: los cálculos van en la API (principio 10), y los
+    gráficos de tiempo, con su ADR (el ADR 0016 lo dejó para esta spec).
+  - Atractivo en claro y en oscuro, en el celular y en el computador:
+    prototipo visual antes del código, como en la 011 y la 012.
+  - Antes del cierre (2026-11-11), el ahorro pasó a apartarse al planearlo:
+    Registrar no ofrece Ahorro y un gasto en Ahorro responde `422`
+    (decisión 29).
+  - **Terminada el 2026-11-11**: tres reportes sobre un mes elegido,
+    gráficos de CSS (ADR 0017), Ahorro como categoría que se aparta al
+    planear y retiros de ahorro en su propia tabla (ADR 0018). Se verificó
+    en Chrome del computador; el celular, con la 011 y la 012 (ver 020).
 
 ## Fase 2 — Docker
-- [ ] 013-contenedores
+- [ ] 014-contenedores
 
 ## Fase 3 — Nginx
-- [ ] 014-reverse-proxy
+- [ ] 015-reverse-proxy
   - Límite de peticiones (*rate limiting*) en `POST /auth/register` y
     `POST /auth/login`: con el registro abierto, frena la creación masiva de
     cuentas, la prueba de contraseñas y el recorrido de correos (ADR 0005).
@@ -119,37 +145,39 @@ está validada. Marca con [x] las specs terminadas.
     poder canjear un enlace todavía sin usar (plan 001).
 
 ## Fase 4 — GitHub Actions
-- [ ] 015-integracion-continua
-- [ ] 016-publicacion-imagenes
+- [ ] 016-integracion-continua
+- [ ] 017-publicacion-imagenes
 
 ## Fase 5 — AWS + Terraform
-- [ ] 017-cuenta-aws-segura
-- [ ] 018-infraestructura-aws
-- [ ] 019-https-dominio
+- [ ] 018-cuenta-aws-segura
+- [ ] 019-infraestructura-aws
+- [ ] 020-https-dominio
   - Se adelantó desde la fase 9 (2026-11-04). Sin HTTPS, el ícono fijado
     en el celular abre la web en el navegador y no a pantalla completa
     (ADR 0010). Además, con la app en internet, entrar sin HTTPS enviaría
     la contraseña sin cifrar.
-  - **Pendiente de la 011 y la 012:** con la app desplegada, completar las
-    columnas A (Chrome en Android) e I (Safari en iPhone) de
-    `specs/011-app-web/verificacion.md` y
-    `specs/012-tablero-y-planear/verificacion.md`, incluidos el lector de
-    pantalla y fijar la app de verdad.
+  - **Pendiente de la 011, la 012 y la 013:** con la app desplegada,
+    completar las columnas A (Chrome en Android) e I (Safari en iPhone) de
+    `specs/011-app-web/verificacion.md`,
+    `specs/012-tablero-y-planear/verificacion.md` y
+    `specs/013-reportes/verificacion.md` (los reportes, los retiros de
+    ahorro y Registrar sin Ahorro), incluidos el lector de pantalla y fijar
+    la app de verdad.
 
 ## Fase 6 — Ansible + despliegue continuo
-- [ ] 020-configuracion-servidores
-- [ ] 021-despliegue-continuo
+- [ ] 021-configuracion-servidores
+- [ ] 022-despliegue-continuo
 
 ## Fase 7 — Prometheus + Grafana
-- [ ] 022-metricas
-- [ ] 023-dashboards
-- [ ] 024-alertas
+- [ ] 023-metricas
+- [ ] 024-dashboards
+- [ ] 025-alertas
 
 ## Fase 8 — Kubernetes
-- [ ] 025-kubernetes-local
-- [ ] 026-kubernetes-k3s
-- [ ] 027-helm
+- [ ] 026-kubernetes-local
+- [ ] 027-kubernetes-k3s
+- [ ] 028-helm
 
 ## Fase 9 — Extras
-- [ ] 028-backups
-- [ ] 029-gitops
+- [ ] 029-backups
+- [ ] 030-gitops

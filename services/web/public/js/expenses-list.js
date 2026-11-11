@@ -15,7 +15,10 @@ export function groupByDay(expenses) {
 }
 
 export function totalOf(expenses) {
-  return expenses.reduce((total, expense) => total + expense.amount, 0);
+  return expenses.reduce(
+    (total, expense) => total + (expense.kind === "withdrawal" ? 0 : expense.amount),
+    0,
+  );
 }
 
 /** Los que registró quien usa la app (RF-19). */
@@ -49,4 +52,33 @@ export function describeExpense(expense, names, userId) {
   const parts = [category, paidWith(expense, names)];
   if (expense.created_by !== userId) parts.push("registró otro miembro");
   return { name, meta: parts.join(" · ") };
+}
+
+// --- Retiros de ahorro (spec 013, RF-35) ---
+
+/** Gastos y retiros del mes en una sola lista, del día más reciente al más
+ * antiguo y, a igual día, del registrado después al registrado antes. Cada
+ * fila lleva `kind`: "expense" o "withdrawal". */
+export function mergeWithdrawals(expenses, withdrawals) {
+  const rows = [
+    ...expenses.map((expense) => ({ ...expense, kind: "expense" })),
+    ...withdrawals.map((withdrawal) => ({ ...withdrawal, kind: "withdrawal" })),
+  ];
+  return rows.sort(
+    (a, b) =>
+      b.spent_on.localeCompare(a.spent_on) || (b.created_at ?? "").localeCompare(a.created_at ?? ""),
+  );
+}
+
+/** Lo retirado del ahorro en la lista. `totalOf` suma solo los gastos. */
+export function withdrawnOf(rows) {
+  return rows.reduce((total, row) => total + (row.kind === "withdrawal" ? row.amount : 0), 0);
+}
+
+/** "Retiro de ahorro" y debajo su nota (o "Ahorro") y si lo registró otro
+ * miembro. */
+export function describeWithdrawal(withdrawal, userId) {
+  const parts = [withdrawal.description || "Ahorro"];
+  if (withdrawal.created_by !== userId) parts.push("registró otro miembro");
+  return { name: "Retiro de ahorro", meta: parts.join(" · ") };
 }

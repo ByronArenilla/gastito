@@ -62,9 +62,11 @@ export function missingText(missing) {
 }
 
 /** Quitar un rubro que ya tiene gastos pide confirmación: sus gastos quedan
- * sin rubro (decisión 14; RF-8 de la 008). */
-export function needsConfirm(item) {
-  return item.spent > 0;
+ * sin rubro (decisión 14; RF-8 de la 008). Un rubro de Ahorro (`savingsIds`,
+ * las categorías Ahorro) sale gastado por lo planeado, pero no tiene gastos:
+ * el ahorro se aparta al planear (spec 013, decisión 29). */
+export function needsConfirm(item, savingsIds = new Set()) {
+  return item.spent > 0 && !savingsIds.has(item.categoryId);
 }
 
 /** El valor real del extracto de una tarjeta en el mes (RF-17): escrito se

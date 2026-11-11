@@ -17,6 +17,8 @@ import {
   missing,
   newForm,
   parseInstallments,
+  recordableCategories,
+  recordableItems,
   simulationRequest,
   simulationSummary,
   suggestItems,
@@ -32,6 +34,7 @@ import {
   periodOf,
 } from "../format.js";
 import { OFFLINE_SAVE, clearErrors, field, formError, setBusy, showErrors } from "./form.js";
+import { buildNewWithdrawal } from "./withdrawal.js";
 
 const DRAFT = "record";
 
@@ -48,7 +51,8 @@ export function createData(app) {
   async function loadSummary(period) {
     const summary = await app.api.get(`${base}/summary`, period ? { period } : undefined);
     for (const row of summary.categories) categoryNames.set(row.category_id, row.name);
-    itemsByPeriod.set(summary.period, summary.budget_items);
+    // Ahorro no se registra: se aparta al planear (spec 013, decisión 29).
+    itemsByPeriod.set(summary.period, recordableItems(summary.budget_items, summary.categories));
     return summary;
   }
 
@@ -72,7 +76,7 @@ export function createData(app) {
       ]);
       // El mes actual en `TZ` lo dice la API (decisión 12).
       currentPeriod = summary.period;
-      categories = activeCategories;
+      categories = recordableCategories(activeCategories);
       cards = activeCards;
       for (const category of activeCategories) categoryNames.set(category.id, category.name);
     },
@@ -523,9 +527,34 @@ export async function renderRecord(main, app) {
     },
   });
   recordForm.onChange = (form) => app.drafts.set(DRAFT, form);
-  main.append(recordForm.element);
-  recordForm.element.prepend(h("h1", { class: "sr-only" }, "Registrar un gasto"));
-  recordForm.focus();
+
+  // "Gasto | Retiro de ahorro" (spec 013, decisión 25): el retiro tiene su
+  // propio formulario, más corto, y la elección se recuerda al volver.
+  const withdrawal = buildNewWithdrawal(app);
+  const kinds = choice(
+    [
+      { value: "expense", text: "Gasto" },
+      { value: "withdrawal", text: "Retiro de ahorro" },
+    ],
+    { full: true, label: "Qué registras", onPick: (kind) => show(kind, true) },
+  );
+  main.append(
+    h("h1", { class: "sr-only" }, "Registrar"),
+    h("div", { class: "record-kind" }, kinds.element),
+    recordForm.element,
+    withdrawal.element,
+  );
+
+  function show(kind, focus) {
+    app.drafts.set("record-kind", kind);
+    kinds.select(kind);
+    recordForm.element.hidden = kind !== "expense";
+    withdrawal.element.hidden = kind !== "withdrawal";
+    if (kind === "expense") recordForm.paint();
+    if (focus) (kind === "expense" ? recordForm : withdrawal).focus();
+  }
+  show(app.drafts.get("record-kind") ?? "expense", false);
+  (app.drafts.get("record-kind") === "withdrawal" ? withdrawal : recordForm).focus();
 }
 
 /** "Registrado: Mercado · $ 52.000" con "Deshacer" durante 10 segundos
