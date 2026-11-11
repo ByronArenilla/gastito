@@ -1,12 +1,18 @@
 # Roadmap — gastito
 
 > **Fase actual:** 2 — Docker
-> **Spec activa:** 014-contenedores
+> **Etapa activa:** 014-contenedores (modo guiado, sin SDD)
 >
 > Este es el único lugar donde se actualiza el estado del proyecto.
 
-Cada fase introduce una herramienta. Una spec empieza cuando la anterior
-está validada. Marca con [x] las specs terminadas.
+Cada fase introduce una herramienta. Una spec o etapa empieza cuando la
+anterior está validada. Marca con [x] las terminadas.
+
+**Desde la fase 2 no hay SDD (ADR 0019).** Las entradas 014 en adelante son
+etapas que se trabajan en modo guiado (`AGENTS.md`, "Modo guiado"): yo
+escribo la infraestructura y el agente guía y revisa. Cada una deja su
+bitácora en `docs/bitacora/`. El objetivo es manejar cada herramienta de
+forma profesional y poder aplicar a puestos de DevOps.
 
 ## Fase 1 — Aplicación y SDD
 - [x] 001-usuarios-y-espacios — Usuarios, espacios y membresías; todo dato cuelga de un espacio.
