@@ -373,7 +373,7 @@ ni sus rubros (`recordableCategories`, `recordableItems`), y las frases de
   se le cambie la categoría. La categoría Ahorro guarda su 422 en la API
   con `is_savings_category`; la 0006 no cambia.
 
-## [ ] T18 — Cierre: README y validación
+## [x] T18 — Cierre: README y validación
 - `README.md`: sección "Reportes" con las tres preguntas y la ruta de la
   API; "Ahorro" en las predefinidas; cómo registrar un retiro de ahorro.
 - `docs/roadmap.md`: marcar `013-reportes` como terminada y dejar
@@ -385,3 +385,11 @@ ni sus rubros (`recordableCategories`, `recordableItems`), y las frases de
 - Hecho cuando: `make test` y `make lint` están en verde y la columna C de
   la verificación está completa.
 - RF: cierra la spec.
+- Estado (2026-11-11): hecha. README con la sección "Reportes" (las tres
+  preguntas, la ruta, Ahorro y los retiros), "Ahorro" en las predefinidas
+  y los Reportes y retiros en "La web"; nota de actualización en el ADR
+  0018 por la decisión 29. Roadmap: 013 terminada, fase 2 con
+  `014-contenedores` activa, y la 013 en lo pendiente de la 020. Criterios:
+  1, `make test` con 835 tests de la API; 2 y 3, 247 tests de Node con el
+  de contraste; 4, columna C completa (A e I, en la 020); 5, `make test` y
+  `make lint` en verde.

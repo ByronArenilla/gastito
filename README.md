@@ -106,14 +106,17 @@ el computador va al Mes y el celular a Registrar.
   rubro"; y lo que hay que pagarle a cada tarjeta. Un mes sin plan ofrece
   copiar el del mes anterior. **Planear** convierte el mes en una tabla
   editable: ingresos, rubros y el valor real del extracto de cada tarjeta.
-  Cada renglón se guarda al salir de él.
+  Cada renglón se guarda al salir de él. **Reportes** ("Este mes |
+  Reportes") responde tres preguntas sobre un mes ya cerrado (ver
+  "Reportes").
 - **Registrar**: abre con el teclado numérico en el monto. "Qué fue"
   sugiere los rubros del mes con lo que queda. A crédito pide la tarjeta y
   las cuotas, y a 1 cuota pregunta si estaba en el plan del mes. Antes de
   guardar muestra cuándo y cuánto se paga. Tras registrar, "Deshacer" dura
-  10 segundos.
-- **Gastos**: los del mes por fecha de compra, con flechas de mes y "Solo
-  los míos". Tocar un gasto lo edita o lo borra (con confirmación). Mes,
+  10 segundos. Arriba, "Gasto | Retiro de ahorro" registra lo que se saca
+  del ahorro del mes. Ahorro no se ofrece aquí: se aparta al planear.
+- **Gastos**: los del mes por fecha de compra, con los retiros de ahorro
+  con "+", flechas de mes y "Solo los míos". Tocar un gasto lo edita o lo borra (con confirmación). Mes,
   Planear y Gastos muestran el mismo mes.
 - **Tarjetas**: añadir, editar y eliminar tarjetas; el estado de cada una
   (saldo, lo que hay que pagar cada mes y las compras con cuotas
@@ -152,9 +155,11 @@ según el sistema. Las reglas están en la sección "Diseño" de
 `specs/011-app-web/spec.md` y, para el Mes y las tarjetas, en la de
 `specs/012-tablero-y-planear/spec.md`. Los colores están en
 `services/web/public/css/tokens.css`, y un test comprueba su contraste en
-los dos temas, también el de las barras. Las barras son CSS propio, sin
+los dos temas, también el de las barras y el de las tintas de los
+reportes. Las barras y los gráficos de varios meses son CSS propio, sin
 librería de gráficos:
-[ADR 0016](docs/adr/0016-barras-propias-sin-libreria.md).
+[ADR 0016](docs/adr/0016-barras-propias-sin-libreria.md) y
+[ADR 0017](docs/adr/0017-graficos-de-varios-meses-con-css.md).
 
 **Regenerar los íconos** después de cambiar `icons/icon.svg` o
 `icons/icon-maskable.svg` (desde `services/web/public/icons`):
@@ -238,8 +243,11 @@ datos. Nadie puede quedarse sin ningún espacio.
 
 ## Categorías
 Cada gasto y cada rubro pertenecen a una categoría, y cada espacio tiene
-las suyas. Todo espacio nuevo nace con siete predefinidas: Hogar, Comida,
-Transporte, Salud, Servicios, Ocio y Otros. Desde ese momento son del
+las suyas. Todo espacio nuevo nace con ocho predefinidas: Hogar, Comida,
+Transporte, Salud, Servicios, Ocio, Otros y Ahorro (una migración la añadió
+a los espacios que ya existían). Ahorro es especial: se usa solo en los
+rubros, y lo planeado en ellos es lo apartado del mes (ver "Reportes").
+Desde ese momento son del
 espacio, no de un mes: cualquier miembro puede añadir más o eliminarlas, y
 siguen disponibles mes tras mes.
 
@@ -695,6 +703,63 @@ Con el extracto de diciembre en 581.500, la deuda es 381.500 y a pagar
 **Estado de la tarjeta.** `GET /spaces/1/cards/1/status` da el saldo
 pendiente, las compras con cuotas del mes actual en adelante y la deuda de
 cada mes hasta la última cuota.
+
+## Reportes
+En el Mes, "Este mes | Reportes" muestra tres reportes sobre un mes ya
+cerrado (por defecto, el anterior; el selector no va antes del primer mes
+con datos). Cada uno responde en una frase, la muestra en un gráfico y deja
+ver sus cifras con "Ver cifras":
+
+1. **¿En qué se me va la plata?** Lo gastado por categoría y en "Cuotas de
+   tarjetas", con su parte del total, y cuánto fue no planeado. Lo apartado
+   en Ahorro va aparte.
+2. **¿Planeo bien?** Cada rubro con lo que se pasó o sobró, y lo gastado
+   sin rubro en cada categoría ("Comida · sin rubro"). Sin Ahorro.
+3. **¿Estoy ahorrando?** Lo apartado, lo retirado y lo que quedó sin gastar,
+   en 1, 3, 6 o 12 meses que terminan en el mes elegido; con varios meses,
+   el promedio, el mejor y el peor mes, y en cuántos no se tocó el ahorro.
+
+```sh
+curl 'localhost:8000/spaces/1/reports?period=2026-10&months=6' \
+  -H 'Authorization: Bearer <token de Ana>'
+# {"current": "2026-11", "period": "2026-10", "first_period": "2026-06",
+#  "has_data": true, "spending": {...}, "planning": {"items": [...]},
+#  "savings": {"window": {"months": 6, "periods": ["2026-05", ..., "2026-10"]},
+#              "months": [{"period": "2026-10", "saved": 500000, "withdrawn": 0,
+#                          "left": 118640, "total": 618640, "share": 10, ...}],
+#              "average": {...}, "best": "2026-06", "worst": "2026-10",
+#              "planned_months": 5, "untouched_months": 4}}
+```
+
+Un mes no cerrado responde `422` con "Elige un mes ya cerrado.", y una
+ventana que no es 1, 3, 6 o 12, `422` con "La ventana debe ser de 1, 3, 6 o
+12 meses.".
+
+**Ahorro.** El ahorro se aparta al planearlo: un rubro "Ahorro" de
+$ 500.000 en agosto aparta $ 500.000 ese mes, y el Mes lo cuenta en lo
+gastado. No se registra como gasto: un gasto en la categoría Ahorro o en uno
+de sus rubros responde `422`. Lo ahorrado en un mes es lo apartado, menos lo
+retirado, más lo que quedó sin gastar.
+
+**Retiros de ahorro.** Si hubo que sacar plata del ahorro (en la web,
+Registrar → "Retiro de ahorro"):
+
+```sh
+curl -X POST localhost:8000/spaces/1/savings-withdrawals \
+  -H 'Authorization: Bearer <token de Ana>' \
+  -H 'content-type: application/json' \
+  -d '{"amount": 200000, "spent_on": "2026-08-14", "description": "Urgencia médica"}'
+# {"id": 1, "amount": 200000, "spent_on": "2026-08-14",
+#  "description": "Urgencia médica", "created_by": 1, ...}
+```
+
+Un retiro resta de Ahorro y de lo gastado del mes, y sale en Gastos con
+"+". No puede pasar de lo apartado en su mes menos lo ya retirado (`422`,
+"…puedes retirar hasta $ 300.000."), y por eso un rubro de Ahorro no puede
+bajar ni borrarse si deja lo retirado por encima (`409`). Se listan con
+`GET savings-withdrawals?period=`, y se editan y borran (con
+`confirm=true`) como un gasto. Por qué en su propia tabla:
+[ADR 0018](docs/adr/0018-retiros-de-ahorro-en-su-propia-tabla.md).
 
 ## Historia: el bot de Telegram
 Las specs 005 y 006 registraban gastos conversando con un bot de Telegram.

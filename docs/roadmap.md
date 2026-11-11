@@ -1,7 +1,7 @@
 # Roadmap — gastito
 
-> **Fase actual:** 1 — Aplicación y SDD
-> **Spec activa:** 013-reportes
+> **Fase actual:** 2 — Docker
+> **Spec activa:** 014-contenedores
 >
 > Este es el único lugar donde se actualiza el estado del proyecto.
 
@@ -105,7 +105,7 @@ está validada. Marca con [x] las specs terminadas.
     todo, y categorías en Espacio. Cinco secciones; el inicio depende del
     ancho. Sin cambios en la API. Se verificó en Chrome del computador; el
     celular, con la 011 (ver 020).
-- [ ] 013-reportes — Reportes para decidir (en qué se va la plata, qué tan bien se planea y cuánto se ahorra), Ahorro como categoría y retiros de ahorro.
+- [x] 013-reportes — Reportes para decidir (en qué se va la plata, qué tan bien se planea y cuánto se ahorra), Ahorro como categoría y retiros de ahorro.
   - Se añadió el 2026-11-09, con la 012 cerrada: la persona pidió volver a
     la fase 1 antes de Docker. Las specs siguientes corren un número; las
     specs 011 y 012 se escribieron con la numeración anterior (su
@@ -124,6 +124,13 @@ está validada. Marca con [x] las specs terminadas.
     gráficos de tiempo, con su ADR (el ADR 0016 lo dejó para esta spec).
   - Atractivo en claro y en oscuro, en el celular y en el computador:
     prototipo visual antes del código, como en la 011 y la 012.
+  - Antes del cierre (2026-11-11), el ahorro pasó a apartarse al planearlo:
+    Registrar no ofrece Ahorro y un gasto en Ahorro responde `422`
+    (decisión 29).
+  - **Terminada el 2026-11-11**: tres reportes sobre un mes elegido,
+    gráficos de CSS (ADR 0017), Ahorro como categoría que se aparta al
+    planear y retiros de ahorro en su propia tabla (ADR 0018). Se verificó
+    en Chrome del computador; el celular, con la 011 y la 012 (ver 020).
 
 ## Fase 2 — Docker
 - [ ] 014-contenedores
@@ -149,11 +156,13 @@ está validada. Marca con [x] las specs terminadas.
     en el celular abre la web en el navegador y no a pantalla completa
     (ADR 0010). Además, con la app en internet, entrar sin HTTPS enviaría
     la contraseña sin cifrar.
-  - **Pendiente de la 011 y la 012:** con la app desplegada, completar las
-    columnas A (Chrome en Android) e I (Safari en iPhone) de
-    `specs/011-app-web/verificacion.md` y
-    `specs/012-tablero-y-planear/verificacion.md`, incluidos el lector de
-    pantalla y fijar la app de verdad.
+  - **Pendiente de la 011, la 012 y la 013:** con la app desplegada,
+    completar las columnas A (Chrome en Android) e I (Safari en iPhone) de
+    `specs/011-app-web/verificacion.md`,
+    `specs/012-tablero-y-planear/verificacion.md` y
+    `specs/013-reportes/verificacion.md` (los reportes, los retiros de
+    ahorro y Registrar sin Ahorro), incluidos el lector de pantalla y fijar
+    la app de verdad.
 
 ## Fase 6 — Ansible + despliegue continuo
 - [ ] 021-configuracion-servidores
