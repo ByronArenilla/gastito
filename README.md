@@ -148,12 +148,18 @@ secreto y se pega en el panel de Render.
    pegues en ningún archivo.
 2. En Render: **New > Blueprint**, conecta este repositorio y elige la
    rama. Render lee `render.yaml` y pide `DATABASE_URL`: pega la de Neon.
-3. Al terminar, revisa las direcciones de los dos servicios. Si no son
-   `https://gastito-api.onrender.com` y `https://gastito-web.onrender.com`
-   (el nombre estaba ocupado), corrige las tres líneas marcadas con "URL"
-   en `render.yaml` y súbelo.
-4. Abre `https://gastito-api.onrender.com/health`: debe responder
-   `{"status":"ok"}`. Luego abre la web, regístrate y registra un gasto.
+3. Al terminar, entra a cada servicio y copia su dirección. Render añade
+   un sufijo cuando el nombre ya está ocupado, y `gastito-api` y
+   `gastito-web` lo estaban. **Antes de registrarte**, pon las direcciones
+   reales en las tres líneas marcadas con "URL" de `render.yaml` y súbelo:
+   con una dirección equivocada, la web enviaría tu contraseña a la API de
+   otra persona.
+4. Abre `/health` en la dirección de la API: debe responder
+   `{"status":"ok"}`. En `/docs`, el título debe ser "gastito API". Luego
+   abre la web, regístrate y registra un gasto.
+
+Hoy la web está en https://gastito-web-2dx5.onrender.com y la API en
+https://gastito-api-33vd.onrender.com.
 
 Desde ahí, cada commit en esa rama despliega solo. Las migraciones corren
 al arrancar la API; si una falla, Render deja corriendo la versión anterior.
