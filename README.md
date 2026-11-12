@@ -149,16 +149,16 @@ secreto y se pega en el panel de Render.
 2. En Render: **New > Blueprint**, conecta este repositorio y elige la
    rama. Render lee `render.yaml` y pide `DATABASE_URL`: pega la de Neon.
 3. Al terminar, entra a cada servicio y copia su dirección. Render añade
-   un sufijo cuando el nombre ya está ocupado, y `gastito-api` y
-   `gastito-web` lo estaban. **Antes de registrarte**, pon las direcciones
-   reales en las tres líneas marcadas con "URL" de `render.yaml` y súbelo:
-   con una dirección equivocada, la web enviaría tu contraseña a la API de
-   otra persona.
+   un sufijo cuando el nombre ya está ocupado: pasó con `gastito-api`, y
+   por eso la web se llama `migastito`. **Antes de registrarte**, pon las
+   direcciones reales en las tres líneas marcadas con "URL" de
+   `render.yaml` y súbelo: con una dirección equivocada, la web enviaría tu
+   contraseña a la API de otra persona.
 4. Abre `/health` en la dirección de la API: debe responder
    `{"status":"ok"}`. En `/docs`, el título debe ser "gastito API". Luego
    abre la web, regístrate y registra un gasto.
 
-Hoy la web está en https://gastito-web-2dx5.onrender.com y la API en
+Hoy la web está en https://migastito.onrender.com y la API en
 https://gastito-api-33vd.onrender.com.
 
 Desde ahí, cada commit en esa rama despliega solo. Las migraciones corren

@@ -9,11 +9,13 @@
 # Neon, y la API solo conoce su URL.
 #
 # LAS TRES URL DE ABAJO DEPENDEN DE LA DIRECCIÓN QUE RENDER ASIGNÓ. Render
-# publica cada servicio en https://<name>.onrender.com, pero `gastito-api` y
-# `gastito-web` ya eran de otra aplicación, así que les añadió un sufijo. Son
-# las tres líneas marcadas con "URL": si un servicio se recrea, su sufijo
-# cambia y hay que corregirlas. Una dirección equivocada no es inofensiva: la
-# web enviaría las contraseñas a la API de otra persona.
+# publica cada servicio en https://<name>.onrender.com, pero si el nombre ya
+# está ocupado le añade un sufijo. Pasó con `gastito-api` (quedó en
+# gastito-api-33vd) y con `gastito-web`, que eran de otra aplicación; por eso
+# la web se llama `migastito`, que estaba libre. Son las tres líneas marcadas
+# con "URL": si un servicio se recrea, hay que revisarlas. Una dirección
+# equivocada no es inofensiva: la web enviaría las contraseñas a la API de
+# otra persona.
 
 services:
   # --- API: contenedor construido desde services/api/Dockerfile -------------
@@ -47,7 +49,7 @@ services:
       # URL de la web: único origen que la API acepta (CORS) y base de los
       # enlaces de invitación.
       - key: WEB_BASE_URL
-        value: https://gastito-web-2dx5.onrender.com
+        value: https://migastito.onrender.com
       # La API está detrás del proxy de Render, que es quien recibe el HTTPS.
       # Con esto uvicorn confía en las cabeceras X-Forwarded-* del proxy y
       # sabe que la petición original llegó por https (si no, sus
@@ -61,7 +63,9 @@ services:
   # Gratis y no se duerme. Hace lo mismo que services/web/serve.py; si cambia
   # una regla allá, hay que cambiarla aquí.
   - type: web
-    name: gastito-web
+    # El nombre decide la dirección: https://migastito.onrender.com. Cambiarlo
+    # crea un sitio nuevo con otra dirección; no renombra este.
+    name: migastito
     runtime: static
     # La web no se compila: lo único que se genera es /config.js con la URL
     # de la API, igual que `config_module` en serve.py.
