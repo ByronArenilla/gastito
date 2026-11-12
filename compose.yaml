@@ -1,0 +1,62 @@
+# Stack local completo: PostgreSQL, API y web (etapa 014, ADR 0020).
+#
+#   make up      # construye las imágenes y levanta todo
+#   make down    # lo detiene (los datos quedan en el volumen)
+#
+# Es para probar en tu máquina lo mismo que corre desplegado. El despliegue
+# no usa este archivo: Render lee render.yaml y la base está en Neon.
+# https://docs.docker.com/reference/compose-file/
+
+services:
+  db:
+    # Misma versión mayor que la base desplegada. `alpine` es la variante
+    # pequeña de la imagen.
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: gastito
+      POSTGRES_DB: gastito
+      # Sale de .env. `:?` hace que Compose se detenga con este mensaje si
+      # falta, en vez de crear una base sin contraseña.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env (ver .env.example)}
+    volumes:
+      # Volumen con nombre: los datos sobreviven a `make down` y a recrear el
+      # contenedor. Solo se borran con `docker compose down --volumes`.
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # "Arrancó el contenedor" no es "PostgreSQL ya acepta conexiones".
+      test: ["CMD-SHELL", "pg_isready --username gastito --dbname gastito"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # Sin `ports`: a la base solo llega la API, por la red interna de Compose.
+
+  api:
+    build: ./services/api
+    environment:
+      # `db` es el nombre del servicio de arriba: Compose crea una red donde
+      # cada servicio se resuelve por su nombre.
+      DATABASE_URL: postgresql://gastito:${POSTGRES_PASSWORD}@db:5432/gastito
+      TZ: ${TZ:-America/Bogota}
+      WEB_BASE_URL: http://localhost:8080
+    depends_on:
+      db:
+        # Espera al healthcheck de la base: la API aplica las migraciones al
+        # arrancar y, sin base, no arrancaría.
+        condition: service_healthy
+    ports:
+      # 127.0.0.1: solo se entra desde este computador, no desde la red.
+      - "127.0.0.1:8000:8000"
+
+  web:
+    build: ./services/web
+    environment:
+      # La usa el navegador, no el contenedor: por eso es `localhost` y no
+      # `api`.
+      API_URL: http://localhost:8000
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  db-data:

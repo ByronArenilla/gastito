@@ -1,0 +1,8 @@
+# Ver services/api/.dockerignore: se excluye todo y se permite lo necesario.
+*
+!serve.py
+!public/
+
+# Lo genera el despliegue en Render (render.yaml); en el contenedor,
+# `serve.py` responde /config.js con la variable API_URL.
+public/config.js
