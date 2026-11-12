@@ -16,6 +16,9 @@ __pycache__/
 *.db.antes-*
 *.sqlite3
 
+# Lo genera el despliegue de la web en Render (render.yaml)
+services/web/public/config.js
+
 # Sistema operativo y editores
 .DS_Store
 .vscode/

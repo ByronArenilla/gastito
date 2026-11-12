@@ -15,7 +15,7 @@ API_BIN := $(API_VENV)/bin
 WEB_DIR := services/web
 
 # Estos targets no generan archivos con su nombre: se ejecutan siempre.
-.PHONY: install run-api run-web test lint
+.PHONY: install run-api run-web test lint up down
 
 # Crea el entorno virtual de la API (si no existe) y la instala en modo
 # editable junto con sus herramientas de desarrollo.
@@ -55,3 +55,13 @@ test:
 lint:
 	cd $(API_DIR) && .venv/bin/ruff check . && .venv/bin/ruff format --check .
 	cd $(WEB_DIR) && ../api/.venv/bin/ruff check . && ../api/.venv/bin/ruff format --check .
+
+# El stack completo en contenedores: PostgreSQL, API y web (compose.yaml).
+# --build reconstruye las imágenes si cambió el código; -d lo deja corriendo
+# en segundo plano. Necesita POSTGRES_PASSWORD en .env.
+up:
+	docker compose up --build -d
+
+# Detiene y borra los contenedores. Los datos quedan en el volumen.
+down:
+	docker compose down

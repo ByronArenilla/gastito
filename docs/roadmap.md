@@ -1,12 +1,18 @@
 # Roadmap — gastito
 
 > **Fase actual:** 2 — Docker
-> **Spec activa:** 014-contenedores
+> **Etapa activa:** 014-contenedores (modo guiado, sin SDD)
 >
 > Este es el único lugar donde se actualiza el estado del proyecto.
 
-Cada fase introduce una herramienta. Una spec empieza cuando la anterior
-está validada. Marca con [x] las specs terminadas.
+Cada fase introduce una herramienta. Una spec o etapa empieza cuando la
+anterior está validada. Marca con [x] las terminadas.
+
+**Desde la fase 2 no hay SDD (ADR 0019).** Las entradas 014 en adelante son
+etapas que se trabajan en modo guiado (`AGENTS.md`, "Modo guiado"): yo
+escribo la infraestructura y el agente guía y revisa. Cada una deja su
+bitácora en `docs/bitacora/`. El objetivo es manejar cada herramienta de
+forma profesional y poder aplicar a puestos de DevOps.
 
 ## Fase 1 — Aplicación y SDD
 - [x] 001-usuarios-y-espacios — Usuarios, espacios y membresías; todo dato cuelga de un espacio.
@@ -134,6 +140,21 @@ está validada. Marca con [x] las specs terminadas.
 
 ## Fase 2 — Docker
 - [ ] 014-contenedores
+  - **Despliegue provisional adelantado (2026-11-12, ADR 0020).** Para usar
+    la app desde ya y sin costo: la API en Render como contenedor, la web en
+    Render como sitio estático y la base en Neon (PostgreSQL). Queda como
+    código en `render.yaml`. Es provisional: se retira cuando la app viva en
+    la infraestructura de la fase 5 en adelante.
+  - **Los Dockerfile, `compose.yaml` y `render.yaml` los escribió el agente**,
+    por petición explícita, y la API ganó soporte de PostgreSQL. `make up` y
+    `make down` ya existen.
+  - **La etapa sigue abierta.** Falta el ciclo del modo guiado sobre esos
+    archivos: objetivo y "hecho cuando" en la bitácora, conceptos, revisión,
+    romper y arreglar (en local, no contra la app desplegada) y preguntas de
+    entrevista. Incluye reescribir al menos un Dockerfile desde cero y
+    compararlo.
+  - Pendiente del despliegue: crear las cuentas, pegar `DATABASE_URL` en
+    Render y verificar en el celular (ver 020).
 
 ## Fase 3 — Nginx
 - [ ] 015-reverse-proxy

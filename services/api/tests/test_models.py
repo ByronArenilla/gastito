@@ -36,6 +36,8 @@ def make_space(session: Session, name: str = "Casa") -> Space:
 
 
 def test_foreign_keys_are_on_in_a_new_connection(engine: Engine) -> None:
+    if engine.dialect.name != "sqlite":
+        pytest.skip("Solo SQLite necesita activar las claves foráneas.")
     with engine.connect() as connection:
         assert connection.execute(text("PRAGMA foreign_keys")).scalar() == 1
 

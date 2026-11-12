@@ -11,11 +11,18 @@ También es mi portafolio DevOps: la aplicación se mantiene pequeña a
 propósito y la infraestructura crece por fases (Docker, Nginx, GitHub
 Actions, AWS, Terraform, Ansible, Prometheus, Grafana, Kubernetes).
 
+**Objetivo desde la fase 2:** que yo maneje cada una de esas tecnologías de
+forma profesional y pueda aplicar a puestos de DevOps. La fase 1 (la
+aplicación) se hizo con SDD y está cerrada. Las fases 2 a 9 **no usan
+SDD**: se trabajan en "Modo guiado" (más abajo; ADR 0019).
+
 ## Dónde está cada cosa
 - `docs/constitution.md`: principios innegociables. Léelos siempre.
-- `docs/roadmap.md`: fase actual, spec activa y specs planeadas. Es la
+- `docs/roadmap.md`: fase actual, etapa activa y etapas planeadas. Es la
   fuente de verdad sobre en qué punto está el proyecto.
-- `specs/NNN-nombre/`: `spec.md`, `plan.md` y `tasks.md` de cada spec.
+- `specs/NNN-nombre/`: `spec.md`, `plan.md` y `tasks.md` de cada spec de la
+  fase 1.
+- `docs/bitacora/NNN-nombre.md`: la bitácora de cada etapa desde la fase 2.
 - `docs/adr/`: decisiones técnicas.
 - `services/api/`, `services/web/`: los dos servicios.
 - Si una carpeta tiene su propio `AGENTS.md`, sus reglas se suman a estas
@@ -100,9 +107,48 @@ spec debería crearse.
 - Commits y PR van solo a mi nombre: sin `Co-Authored-By` ni ninguna otra
   atribución a un agente de IA. En Claude Code lo aplica
   `.claude/settings.json`.
-- Una rama por spec (`NNN-nombre`); se integra a `main` mediante PR.
+- Una rama por spec o etapa (`NNN-nombre`); se integra a `main` mediante PR.
 
-## Flujo SDD
+## Modo guiado (fases 2 a 9)
+Aquí el objetivo es que yo aprenda, no que la etapa se termine rápido. Tu
+papel es el de un colega senior que me forma.
+
+- **Yo escribo y ejecuto.** No crees ni edites archivos de infraestructura
+  (Dockerfile, Compose, Nginx, workflows, Terraform, Ansible, manifiestos,
+  dashboards) ni corras sus comandos por mí, salvo que te lo pida de forma
+  explícita ("escríbelo tú"). Sí puedes leer, correr comandos de solo
+  lectura para diagnosticar y editar la bitácora, el README y los ADR
+  cuando te lo pida.
+- **Cada etapa sigue este ciclo:**
+  1. *Objetivo*: acordamos qué se construye, qué voy a saber hacer al
+     terminar y el "hecho cuando". Lo escribo en la bitácora.
+  2. *Concepto*: explícame lo mínimo para empezar (qué problema resuelve,
+     cómo se usa en un equipo real) y enlaza la documentación oficial.
+  3. *Construcción por pasos pequeños*: dime qué lograr en cada paso, no el
+     archivo terminado. Si me atasco, da pistas en este orden: una
+     pregunta, la parte de la documentación, un ejemplo parecido y, solo al
+     final, la solución.
+  4. *Revisión*: revisa lo que escribí como en un PR de trabajo: errores,
+     seguridad, buenas prácticas y qué haría distinto un equipo en
+     producción. Explica el porqué.
+  5. *Romper y arreglar*: propón una o dos fallas realistas para que yo las
+     diagnostique con los comandos de la herramienta.
+  6. *Explicarlo*: hazme de 3 a 5 preguntas como las de una entrevista de
+     DevOps sobre lo hecho; corrige mis respuestas.
+  7. *Cierre*: bitácora al día, README, ADR si hubo una decisión, y
+     `make test` y `make lint` en verde.
+- **Bitácora** (`docs/bitacora/NNN-nombre.md`): objetivo y "hecho cuando",
+  conceptos con mis palabras, comandos que usé, errores que tuve y cómo los
+  resolví, y las preguntas de entrevista. La escribo yo; tú la revisas.
+- Dime cuando algo que hago funciona pero no es como se hace en un equipo
+  profesional. Y dime cuándo lo simple basta y lo "profesional" sobra para
+  este proyecto.
+- No avances a la etapa siguiente hasta que yo pueda explicar la actual sin
+  ayuda.
+- Si una etapa obliga a cambiar la lógica de la aplicación (no su
+  configuración ni un `/health`), eso sí va con una spec corta.
+
+## Flujo SDD (fase 1 y cambios en la lógica de la aplicación)
 Cada spec pasa por: spec → clarificación → plan → tareas → implementación
 → validación.
 - En las etapas de spec, clarificación, plan y tareas no escribas código.
@@ -115,7 +161,7 @@ Cada spec pasa por: spec → clarificación → plan → tareas → implementaci
 - No modifiques `docs/constitution.md`, `AGENTS.md` ni ningún `spec.md` salvo
   petición explícita.
 - No añadas dependencias, servicios ni herramientas que no estén en el plan
-  de la spec activa.
+  de la spec activa o en el objetivo de la etapa activa.
 - Nunca leas, muestres ni escribas valores reales de `.env`, tokens o
   credenciales. Trabaja con `.env.example`.
 - Pide aprobación explícita antes de cualquier comando con efecto remoto,
@@ -126,8 +172,8 @@ Cada spec pasa por: spec → clarificación → plan → tareas → implementaci
 
 ## Modo aprendizaje
 Estoy aprendiendo DevOps con este proyecto. Por eso:
-- Antes de crear o cambiar un archivo de infraestructura o configuración,
-  explica en 3 a 5 líneas qué vas a hacer y por qué.
+- Si te pido que escribas tú un archivo de infraestructura o configuración,
+  explica antes, en 3 a 5 líneas, qué vas a hacer y por qué.
 - Comenta los bloques no obvios de los archivos de infraestructura.
 - Cuando aparezca un concepto nuevo, nómbralo y enlaza la documentación
   oficial.
@@ -138,6 +184,7 @@ Estoy aprendiendo DevOps con este proyecto. Por eso:
 
 ## Al terminar cualquier tarea
 - Ejecuta `make test` y `make lint` y muestra el resultado.
-- Marca la tarea en `tasks.md` e indica qué RF cubre.
+- En una spec, marca la tarea en `tasks.md` e indica qué RF cubre. En una
+  etapa guiada, recuérdame actualizar la bitácora.
 - Si el cambio se verifica a mano (web o infraestructura), explica cómo
   comprobarlo.

@@ -1,0 +1,13 @@
+# Lo que NO entra al contexto de construcción (lo que Docker puede copiar).
+# https://docs.docker.com/build/concepts/context/#dockerignore-files
+#
+# Empieza por excluir todo y luego permite lo que la imagen necesita: un
+# archivo nuevo en la carpeta (una base de datos, un .env) queda fuera sin
+# que nadie tenga que acordarse de añadirlo aquí.
+*
+!pyproject.toml
+!app/
+
+# Dentro de `app`, lo que genera Python al ejecutarse.
+**/__pycache__/
+**/*.pyc

@@ -5,9 +5,12 @@ spec, plan, tarea y cambio de infraestructura debe cumplirlos. Solo se
 modifican con un ADR aprobado en `docs/adr/`, y eso debería ocurrir casi nunca.
 
 ## Proceso
-1. **La spec manda**: nada se implementa, ni código ni infraestructura, sin
-   una spec aprobada. Si falta una decisión, el trabajo se detiene y se
-   pregunta.
+1. **La spec manda en la aplicación; el objetivo de la etapa, en la
+   infraestructura**: ningún cambio en la lógica de la aplicación se
+   implementa sin una spec aprobada. Desde la fase 2, la infraestructura se
+   trabaja en modo guiado, sin SDD: cada etapa tiene su objetivo y su
+   "hecho cuando" escritos en su bitácora antes de empezar. Si falta una
+   decisión, el trabajo se detiene y se pregunta. (ADR 0019)
 2. **Crecimiento por fases**: una herramienta solo entra en la fase que le
    asigna `docs/roadmap.md`. Prohibido adelantar tecnología "por si acaso".
 3. **Tests como puerta**: una tarea termina solo con tests en verde y lint
