@@ -140,6 +140,21 @@ forma profesional y poder aplicar a puestos de DevOps.
 
 ## Fase 2 — Docker
 - [ ] 014-contenedores
+  - **Despliegue provisional adelantado (2026-11-12, ADR 0020).** Para usar
+    la app desde ya y sin costo: la API en Render como contenedor, la web en
+    Render como sitio estático y la base en Neon (PostgreSQL). Queda como
+    código en `render.yaml`. Es provisional: se retira cuando la app viva en
+    la infraestructura de la fase 5 en adelante.
+  - **Los Dockerfile, `compose.yaml` y `render.yaml` los escribió el agente**,
+    por petición explícita, y la API ganó soporte de PostgreSQL. `make up` y
+    `make down` ya existen.
+  - **La etapa sigue abierta.** Falta el ciclo del modo guiado sobre esos
+    archivos: objetivo y "hecho cuando" en la bitácora, conceptos, revisión,
+    romper y arreglar (en local, no contra la app desplegada) y preguntas de
+    entrevista. Incluye reescribir al menos un Dockerfile desde cero y
+    compararlo.
+  - Pendiente del despliegue: crear las cuentas, pegar `DATABASE_URL` en
+    Render y verificar en el celular (ver 020).
 
 ## Fase 3 — Nginx
 - [ ] 015-reverse-proxy

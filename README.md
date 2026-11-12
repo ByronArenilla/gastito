@@ -89,6 +89,85 @@ Revisa siempre el archivo generado: es un borrador. Si olvidas la
 migración, el test `test_an_empty_database_ends_with_the_schema_of_the_models`
 falla porque el esquema migrado ya no coincide con los modelos.
 
+## Contenedores
+Con [Docker](https://docs.docker.com/get-started/) instalado, el stack
+completo corre en contenedores: un PostgreSQL, la API y la web
+(`compose.yaml`). Es lo más parecido en tu máquina a lo desplegado.
+
+```sh
+# Una sola vez: en .env, inventa un valor para POSTGRES_PASSWORD
+make up               # construye las imágenes y levanta todo
+docker compose ps     # los tres servicios, "healthy" a los pocos segundos
+docker compose logs -f api
+make down             # lo detiene; los datos quedan en el volumen
+```
+
+La web queda en http://localhost:8080 y la API en http://localhost:8000,
+igual que con `make run-api` y `make run-web`: no corras los dos a la vez,
+usan los mismos puertos. Los datos de `make up` están en PostgreSQL, aparte
+de tu `budget.db` de SQLite. Para borrarlos y empezar de cero:
+`docker compose down --volumes`.
+
+Cada imagen tiene su `Dockerfile` comentado: `services/api/Dockerfile` y
+`services/web/Dockerfile`.
+
+**Los tests de la API contra PostgreSQL.** Corren en SQLite por defecto. Con
+`TEST_DATABASE_URL` usan otra base, que debe estar vacía: cada test crea y
+borra las tablas.
+
+```sh
+docker run -d --rm --name gastito-pg-test -e POSTGRES_PASSWORD=test \
+  -p 127.0.0.1:55432:5432 postgres:17-alpine
+cd services/api
+TEST_DATABASE_URL=postgresql://postgres:test@127.0.0.1:55432/postgres .venv/bin/pytest
+docker stop gastito-pg-test
+```
+
+Tardan unos minutos más que en SQLite. Incluyen un test que corre todas las
+migraciones en PostgreSQL.
+
+## Despliegue
+Provisional y sin costo, mientras llegan las fases de AWS: la API y la web
+en [Render](https://render.com/docs) y la base de datos en
+[Neon](https://neon.com/docs). Por qué así y qué se pierde:
+[ADR 0020](docs/adr/0020-despliegue-provisional-en-render-y-neon.md).
+
+| Pieza | Dónde | Cómo |
+|---|---|---|
+| API | Render, servicio web gratuito | contenedor de `services/api/Dockerfile` |
+| Web | Render, sitio estático | los archivos de `services/web/public/` |
+| Base de datos | Neon, plan gratuito | PostgreSQL; la API recibe su URL en `DATABASE_URL` |
+
+Todo está descrito en `render.yaml`, menos `DATABASE_URL`, que es un
+secreto y se pega en el panel de Render.
+
+**Desplegar por primera vez:**
+
+1. En Neon, crea un proyecto en la región **AWS US East (N. Virginia)**, la
+   misma de Render. Copia la cadena de conexión (`postgresql://...`). No la
+   pegues en ningún archivo.
+2. En Render: **New > Blueprint**, conecta este repositorio y elige la
+   rama. Render lee `render.yaml` y pide `DATABASE_URL`: pega la de Neon.
+3. Al terminar, revisa las direcciones de los dos servicios. Si no son
+   `https://gastito-api.onrender.com` y `https://gastito-web.onrender.com`
+   (el nombre estaba ocupado), corrige las tres líneas marcadas con "URL"
+   en `render.yaml` y súbelo.
+4. Abre `https://gastito-api.onrender.com/health`: debe responder
+   `{"status":"ok"}`. Luego abre la web, regístrate y registra un gasto.
+
+Desde ahí, cada commit en esa rama despliega solo. Las migraciones corren
+al arrancar la API; si una falla, Render deja corriendo la versión anterior.
+
+**Lo que hay que saber:**
+
+- **La API se duerme** tras 15 minutos sin uso y tarda cerca de un minuto
+  en despertar. La web carga al instante, pero la primera acción espera.
+- **El registro está abierto y sin límite de peticiones** hasta la 015.
+- **Si cambias las cabeceras o las rutas** en `services/web/serve.py`,
+  cámbialas también en `render.yaml`.
+- Los datos desplegados están en Neon; los de tu computador, en `budget.db`.
+  No se mezclan.
+
 ## La web
 Con `make run-api` y `make run-web`, abre http://localhost:8080. La web es
 HTML, CSS y módulos de JavaScript sin framework ni compilación
