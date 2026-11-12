@@ -25,6 +25,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.schema import SchemaItem
 
 revision: str = "0001"
 down_revision: str | None = None
@@ -32,7 +33,7 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-def create_if_missing(name: str, *elements: sa.SchemaItem) -> bool:
+def create_if_missing(name: str, *elements: SchemaItem) -> bool:
     """Crea la tabla si no existe. Devuelve si la creó."""
     if sa.inspect(op.get_bind()).has_table(name):
         return False

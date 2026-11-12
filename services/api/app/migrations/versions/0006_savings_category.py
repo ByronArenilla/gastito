@@ -39,6 +39,11 @@ def upgrade() -> None:
     # guarda `UTCDateTime`; `CURRENT_TIMESTAMP` dependería de la zona de la
     # sesión en PostgreSQL. El tipo del parámetro hace que lo convierta
     # SQLAlchemy y no el adaptador de sqlite3, obsoleto desde Python 3.12.
+    #
+    # Los textos también llevan tipo: `:name_key` aparece dos veces, y sin él
+    # PostgreSQL deduce `text` en el SELECT y `varchar` en la comparación, y
+    # rechaza la sentencia por tipos inconsistentes (etapa 014). En SQLite no
+    # cambia nada.
     op.get_bind().execute(
         sa.text(
             """
@@ -51,7 +56,11 @@ def upgrade() -> None:
             )
             ORDER BY s.id
             """
-        ).bindparams(sa.bindparam("now", type_=sa.DateTime())),
+        ).bindparams(
+            sa.bindparam("name", type_=sa.String()),
+            sa.bindparam("name_key", type_=sa.String()),
+            sa.bindparam("now", type_=sa.DateTime()),
+        ),
         {
             "name": NAME,
             "name_key": NAME_KEY,

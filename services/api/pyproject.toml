@@ -11,6 +11,9 @@ dependencies = [
     # Migraciones del esquema (spec 008, ADR 0011). Es de ejecución porque la
     # API aplica las pendientes al arrancar.
     "alembic",
+    # Driver de PostgreSQL para la base desplegada (etapa 014, ADR 0020). El
+    # extra `binary` trae libpq compilada: la imagen no necesita compilador.
+    "psycopg[binary]",
 ]
 
 [project.optional-dependencies]

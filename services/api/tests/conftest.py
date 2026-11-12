@@ -13,6 +13,9 @@ os.environ["WEB_BASE_URL"] = WEB_BASE_URL
 # El bot se retiró (spec 007): si el entorno de quien corre los tests aún
 # tiene su llave, se quita para probar la API tal como arranca ahora.
 os.environ.pop("BOT_API_KEY", None)
+# Opcional: correr la misma suite contra otra base, por ejemplo el PostgreSQL
+# de `make up` (README, "Contenedores"). Sin ella, SQLite en memoria.
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import Engine  # noqa: E402
@@ -25,15 +28,20 @@ from app.models import Base  # noqa: E402
 
 @pytest.fixture
 def engine() -> Iterator[Engine]:
-    """Base de datos SQLite en memoria, nueva y vacía para cada test.
+    """Base de datos nueva y vacía para cada test: SQLite en memoria, o la de
+    `TEST_DATABASE_URL`, a la que se le borran las tablas al terminar.
 
     Se crea desde los modelos y no con las migraciones, que harían mucho más
     lentos los tests. `test_migrations.py` comprueba que los dos caminos dan
     el mismo esquema (plan 008).
     """
-    engine = build_engine("sqlite://")
+    engine = build_engine(TEST_DATABASE_URL)
     Base.metadata.create_all(engine)
     yield engine
+    if engine.dialect.name != "sqlite":
+        # La base en memoria desaparece sola; una de verdad hay que vaciarla
+        # para que el siguiente test no vea estas filas.
+        Base.metadata.drop_all(engine)
     engine.dispose()
 
 

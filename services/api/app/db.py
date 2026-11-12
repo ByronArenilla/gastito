@@ -28,9 +28,26 @@ def _enable_sqlite_foreign_keys(
     cursor.close()
 
 
+# Formas de escribir una URL de PostgreSQL, con o sin el driver.
+POSTGRES_URL_SCHEMES = ("postgresql", "postgres", "postgresql+psycopg")
+
+
 def build_engine(database_url: str) -> Engine:
-    """Crea el motor; con SQLite, activa las claves foráneas en cada conexión."""
+    """Crea el motor; con SQLite, activa las claves foráneas en cada conexión.
+
+    Con PostgreSQL usa el driver psycopg (etapa 014, ADR 0020).
+    """
     url = make_url(database_url)
+    if url.drivername in POSTGRES_URL_SCHEMES:
+        # Los proveedores entregan `postgresql://...` (o `postgres://...`), y
+        # SQLAlchemy asociaría ese nombre a psycopg2, que no está instalado.
+        # Se cambia aquí para poder pegar la URL del proveedor tal cual.
+        url = url.set(drivername="postgresql+psycopg")
+        # `pool_pre_ping` prueba cada conexión antes de usarla y la reemplaza
+        # si está muerta: un PostgreSQL que se suspende (Neon) cierra las que
+        # quedaron abiertas en el pool.
+        # https://docs.sqlalchemy.org/en/20/core/pooling.html#disconnect-handling-pessimistic
+        return create_engine(url, pool_pre_ping=True)
     if url.get_backend_name() != "sqlite":
         return create_engine(url)
 
