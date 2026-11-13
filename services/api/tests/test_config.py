@@ -15,6 +15,13 @@ VALID_ENV = {
     "DATABASE_URL": "sqlite://",
     "TZ": "America/Bogota",
     "WEB_BASE_URL": "http://localhost:8080",
+    "EMAIL_PROVIDER": "console",
+}
+BREVO_ENV = {
+    **VALID_ENV,
+    "EMAIL_PROVIDER": "brevo",
+    "BREVO_API_KEY": "llave-de-prueba",
+    "EMAIL_FROM": "gastito@example.com",
 }
 
 # Variables del bot retirado (spec 007) que un `.env` viejo puede tener.
@@ -23,7 +30,7 @@ RETIRED_BOT_ENV = {"BOT_API_KEY": "k" * 32, "TELEGRAM_BOT_TOKEN": "123:abc"}
 
 def import_config_with(env: dict[str, str]) -> subprocess.CompletedProcess[str]:
     """Importa la configuración en un proceso nuevo con el entorno indicado."""
-    known = {*VALID_ENV, *RETIRED_BOT_ENV}
+    known = {*BREVO_ENV, *RETIRED_BOT_ENV, "EMAIL_FROM_NAME"}
     base = {key: value for key, value in os.environ.items() if key not in known}
     return subprocess.run(
         [sys.executable, "-c", "import app.config"],
@@ -47,7 +54,9 @@ def test_import_succeeds_with_required_variables() -> None:
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.parametrize("missing", ["DATABASE_URL", "TZ", "WEB_BASE_URL"])
+@pytest.mark.parametrize(
+    "missing", ["DATABASE_URL", "TZ", "WEB_BASE_URL", "EMAIL_PROVIDER"]
+)
 def test_missing_variable_is_named(missing: str) -> None:
     env = {key: value for key, value in VALID_ENV.items() if key != missing}
 
@@ -77,6 +86,7 @@ def test_settings_are_read_from_environment() -> None:
         database_url="sqlite://",
         tz="America/Bogota",
         web_base_url="http://localhost:8080",
+        email_provider="console",
     )
 
 
@@ -131,3 +141,56 @@ def test_import_succeeds_with_leftover_bot_variables() -> None:
     result = import_config_with({**VALID_ENV, **RETIRED_BOT_ENV})
 
     assert result.returncode == 0, result.stderr
+
+
+# --- Proveedor de correo (spec 032, RF-13) ---
+
+
+def test_console_needs_nothing_else() -> None:
+    settings = load_settings(VALID_ENV)
+
+    assert settings.email_provider == "console"
+    assert (settings.brevo_api_key, settings.email_from) == (None, None)
+
+
+def test_brevo_reads_its_key_and_sender() -> None:
+    settings = load_settings({**BREVO_ENV, "EMAIL_FROM_NAME": "Gastito de Byron"})
+
+    assert settings.email_provider == "brevo"
+    assert settings.brevo_api_key == "llave-de-prueba"
+    assert settings.email_from == "gastito@example.com"
+    assert settings.email_from_name == "Gastito de Byron"
+
+
+def test_the_sender_name_defaults_to_gastito() -> None:
+    assert load_settings(BREVO_ENV).email_from_name == "Gastito"
+
+
+@pytest.mark.parametrize("missing", ["BREVO_API_KEY", "EMAIL_FROM"])
+def test_brevo_names_what_it_lacks(missing: str) -> None:
+    env = {key: value for key, value in BREVO_ENV.items() if key != missing}
+
+    with pytest.raises(MissingSettingError, match=missing):
+        load_settings(env)
+
+
+def test_an_unknown_provider_is_rejected() -> None:
+    with pytest.raises(InvalidSettingError, match="EMAIL_PROVIDER"):
+        load_settings({**VALID_ENV, "EMAIL_PROVIDER": "paloma-mensajera"})
+
+
+def test_the_provider_ignores_case_and_spaces() -> None:
+    assert load_settings(
+        {**VALID_ENV, "EMAIL_PROVIDER": " Console "}
+    ).email_provider == ("console")
+
+
+def test_import_fails_without_an_email_provider() -> None:
+    # Sin proveedor la API no arranca: en producción, Render deja corriendo
+    # la versión anterior en vez de aceptar cuentas que nadie podría
+    # confirmar (ADR 0021).
+    env = {key: value for key, value in VALID_ENV.items() if key != "EMAIL_PROVIDER"}
+    result = import_config_with(env)
+
+    assert result.returncode != 0
+    assert "EMAIL_PROVIDER" in result.stderr

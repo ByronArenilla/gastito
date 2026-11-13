@@ -6,9 +6,10 @@ from httpx import Response
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
+from app import accounts
 from app.models import Category, Membership, Space, User
-from app.routers import auth, categories
-from tests.conftest import PASSWORD, token_from
+from app.routers import categories
+from tests.conftest import PASSWORD, sign_up, token_from
 
 Login = Callable[..., dict[str, str]]
 SharedSpace = tuple[int, dict[str, str], dict[str, str]]
@@ -50,8 +51,7 @@ def count(engine: Engine, model: type) -> int:
 def test_registering_creates_the_defaults_in_the_personal_space(
     client: TestClient, engine: Engine
 ) -> None:
-    body = {"email": "ana@example.com", "password": PASSWORD, "name": "Ana"}
-    space_id = client.post("/auth/register", json=body).json()["personal_space"]["id"]
+    space_id = sign_up(client, "ana@example.com").json()["personal_space"]["id"]
 
     names = [category.name for category in stored_categories(engine, space_id)]
     assert names == DEFAULTS
@@ -110,11 +110,11 @@ def test_registration_is_all_or_nothing_with_the_defaults(
     def broken(*_args: object) -> None:
         raise RuntimeError("fallo simulado")
 
-    monkeypatch.setattr(auth, "add_default_categories", broken)
-    body = {"email": "ana@example.com", "password": PASSWORD, "name": "Ana"}
+    # La cuenta se crea al confirmar el enlace del correo (spec 032).
+    monkeypatch.setattr(accounts, "add_default_categories", broken)
 
     with pytest.raises(RuntimeError):
-        client.post("/auth/register", json=body)
+        sign_up(client, "ana@example.com")
 
     for model in (User, Space, Membership, Category):
         assert count(engine, model) == 0, model.__name__

@@ -13,6 +13,7 @@ from app.routers import (
     budget_items,
     cards,
     categories,
+    email,
     expenses,
     incomes,
     invitations,
@@ -49,6 +50,7 @@ app.include_router(auth.router)
 app.include_router(budget_items.router)
 app.include_router(cards.router)
 app.include_router(categories.router)
+app.include_router(email.router)
 app.include_router(expenses.router)
 app.include_router(incomes.router)
 app.include_router(invitations.router)

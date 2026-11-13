@@ -9,17 +9,27 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.accounts import default_space_name, set_user_name
+from app.accounts import (
+    claim_pending_registration,
+    create_account,
+    find_pending_registration,
+    request_registration,
+    set_user_name,
+)
+from app.config import settings
 from app.db import get_db
 from app.deps import current_session, current_user
-from app.models import Membership, Space, User
+from app.emails import registration_email
+from app.mailer import Mailer, MailError, get_mailer
 from app.models import Session as SessionRow
-from app.routers.categories import add_default_categories
+from app.models import User
 from app.schemas import (
+    LinkTokenIn,
     LoginIn,
     ProfileIn,
     RegisterIn,
     RegisterOut,
+    RegistrationPendingOut,
     SpaceOut,
     TokenOut,
     UserOut,
@@ -34,6 +44,17 @@ from app.security import (
 
 EMAIL_TAKEN = "Ya existe una cuenta con ese correo."
 
+# Los mensajes de los enlaces que van por correo (spec 032). Los comparte
+# `routers/email.py`.
+REGISTRATION_SENT = (
+    "Te enviamos un enlace para terminar de crear tu cuenta. "
+    "Si no lo ves, revisa la carpeta de spam."
+)
+TOO_SOON = "Acabamos de enviarte un correo. Espera un minuto antes de pedir otro."
+MAIL_FAILED = "No pudimos enviar el correo. Inténtalo de nuevo en unos minutos."
+# El mismo si el enlace no existe, ya se usó o caducó.
+LINK_INVALID = "Este enlace no es válido, ya se usó o caducó. Pide uno nuevo."
+
 # Mismo mensaje falle el correo o la contraseña (RF-9).
 BAD_CREDENTIALS = "Correo o contraseña incorrectos."
 
@@ -45,40 +66,80 @@ _DUMMY_HASH = hash_password("contraseña-que-nadie-usa")
 router = APIRouter(tags=["auth"])
 
 
-@router.post("/auth/register", status_code=status.HTTP_201_CREATED)
-def register(data: RegisterIn, db: Annotated[Session, Depends(get_db)]) -> RegisterOut:
-    """Crea usuario, espacio personal, membresía y categorías predefinidas en
-    una sola transacción (RF-3 de la 001, RF-1 de la 002). El espacio se
-    llama "Espacio de <nombre>" (spec 031, RF-2).
+@router.post("/auth/register", status_code=status.HTTP_202_ACCEPTED)
+def register(
+    data: RegisterIn,
+    db: Annotated[Session, Depends(get_db)],
+    mailer: Annotated[Mailer, Depends(get_mailer)],
+) -> RegistrationPendingOut:
+    """Guarda la solicitud de una cuenta nueva y envía el enlace para
+    terminarla. No crea nada más: la cuenta nace al confirmar el correo
+    (spec 032, RF-1 y RF-2).
 
-    El registro es abierto y no sabe nada de invitaciones (RF-1, ADR 0005):
-    quien llega por un enlace se registra y después canjea la invitación.
+    El registro es abierto y no sabe nada de invitaciones (RF-1 de la 001,
+    ADR 0005): quien llega por un enlace se registra y después canjea la
+    invitación.
     """
     if db.scalar(select(User.id).where(User.email == data.email)) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, EMAIL_TAKEN)
 
-    user = User(
-        email=data.email,
-        password_hash=hash_password(data.password),
-        name=data.name,
-    )
-    space = Space(name=default_space_name(data.name))
-    db.add_all([user, space])
     try:
-        db.flush()
-        db.add(Membership(user_id=user.id, space_id=space.id))
-        add_default_categories(db, space.id)
+        token = request_registration(
+            db,
+            email=data.email,
+            name=data.name,
+            password_hash=hash_password(data.password),
+            now=datetime.now(UTC),
+        )
+    except IntegrityError:
+        # Dos solicitudes del mismo correo a la vez: una ya envió su enlace.
+        db.rollback()
+        token = None
+    if token is None:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, TOO_SOON)
+
+    link = f"{settings.web_base_url}/confirmar-cuenta/{token}"
+    try:
+        # Dentro de la petición, y antes del `commit`: si el correo no sale,
+        # no queda una solicitud que nadie podría terminar (decisión 8).
+        mailer.send(registration_email(data.email, data.name, link))
+    except MailError:
+        db.rollback()
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, MAIL_FAILED) from None
+    db.commit()
+    return RegistrationPendingOut(email=data.email, detail=REGISTRATION_SENT)
+
+
+@router.post("/auth/register/confirm", status_code=status.HTTP_201_CREATED)
+def confirm_registration(
+    data: LinkTokenIn, db: Annotated[Session, Depends(get_db)]
+) -> RegisterOut:
+    """Crea la cuenta de una solicitud confirmada: usuario, espacio personal,
+    membresía y categorías predefinidas en una sola transacción (RF-3 de la
+    001, RF-1 de la 002; spec 032, RF-3). No inicia sesión (decisión 6)."""
+    now = datetime.now(UTC)
+    pending = find_pending_registration(db, data.token, now)
+    if pending is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, LINK_INVALID)
+    email, name, password_hash = pending.email, pending.name, pending.password_hash
+    try:
+        if not claim_pending_registration(db, pending):
+            db.rollback()
+            raise HTTPException(status.HTTP_404_NOT_FOUND, LINK_INVALID)
+        user, space = create_account(
+            db, email=email, name=name, password_hash=password_hash, now=now
+        )
         db.commit()
     except IntegrityError:
-        # Otra petición registró el mismo correo entre la comprobación y el
-        # guardado: el índice único lo frena y el rollback no deja nada a medias.
+        # Ese correo ya tiene cuenta (otra solicitud se confirmó antes): el
+        # índice único lo frena y el rollback no deja nada a medias.
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, EMAIL_TAKEN) from None
 
     return RegisterOut(
         id=user.id,
         email=user.email,
-        name=data.name,
+        name=name,
         personal_space=SpaceOut.model_validate(space),
     )
 

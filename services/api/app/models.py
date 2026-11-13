@@ -63,7 +63,55 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     # Nulo en las cuentas anteriores a la spec 031 hasta que lo escriban.
     name: Mapped[str | None] = mapped_column(String(50))
+    # Cuándo se comprobó que el correo es suyo (spec 032). Una cuenta nueva
+    # nace con la fecha; una anterior a la spec lo tiene nulo hasta confirmar.
+    email_verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+
+    @property
+    def email_verified(self) -> bool:
+        return self.email_verified_at is not None
+
+
+class PendingRegistration(Base):
+    """La solicitud de una cuenta nueva: existe entre "Crear cuenta" y
+    confirmar el enlace del correo (spec 032, decisión 1). Todavía no es un
+    usuario: no puede entrar ni tiene espacio.
+
+    Una por correo: pedirla de nuevo reemplaza la anterior y su enlace.
+    """
+
+    __tablename__ = "pending_registrations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True)
+    name: Mapped[str] = mapped_column(String(50))
+    # La contraseña ya cifrada, igual que en `users`: nunca en claro.
+    password_hash: Mapped[str] = mapped_column(String(255))
+    # Solo el hash del token del enlace (RF-12).
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class EmailToken(Base):
+    """Enlace de un solo uso enviado al correo de una cuenta que ya existe:
+    para confirmarlo (`verify`) o para cambiar la contraseña (`reset`)
+    (spec 032)."""
+
+    __tablename__ = "email_tokens"
+    __table_args__ = (
+        # El minuto de espera y anular los anteriores buscan por cuenta y tipo.
+        Index("ix_email_tokens_user_id_purpose", "user_id", "purpose"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    purpose: Mapped[str] = mapped_column(String(16))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    used_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
 
 class Space(Base):

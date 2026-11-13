@@ -52,6 +52,18 @@ def normalize_email(value: str) -> str:
     return email
 
 
+def check_password_rule(value: str) -> str:
+    """La regla de una contraseña al crear la cuenta o al cambiarla: solo
+    longitud, sin exigir mayúsculas ni símbolos (NIST, plan 001)."""
+    if len(value) < MIN_PASSWORD_LENGTH:
+        raise PydanticCustomError(
+            "password_too_short",
+            "La contraseña debe tener al menos {min_length} caracteres.",
+            {"min_length": MIN_PASSWORD_LENGTH},
+        )
+    return value
+
+
 MAX_USER_NAME_LENGTH = 50
 
 
@@ -89,14 +101,7 @@ class RegisterIn(BaseModel):
     @field_validator("password")
     @classmethod
     def check_password(cls, value: str) -> str:
-        # Solo longitud, sin exigir mayúsculas ni símbolos (NIST, plan 001).
-        if len(value) < MIN_PASSWORD_LENGTH:
-            raise PydanticCustomError(
-                "password_too_short",
-                "La contraseña debe tener al menos {min_length} caracteres.",
-                {"min_length": MIN_PASSWORD_LENGTH},
-            )
-        return value
+        return check_password_rule(value)
 
 
 MAX_SPACE_NAME_LENGTH = 100
@@ -172,6 +177,48 @@ class RegisterOut(BaseModel):
     personal_space: SpaceOut
 
 
+# --- Correo: crear la cuenta, confirmarlo y la contraseña (spec 032) ---
+
+
+class MessageOut(BaseModel):
+    """Una respuesta que solo dice qué pasó, para mostrarla tal cual."""
+
+    detail: str
+
+
+class RegistrationPendingOut(BaseModel):
+    """ "Crear cuenta" ya no crea la cuenta: avisa a qué correo fue el enlace."""
+
+    email: str
+    detail: str
+
+
+class LinkTokenIn(BaseModel):
+    """El token de un enlace del correo."""
+
+    token: str
+
+
+class EmailConfirmedOut(BaseModel):
+    email: str
+
+
+class PasswordResetRequestIn(BaseModel):
+    # Sin validar la forma: la respuesta es la misma con cualquier correo, y
+    # un `422` para unos sí delataría algo (decisión 9).
+    email: str
+
+
+class PasswordResetIn(BaseModel):
+    token: str
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, value: str) -> str:
+        return check_password_rule(value)
+
+
 class InvitationOut(BaseModel):
     # Enlace `<WEB_BASE_URL>/unirse/<token>` (RF-15). El token en claro solo
     # aparece dentro de esta URL: la base de datos guarda su hash y no lo
@@ -207,6 +254,9 @@ class UserOut(BaseModel):
     email: str
     # `null` en una cuenta anterior a la spec 031 que aún no lo ha escrito.
     name: str | None
+    # `false` en una cuenta anterior a la spec 032 que no ha confirmado su
+    # correo; una cuenta nueva nace con `true`.
+    email_verified: bool
 
 
 class ProfileIn(BaseModel):

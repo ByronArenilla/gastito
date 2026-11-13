@@ -9,14 +9,14 @@ from sqlalchemy.orm import Session
 
 from app.accounts import default_space_name, set_user_name
 from app.models import Membership, Space, User
-from tests.conftest import PASSWORD, token_from
+from tests.conftest import PASSWORD, sign_up, token_from
 
 Login = Callable[..., dict[str, str]]
 
 
 def register(client: TestClient, **changes: object):
-    body = {"email": "ana@example.com", "password": PASSWORD, "name": "Ana"}
-    return client.post("/auth/register", json=body | changes)
+    """La cuenta ya creada: solicitud y confirmación (spec 032)."""
+    return sign_up(client, "ana@example.com", **changes)
 
 
 def space_names(client: TestClient, headers: dict[str, str]) -> list[str]:
