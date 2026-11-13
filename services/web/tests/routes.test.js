@@ -11,6 +11,12 @@ test("cada ruta encuentra su pantalla y si pide sesión", () => {
   assert.deepEqual(matchRoute("/espacio"), { view: "space", params: {}, access: "member" });
 });
 
+test("el logo lleva a /inicio, la guía de secciones", () => {
+  assert.deepEqual(matchRoute("/inicio"), { view: "home", params: {}, access: "member" });
+  // Abrir la app sigue llevando a Registrar en el celular.
+  assert.deepEqual(matchRoute("/"), { redirect: "/registrar" });
+});
+
 test("los reportes viven en /mes/reportes (spec 013)", () => {
   assert.deepEqual(matchRoute("/mes/reportes"), { view: "reports", params: {}, access: "member" });
 });

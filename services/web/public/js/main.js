@@ -9,10 +9,13 @@ import { createConnection, screenError } from "./offline.js";
 import { homePath, matchRoute } from "./routes.js";
 import { createSession } from "./session.js";
 import { createDrafts } from "./state.js";
+import { THEME_COLORS, activeTheme, otherTheme, saveTheme, storedTheme, themeLabel } from "./theme.js";
 import { confirmDialog, createNotices } from "./views/notices.js";
+import { createSpaceSwitch } from "./views/space-switch.js";
 
 // Cada pantalla se carga cuando se visita (módulos ES, sin compilar).
 const VIEWS = {
+  home: () => import("./views/home.js").then((module) => module.renderHome),
   login: () => import("./views/auth.js").then((module) => module.renderLogin),
   register: () => import("./views/auth.js").then((module) => module.renderRegister),
   record: () => import("./views/record.js").then((module) => module.renderRecord),
@@ -33,6 +36,7 @@ const VIEWS = {
 
 // Qué sección de la navegación marca cada pantalla.
 const SECTIONS = {
+  home: "home",
   month: "month",
   plan: "month",
   reports: "month",
@@ -115,6 +119,60 @@ const app = {
   refreshSending,
 };
 
+/** Pasa a otro espacio desde el encabezado y vuelve a pintar la pantalla.
+ * Lo escrito en Registrar y el mes elegido eran del espacio anterior; un
+ * gasto, una tarjeta o una compra abiertos también, así que de ahí se sale. */
+function switchSpace(space) {
+  app.useSpace(space);
+  for (const key of ["record", "period", "withdrawal"]) drafts.clear(key);
+  const route = matchRoute(location.pathname, { width: window.innerWidth });
+  if (Object.keys(route.params ?? {}).length) navigate(app.home(), { replace: true });
+  else render();
+  notices.show({ text: `Ahora estás en «${space.name}».`, seconds: 6 });
+}
+
+const spaceSwitch = createSpaceSwitch({
+  root: document.getElementById("space-switch"),
+  button: document.getElementById("space-button"),
+  menu: document.getElementById("space-menu"),
+  spaces: () => app.spaces,
+  current: () => app.space,
+  onPick: switchSpace,
+});
+
+// --- Tema claro u oscuro ---
+const themeToggle = document.getElementById("theme-toggle");
+const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+// Los `<meta name="theme-color">` con el color que traían, para devolvérselo
+// al sistema si no hay un tema elegido.
+const themeMetas = [...document.querySelectorAll('meta[name="theme-color"]')].map((meta) => ({
+  meta,
+  original: meta.content,
+}));
+
+/** Pone el tema elegido (o deja el del sistema) y pone al día el botón y el
+ * color de la barra del navegador. */
+function applyTheme() {
+  const stored = storedTheme(window.localStorage);
+  const theme = activeTheme(stored, systemDark.matches);
+  if (stored) document.documentElement.dataset.theme = stored;
+  else delete document.documentElement.dataset.theme;
+  for (const { meta, original } of themeMetas) meta.content = stored ? THEME_COLORS[stored] : original;
+  themeToggle.setAttribute("aria-label", themeLabel(theme));
+  themeToggle.title = themeLabel(theme);
+}
+
+themeToggle.addEventListener("click", () => {
+  const theme = activeTheme(storedTheme(window.localStorage), systemDark.matches);
+  saveTheme(window.localStorage, otherTheme(theme));
+  // Si no se pudo guardar (modo privado), al menos cambia en esta visita.
+  if (storedTheme(window.localStorage) === null) document.documentElement.dataset.theme = otherTheme(theme);
+  applyTheme();
+});
+// Sin tema elegido, el botón sigue al sistema si este cambia.
+systemDark.addEventListener("change", applyTheme);
+applyTheme();
+
 function refreshSending() {
   const offline = !connection.online();
   document.body.toggleAttribute("data-offline", offline);
@@ -131,7 +189,8 @@ function navigate(path, { replace = false } = {}) {
 
 function markSection(view) {
   const section = SECTIONS[view];
-  for (const link of document.querySelectorAll(".tabs a")) {
+  // También el logo del encabezado, que no está dentro del menú.
+  for (const link of document.querySelectorAll("a[data-section]")) {
     if (link.dataset.section === section) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
@@ -139,6 +198,7 @@ function markSection(view) {
 
 async function render() {
   const count = ++renderCount;
+  spaceSwitch.close();
   const route = matchRoute(location.pathname, { width: window.innerWidth });
   if (route.redirect) return navigate(route.redirect, { replace: true });
 

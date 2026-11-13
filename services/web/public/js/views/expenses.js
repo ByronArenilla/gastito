@@ -2,7 +2,7 @@
 // compra, con flechas de mes, "Solo los míos" y el total. Cada gasto abre su
 // edición en `/gastos/<id>`. Desde la spec 013, también los retiros de
 // ahorro, que abren `/retiros/<id>` (RF-35).
-import { h } from "../dom.js";
+import { h, replace } from "../dom.js";
 import {
   describeExpense,
   describeWithdrawal,
@@ -108,7 +108,8 @@ export async function renderExpenses(main, app) {
       return;
     }
     const withdrawn = withdrawnOf(expenses);
-    list.replaceChildren(
+    replace(
+      list,
       h(
         "div",
         { class: "total" },
@@ -122,7 +123,7 @@ export async function renderExpenses(main, app) {
           h("span", {}, "Retirado del ahorro"),
           h("span", { class: "figure" }, `+${formatPesos(withdrawn)}`),
         ),
-      ...groupByDay(expenses).map((group) =>
+      groupByDay(expenses).map((group) =>
         h(
           "section",
           { "aria-label": formatDay(group.day) },

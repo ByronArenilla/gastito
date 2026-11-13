@@ -36,6 +36,14 @@ function contrast(a, b) {
   return (light + 0.05) / (dark + 0.05);
 }
 
+// El tema oscuro está escrito dos veces: para el sistema en oscuro y para
+// quien lo elige con el botón del encabezado. Tienen que decir lo mismo.
+test("el oscuro elegido a mano es el mismo que el del sistema", () => {
+  const manual = css.match(/^:root\[data-theme="dark"\]\s*\{([^}]*)\}/m)[1];
+
+  assert.deepEqual(colors(manual), themes().oscuro);
+});
+
 // Texto: 4,5:1. Bordes de controles y foco: 3:1.
 const TEXT = [
   ["ink", "paper"],

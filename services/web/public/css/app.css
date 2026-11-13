@@ -127,24 +127,215 @@ button {
 }
 
 .topbar {
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--gutter);
-  padding-top: max(var(--space-3), env(safe-area-inset-top));
+  padding: var(--space-2) var(--gutter);
+  padding-top: max(var(--space-2), env(safe-area-inset-top));
   border-bottom: var(--rule-width) solid var(--rule);
 }
 
-.topbar__space {
+/* En el celular el mes no cabe junto al logo, el espacio y el tema: cada
+   pantalla con mes ya lo dice en su título. */
+.topbar__month {
+  display: none;
+  flex: none;
+}
+
+@media (min-width: 640px) {
+  .topbar__month {
+    display: inline;
+  }
+}
+
+/* Claro u oscuro: un círculo mitad tinta, mitad papel. */
+.theme-toggle {
+  flex: none;
+  width: var(--touch);
+  height: var(--touch);
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: var(--rule-width) solid var(--rule-strong);
+  border-radius: var(--radius);
+}
+
+.theme-toggle__icon {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  /* Corte seco a la mitad: no es un degradado, son dos mitades. */
+  background: linear-gradient(to right, var(--ink) 50%, transparent 50%);
+  transition: rotate var(--transition);
+}
+
+.theme-toggle:hover .theme-toggle__icon {
+  rotate: 180deg;
+}
+
+/* La marca: el logo y el nombre, arriba a la izquierda. Es un enlace al
+   inicio (`/inicio`). */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch);
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--font-figures);
+  font-weight: 500;
+  font-size: var(--size-strong);
+  letter-spacing: 0.02em;
+}
+
+.topbar__brand {
+  flex: none;
+}
+
+/* El dibujo vive en index.html (<symbol id="logo">). El recibo toma el color
+   del texto y la doble raya, el rojo del tema: así sirve en claro y en
+   oscuro. El grosor de cada trazo va en el dibujo. */
+.logo {
+  flex: none;
+  width: 30px;
+  height: 30px;
+}
+
+.logo__ink {
+  fill: none;
+  stroke: currentColor;
+}
+
+.logo__rule {
+  fill: none;
+  stroke: var(--red);
+}
+
+/* El espacio actual: una casilla con su nombre que despliega los demás. */
+.space-switch {
+  position: relative;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.space-switch__button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  min-height: var(--touch);
+  padding: 0 var(--space-3);
+  background: var(--field);
+  border: var(--rule-width) solid var(--ink);
+  border-radius: var(--radius);
   font-weight: 600;
+}
+
+.space-switch__label {
+  display: none;
+  font-family: var(--font-figures);
+  font-size: var(--size-label);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.space-switch__name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.topbar__month {
+/* La flecha: dos bordes girados; abierta, apunta hacia arriba. */
+.space-switch__button::after {
+  content: "";
   flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: var(--space-1);
+  border: solid var(--ink);
+  border-width: 0 2px 2px 0;
+  translate: 0 -2px;
+  rotate: 45deg;
+}
+
+.space-switch__button[aria-expanded="true"]::after {
+  translate: 0 2px;
+  rotate: -135deg;
+}
+
+.space-switch__menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  min-width: 240px;
+  max-width: min(320px, calc(100vw - 2 * var(--gutter)));
+  padding: var(--space-2) 0;
+  background: var(--paper);
+  border: var(--rule-width) solid var(--ink);
+  border-radius: var(--radius);
+  /* No es una sombra difusa: es un segundo borde corrido, para que el menú
+     se despegue de la página que tapa. */
+  box-shadow: 4px 4px 0 var(--rule);
+}
+
+.space-switch__title {
+  padding: var(--space-2) var(--space-4);
+}
+
+.space-switch__option {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.space-switch__option:hover,
+.space-switch__option:focus-visible {
+  background: var(--field);
+}
+
+.space-switch__option[aria-current="true"] {
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--red);
+  background: var(--field);
+}
+
+.space-switch__option-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.space-switch__here {
+  flex: none;
+  font-family: var(--font-figures);
+  font-size: var(--size-label);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.space-switch__manage {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-4) 0;
+  border-top: var(--rule-width) solid var(--rule);
+  font-size: 0.9375rem;
 }
 
 .main {
@@ -152,7 +343,7 @@ button {
   max-width: var(--content);
   padding: 0 var(--gutter);
   /* Deja sitio a la navegación fija del celular. */
-  padding-bottom: calc(var(--row) + var(--space-6) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--bottom-nav) + var(--space-6) + env(safe-area-inset-bottom));
 }
 
 .main--wide {
@@ -166,44 +357,67 @@ button {
   outline: none;
 }
 
-.tabs {
-  position: fixed;
-  inset: auto 0 0 0;
-  display: grid;
-  /* Cinco secciones (spec 012, RF-1), cada una del ancho de su palabra: así
-     "REGISTRAR" y "TARJETAS" caben enteras en 360 px. */
-  grid-template-columns: repeat(5, auto);
-  justify-content: space-around;
-  background: var(--paper);
-  border-top: var(--rule-width) solid var(--ink);
-  padding-bottom: env(safe-area-inset-bottom);
-  z-index: 10;
+/* Celular: abajo solo lo de todos los días, Registrar y Gastos, como dos
+   botones grandes. El resto de secciones está en el inicio (el logo). */
+@media (max-width: 1023px) {
+  .tabs {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: calc(var(--bottom-nav) + env(safe-area-inset-bottom));
+    padding: 0 var(--gutter) env(safe-area-inset-bottom);
+    background: var(--paper);
+    border-top: var(--rule-width) solid var(--ink);
+  }
+
+  .tabs a {
+    display: none;
+  }
+
+  .tabs a.tabs__main {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--row);
+    border: var(--rule-width) solid var(--ink);
+    border-radius: var(--radius);
+    background: var(--field);
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+  }
+
+  /* Registrar es lo que más se hace: va en tinta, como el botón principal. */
+  .tabs a.tabs__main--primary {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .tabs__plus {
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1;
+    translate: 0 -2px;
+  }
+
+  /* La pantalla en la que se está: la raya roja sobre su botón. */
+  .tabs a.tabs__main[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    inset: auto -1px calc(100% + 4px) -1px;
+    height: 4px;
+    background: var(--red);
+  }
 }
 
-.tabs a {
-  min-height: calc(var(--row) + var(--space-1));
-  min-width: var(--touch);
-  padding: 0 var(--space-1);
-  display: grid;
-  place-items: center;
-  font-size: var(--size-label);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  text-decoration: none;
-}
-
-.tabs a[aria-current="page"] {
-  color: var(--ink);
-  font-weight: 600;
-  box-shadow: inset 0 3px 0 var(--red);
-}
-
-.tabs__brand {
-  display: none;
-}
-
-/* Computador: menú lateral con el espacio arriba (Diseño, Navegación). */
+/* Computador: menú lateral con el logo arriba (Diseño, Navegación). */
 @media (min-width: 1024px) {
   .app {
     grid-template-columns: var(--sidebar) minmax(0, 1fr);
@@ -213,6 +427,32 @@ button {
   .topbar,
   .notices {
     grid-column: 2;
+  }
+
+  /* El logo ya está en el menú lateral. */
+  .topbar__brand {
+    display: none;
+  }
+
+  .topbar {
+    padding-block: var(--space-3);
+  }
+
+  .space-switch {
+    margin-left: 0;
+  }
+
+  .space-switch__label {
+    display: inline;
+  }
+
+  .space-switch__menu {
+    right: auto;
+    left: 0;
+  }
+
+  .topbar__month {
+    margin-left: auto;
   }
 
   .main {
@@ -228,30 +468,37 @@ button {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    border-top: 0;
+    background: var(--paper);
     border-right: var(--rule-width) solid var(--ink);
-    padding: var(--space-5) 0;
-    /* Sin esto, las secciones se repartirían a lo alto (prototipo 012). */
-    justify-content: flex-start;
+    padding: var(--space-4) 0 var(--space-5);
   }
 
   .tabs__brand {
-    display: block;
-    padding: 0 var(--gutter) var(--space-5);
-    font-family: var(--font-figures);
-    font-weight: 500;
-    letter-spacing: 0.04em;
+    padding: 0 var(--gutter) var(--space-4);
     border-bottom: var(--double-rule);
     margin-bottom: var(--space-3);
   }
 
-  .tabs a {
-    justify-items: start;
-    padding: 0 var(--gutter);
-    letter-spacing: 0.1em;
+  .tabs__plus {
+    display: none;
   }
 
-  .tabs a[aria-current="page"] {
+  .tabs a:not(.brand) {
+    min-height: calc(var(--row) + var(--space-1));
+    padding: 0 var(--gutter);
+    display: grid;
+    align-items: center;
+    justify-items: start;
+    font-size: var(--size-label);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .tabs a:not(.brand)[aria-current="page"] {
+    color: var(--ink);
+    font-weight: 600;
     box-shadow: inset 3px 0 0 var(--red);
     background: var(--field);
   }
@@ -304,16 +551,7 @@ button {
   border-bottom: var(--rule-width) solid var(--rule);
 }
 
-/* Un renglón con un campo: su línea es el borde del campo, así que lleva el
-   contraste de un control (3:1, RF-32). El campo no dibuja otra línea. */
-.row:has(.input, .select) {
-  border-bottom-color: var(--rule-strong);
-}
-
-.row:has(.input:focus-visible, .select:focus-visible) {
-  border-bottom: 2px solid var(--ink);
-}
-
+/* Un renglón con un error: su línea pasa a rojo, además del borde del campo. */
 .row:has([aria-invalid="true"]) {
   border-bottom: 2px solid var(--red);
 }
@@ -354,22 +592,50 @@ button {
 
 /* --- Campos --- */
 
+/* Donde se escribe se ve como una casilla: fondo más claro que el papel y
+   borde con contraste de control (3:1, RF-32). Antes solo había una línea
+   debajo y, en el tema claro, un campo vacío no se distinguía del papel. */
 .input,
 .select {
   width: 100%;
   min-height: var(--touch);
-  padding: var(--space-2) 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--field);
+  border: var(--rule-width) solid var(--rule-strong);
+  border-radius: var(--radius);
   font-size: var(--size-text);
 }
 
-/* El foco lo marca la línea del renglón en tinta, más el fondo del campo. */
+/* El foco: borde en tinta y un segundo trazo por dentro, sin mover nada. */
 .input:focus-visible,
 .select:focus-visible {
   outline: none;
-  background: var(--field);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"] {
+  border-color: var(--red);
+  box-shadow: inset 0 0 0 1px var(--red);
+}
+
+/* Un campo de solo lectura (el enlace de invitación) no invita a escribir. */
+.input[readonly] {
+  background-color: transparent;
+  border-style: dashed;
+}
+
+/* El texto de ejemplo, en el gris de los rótulos: se lee, pero no se
+   confunde con algo ya escrito. */
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* Un renglón con casilla respira arriba y abajo para que no toque la línea. */
+.row:has(> .input, > .select) {
+  padding: var(--space-1) 0;
 }
 
 .select {
@@ -388,8 +654,12 @@ button {
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
-  padding: var(--space-6) 0 var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  background: var(--field);
+  border: var(--rule-width) solid var(--rule-strong);
   border-bottom: var(--double-rule);
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .amount__currency {
@@ -416,7 +686,8 @@ button {
 }
 
 .amount:focus-within {
-  background: var(--field);
+  border-top-color: var(--ink);
+  border-inline-color: var(--ink);
 }
 
 /* Un campo que no se puede editar se lee como texto, con su razón (Estados,
@@ -550,7 +821,7 @@ button {
   min-height: var(--touch);
   border: var(--rule-width) solid var(--rule-strong);
   border-radius: var(--radius);
-  background: transparent;
+  background: var(--field);
   text-align: center;
   font-family: var(--font-figures);
 }
@@ -690,8 +961,94 @@ button {
   border-left: 4px solid var(--ink);
 }
 
+.notice__text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
 .notice--error {
   border-left-color: var(--red);
+}
+
+/* Algo recién registrado: el aviso se invierte (tinta de fondo, papel de
+   texto), lleva una marca de hecho y entra bajando, para que se note sin
+   mirar. No usa un color nuevo: la tinta es el color de lo que se hace. */
+.notice--success {
+  min-height: calc(var(--row) + var(--space-4));
+  padding-block: var(--space-3);
+  background: var(--ink);
+  color: var(--paper);
+  border-left: 0;
+  border-bottom: var(--double-rule);
+}
+
+.notice--success b {
+  font-size: var(--size-strong);
+  font-weight: 600;
+}
+
+.notice--success .notice__text > span {
+  font-family: var(--font-figures);
+  font-size: 0.9375rem;
+}
+
+/* La marca: un círculo de papel con el visto dibujado con dos bordes. */
+.notice__mark {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--paper);
+  display: grid;
+  place-items: center;
+}
+
+.notice__mark::before {
+  content: "";
+  width: 8px;
+  height: 15px;
+  margin-top: -3px;
+  border: solid var(--ink);
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+.notice--success .button--link {
+  color: var(--paper);
+  font-weight: 600;
+  border: var(--rule-width) solid var(--paper);
+  border-radius: var(--radius);
+  padding: 0 var(--space-3);
+  text-decoration: none;
+}
+
+/* El anillo de foco es de tinta: sobre tinta no se vería. */
+.notice--success :focus-visible {
+  outline-color: var(--paper);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .notice--success {
+    animation: notice-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  }
+
+  .notice--success .notice__mark {
+    animation: mark-in 320ms 120ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+  }
+}
+
+@keyframes notice-in {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes mark-in {
+  from {
+    transform: scale(0);
+  }
 }
 
 .offline {
@@ -755,18 +1112,28 @@ dialog::backdrop {
 }
 
 .wordmark {
-  font-family: var(--font-figures);
-  font-weight: 500;
+  display: flex;
   font-size: var(--size-title);
   padding-bottom: var(--space-2);
   border-bottom: var(--double-rule);
   margin-bottom: var(--space-6);
 }
 
+.wordmark .logo {
+  width: 36px;
+  height: 36px;
+}
+
 .auth .row {
   grid-template-columns: 1fr;
-  gap: 0;
-  padding-top: var(--space-2);
+  gap: var(--space-1);
+  padding: var(--space-2) 0;
+  border-bottom: 0;
+}
+
+/* La casilla ya separa un campo del otro: aquí sobran los renglones. */
+.auth .rows {
+  border-top: 0;
 }
 
 /* Las pantallas sin sesión no tienen navegación ni encabezado. */
@@ -1020,18 +1387,158 @@ dialog::backdrop {
   grid-template-columns: minmax(0, 3.4fr) minmax(0, 1.2fr) auto;
 }
 
-.plan-row .input,
-.plan-row .select {
-  border-bottom: var(--rule-width) solid var(--rule-strong);
+/* El título de cada lista de Planear, con su raya de tinta. */
+.plan-head {
+  padding-bottom: var(--space-2);
+  border-bottom: var(--rule-width) solid var(--ink);
 }
 
-.plan-row .input:focus-visible,
-.plan-row .select:focus-visible {
-  border-bottom: 2px solid var(--ink);
+/* En las listas, cada renglón reserva a la derecha la columna del "+": solo
+   el último la ocupa, y así todos los campos quedan alineados. */
+.plan-rows > .plan-row {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.2fr) auto var(--touch);
 }
 
-.plan-row [aria-invalid="true"] {
-  border-bottom: 2px solid var(--red);
+.plan-rows > .plan-row--income {
+  grid-template-columns: minmax(0, 3.4fr) minmax(0, 1.2fr) auto var(--touch);
+}
+
+/* El "+" del último renglón: guarda ese renglón y abre el siguiente. Un
+   botón cuadrado en tinta, del tamaño de un toque. */
+.add {
+  flex: none;
+  width: var(--touch);
+  height: var(--touch);
+  display: grid;
+  place-items: center;
+  border: var(--rule-width) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.add span {
+  /* El "+" de la fuente queda un poco bajo: se centra a ojo. */
+  translate: 0 -2px;
+}
+
+/* Cuánto llevas planeado: la única "tarjeta" de la app, porque tiene que
+   quedarse a la vista mientras se baja por los rubros. */
+.plan-card {
+  /* Fija abajo, encima de los botones del celular. El hueco entre la
+     tarjeta y el borde se tapa con papel (no es una sombra): sin eso, los
+     renglones asomarían por debajo al pasar. */
+  position: sticky;
+  bottom: calc(var(--bottom-nav) + env(safe-area-inset-bottom) + var(--space-2));
+  box-shadow: 0 var(--space-2) 0 var(--paper), 0 calc(-1 * var(--space-2)) 0 var(--paper);
+  z-index: 4;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  background: var(--field);
+  border: var(--rule-width) solid var(--ink);
+  border-radius: var(--radius);
+}
+
+.plan-card__figures {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.plan-card__figure {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  align-content: start;
+}
+
+.plan-card__figure--left {
+  justify-items: end;
+  text-align: right;
+}
+
+.plan-card__value {
+  font-size: var(--size-title);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Lo que queda es la cifra que cuenta: lleva la doble raya roja. */
+.plan-card__figure--left .plan-card__value {
+  padding-bottom: 2px;
+  border-bottom: var(--double-rule);
+}
+
+/* Sin ingresos todavía no hay cifra que subrayar. */
+.plan-card--empty .plan-card__figure--left .plan-card__value {
+  border-bottom-color: transparent;
+  color: var(--muted);
+}
+
+.plan-card__note {
+  font-size: var(--size-label);
+  color: var(--muted);
+}
+
+/* La barra: rubros en tinta, deudas en gris, y lo que queda vacío. */
+.plan-card__bar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  background: var(--rule);
+}
+
+.plan-card__part {
+  flex: var(--grow, 0) 0 0;
+  min-width: 0;
+  transition: flex-grow var(--transition);
+}
+
+.plan-card__part--items {
+  background: var(--ink);
+}
+
+.plan-card__part--debts {
+  background: var(--rule-strong);
+}
+
+.plan-card__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--size-label);
+  color: var(--muted);
+}
+
+.plan-card__legend .swatch {
+  display: inline-block;
+}
+
+/* Planeado de más: la cifra en rojo (con su frase al lado, nunca solo el
+   color) y la barra entera con borde rojo. */
+.plan-card--over .plan-card__figure--left .plan-card__value,
+.plan-card--over .plan-card__figure--left .plan-card__note {
+  color: var(--red);
+}
+
+.plan-card--over .plan-card__bar {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+@media (max-width: 419px) {
+  .plan-card {
+    padding: var(--space-2) var(--space-3) var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .plan-card__value {
+    font-size: var(--size-strong);
+  }
 }
 
 .plan-row .figure-input {
@@ -1055,8 +1562,16 @@ dialog::backdrop {
   opacity: 0.6;
 }
 
+@media (min-width: 1024px) {
+  .plan-card {
+    bottom: var(--space-4);
+    box-shadow: 0 var(--space-4) 0 var(--paper), 0 calc(-1 * var(--space-2)) 0 var(--paper);
+  }
+}
+
 @media (max-width: 639px) {
-  .plan-row {
+  .plan-row,
+  .plan-rows > .plan-row {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   }
 
@@ -1064,12 +1579,32 @@ dialog::backdrop {
     grid-column: 1 / -1;
   }
 
-  .plan-row--income {
+  .plan-row--income,
+  .plan-rows > .plan-row--income {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .plan-row--income .plan-row__name {
     grid-column: 1 / -1;
+  }
+
+  /* En el celular el "+" va a la derecha del nombre del último renglón. */
+  .plan-row--last > .add {
+    grid-row: 1;
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .plan-row--last .plan-row__name {
+    grid-column: 1 / 3;
+  }
+
+  .plan-row--income.plan-row--last > .add {
+    grid-column: 2;
+  }
+
+  .plan-row--income.plan-row--last .plan-row__name {
+    grid-column: 1;
   }
 }
 
@@ -1580,4 +2115,231 @@ dialog::backdrop {
   from {
     transform: scaleX(0);
   }
+}
+
+/* --- Inicio guiado (`/inicio`) --- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tile {
+    min-height: 132px;
+  }
+}
+
+/* Cada sección: su nombre, qué se hace ahí y, si se sabe, cómo va. */
+.tile {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-8) var(--space-4) var(--space-4);
+  background: var(--field);
+  border: var(--rule-width) solid var(--rule-strong);
+  border-top: 3px solid var(--ink);
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color var(--transition);
+}
+
+.tile:hover,
+.tile:focus-visible {
+  border-color: var(--ink);
+}
+
+.tile__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--size-title);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tile__text {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.tile__note {
+  font-family: var(--font-figures);
+  font-size: 0.8125rem;
+}
+
+.tile__arrow {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-4);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+/* El primer paso de un mes sin plan. */
+.tile--start {
+  border-top-color: var(--red);
+}
+
+.tile__tag {
+  padding: 2px var(--space-2);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-figures);
+  font-size: var(--size-label);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* --- Lista de categorías de Registrar (picker.js) --- */
+
+.row--picker {
+  padding: var(--space-1) 0;
+}
+
+/* El botón se ve como las demás casillas, con la inicial de lo elegido. */
+.picker__button {
+  width: 100%;
+  min-height: var(--touch);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background: var(--field);
+  border: var(--rule-width) solid var(--rule-strong);
+  border-radius: var(--radius);
+  text-align: left;
+}
+
+.picker__button--empty {
+  color: var(--muted);
+}
+
+.picker__button[aria-expanded="true"] {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.picker__button[aria-invalid="true"] {
+  border-color: var(--red);
+  box-shadow: inset 0 0 0 1px var(--red);
+}
+
+.picker__text,
+.picker__name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.picker__button::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-right: var(--space-1);
+  border: solid var(--ink);
+  border-width: 0 2px 2px 0;
+  translate: 0 -2px;
+  rotate: 45deg;
+}
+
+.picker__button[aria-expanded="true"]::after {
+  translate: 0 2px;
+  rotate: -135deg;
+}
+
+/* La inicial de la categoría, como la pestaña de un libro. */
+.picker__mark {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: var(--rule-width) solid var(--ink);
+  border-radius: var(--radius);
+  font-family: var(--font-figures);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
+}
+
+/* Las categorías, de a dos por fila, debajo del renglón. */
+.picker__list {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-2) 0 var(--space-3);
+}
+
+.picker__option {
+  min-height: var(--row);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper);
+  border: var(--rule-width) solid var(--rule-strong);
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  transition: background-color var(--transition);
+}
+
+.picker__option:hover {
+  background: var(--field);
+  border-color: var(--ink);
+}
+
+/* La elegida: en tinta, con su inicial invertida y un visto a la derecha. */
+.picker__option[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.picker__option[aria-pressed="true"] .picker__mark {
+  background: var(--paper);
+  border-color: var(--paper);
+}
+
+.picker__option[aria-pressed="true"]::after {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 12px;
+  margin-right: var(--space-1);
+  border: solid var(--paper);
+  border-width: 0 2px 2px 0;
+  translate: 0 -2px;
+  rotate: 45deg;
+}
+
+.picker__option[aria-pressed="true"]:focus-visible {
+  outline-offset: 3px;
+}
+
+/* "Crear categoría": punteada, porque todavía no existe; ocupa toda la fila. */
+.picker__option--create {
+  grid-column: 1 / -1;
+  border-style: dashed;
+  color: var(--ink);
+}
+
+.picker__option--create .picker__mark {
+  border-style: dashed;
+  font-size: 1.125rem;
 }

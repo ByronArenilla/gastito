@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>gastito</title>
+  <title>Gastito</title>
+  <meta name="application-name" content="Gastito">
   <meta name="description" content="El presupuesto del mes: planéalo y registra cada gasto desde el celular.">
   <!-- Color de la barra del navegador y del sistema, según el tema (decisión 4). -->
   <meta name="theme-color" content="#e9eee6" media="(prefers-color-scheme: light)">
@@ -11,36 +12,71 @@
   <!-- iPhone: abrir fijada sin la barra de Safari y con este nombre. -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="gastito">
+  <meta name="apple-mobile-web-app-title" content="Gastito">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="preload" href="/fonts/IBMPlexSans-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/IBMPlexMono-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- El tema elegido con el botón del encabezado, antes del primer pintado. -->
+  <script src="/js/theme-boot.js"></script>
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/app.css">
   <script type="module" src="/js/main.js"></script>
 </head>
 <body>
+  <!-- El logo (un recibo con la doble raya roja del total) se dibuja una vez
+       y se usa con <use href="#logo">: así toma los colores del tema
+       (app.css, `.logo__ink` y `.logo__rule`). Es el mismo dibujo de
+       icons/icon.svg. -->
+  <svg width="0" height="0" hidden aria-hidden="true" focusable="false">
+    <symbol id="logo" viewBox="0 0 64 64">
+      <path class="logo__ink" d="M14 6.5H50V52L44 57.5L38 52L32 57.5L26 52L20 57.5L14 52Z" stroke-width="5"/>
+      <path class="logo__ink" d="M23 19H41" stroke-width="4.5"/>
+      <path class="logo__rule" d="M23 31H41M23 38.5H41" stroke-width="3.5"/>
+    </symbol>
+  </svg>
   <div class="app" id="app" data-guest>
+    <!-- En el computador, el menú lateral con todo. En el celular, solo los
+         dos botones de todos los días: Registrar y Gastos (app.css); lo demás
+         se alcanza desde el inicio, tocando el logo. -->
     <nav class="tabs" aria-label="Secciones">
-      <span class="tabs__brand">gastito</span>
+      <a class="brand tabs__brand" href="/inicio" data-section="home" aria-label="Gastito, inicio">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
+        <span>Gastito</span>
+      </a>
       <a href="/mes" data-section="month">Mes</a>
-      <a href="/registrar" data-section="record">Registrar</a>
-      <a href="/gastos" data-section="expenses">Gastos</a>
+      <a href="/registrar" data-section="record" class="tabs__main tabs__main--primary"><span class="tabs__plus" aria-hidden="true">+</span>Registrar</a>
+      <a href="/gastos" data-section="expenses" class="tabs__main">Gastos</a>
       <a href="/tarjetas" data-section="cards">Tarjetas</a>
       <a href="/espacio" data-section="space">Espacio</a>
     </nav>
     <header class="topbar">
-      <span class="topbar__space" id="space-name"></span>
+      <a class="brand topbar__brand" href="/inicio" data-section="home" aria-label="Gastito, inicio">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
+        <span>Gastito</span>
+      </a>
+      <!-- El espacio actual: un botón que despliega los demás (space-switch.js). -->
+      <div class="space-switch" id="space-switch">
+        <button type="button" class="space-switch__button" id="space-button" aria-haspopup="true" aria-expanded="false" aria-controls="space-menu">
+          <span class="space-switch__label">Espacio</span>
+          <span class="space-switch__name" id="space-name"></span>
+        </button>
+        <div class="space-switch__menu" id="space-menu" hidden></div>
+      </div>
       <span class="topbar__month label" id="current-month"></span>
+      <!-- Claro u oscuro: por defecto el del sistema; este botón elige el otro
+           y se recuerda en el dispositivo (theme.js). -->
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">
+        <span class="theme-toggle__icon" aria-hidden="true"></span>
+      </button>
     </header>
     <!-- Registrado, errores y sin conexión: se anuncian al lector de pantalla (RF-33). -->
     <div class="notices" id="notices" aria-live="polite"></div>
     <main class="main" id="main" tabindex="-1">
       <noscript>
-        <p class="auth">gastito necesita JavaScript para funcionar. Actívalo en tu navegador.</p>
+        <p class="auth">Gastito necesita JavaScript para funcionar. Actívalo en tu navegador.</p>
       </noscript>
     </main>
   </div>

@@ -65,9 +65,15 @@
 }
 
 /* Tema oscuro: libro de noche. No es el claro invertido: el papel pasa a azul
-   tinta, los renglones se apagan y el rojo se aclara para seguir legible. */
+   tinta, los renglones se apagan y el rojo se aclara para seguir legible.
+
+   Se usa en dos casos y por eso está dos veces (CSS no deja compartir un
+   bloque entre una media query y un selector): cuando el sistema está en
+   oscuro y nadie eligió el claro, y cuando se eligió el oscuro con el botón
+   del encabezado (`data-theme` en <html>, theme.js). Un test comprueba que
+   los dos bloques digan lo mismo. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --paper: #111823;
     --field: #18212e;
     --ink: #e3e9df;
@@ -86,6 +92,36 @@
     --tint-6: #879fa8;
     --tint-other: #6c6f6d;
   }
+}
+
+:root[data-theme="dark"] {
+  --paper: #111823;
+  --field: #18212e;
+  --ink: #e3e9df;
+  --rule: #2b3a4e;
+  --rule-strong: #7489a3;
+  --red: #ff8a7e;
+  --muted: #9aa8b9;
+  --focus: #e3e9df;
+
+  /* Las mismas tintas aclaradas para el papel azul tinta, no invertidas. */
+  --tint-1: #8fb5dc;
+  --tint-2: #548c75;
+  --tint-3: #d7ba79;
+  --tint-4: #bb7a60;
+  --tint-5: #dc9fde;
+  --tint-6: #879fa8;
+  --tint-other: #6c6f6d;
+}
+
+/* Los controles del sistema (calendario, barras de desplazamiento) siguen
+   el tema elegido, no el del sistema. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 :root {
@@ -119,6 +155,7 @@
   --double-rule: 3px double var(--red);
   --gutter: 20px;
   --sidebar: 240px;
+  --bottom-nav: 72px; /* alto de la barra de abajo en el celular */
   --content: 640px;
   --content-wide: 720px;
   --wide-from: 1024px; /* referencia: las media queries usan el valor */

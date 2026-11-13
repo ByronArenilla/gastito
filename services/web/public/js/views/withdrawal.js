@@ -151,7 +151,9 @@ export function buildNewWithdrawal(app, { onDone } = {}) {
     onSubmit: async (form) => {
       const withdrawal = await app.api.post(`${base}/savings-withdrawals`, withdrawalRequest(form).body);
       app.notices.show({
-        text: `Registrado: retiro de ahorro · ${formatPesos(withdrawal.amount)}`,
+        kind: "success",
+        title: "Retiro registrado",
+        text: `Retiro de ahorro · ${formatPesos(withdrawal.amount)}`,
         seconds: 10,
         action: {
           label: "Deshacer",
