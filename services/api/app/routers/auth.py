@@ -1,4 +1,5 @@
-"""Registro y sesión: entrar, identificarse y salir (RF-1 a RF-12)."""
+"""Registro y sesión: entrar, identificarse y salir (RF-1 a RF-12), y el
+nombre de la cuenta (spec 031)."""
 
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
@@ -8,12 +9,21 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.accounts import default_space_name, set_user_name
 from app.db import get_db
 from app.deps import current_session, current_user
 from app.models import Membership, Space, User
 from app.models import Session as SessionRow
 from app.routers.categories import add_default_categories
-from app.schemas import LoginIn, RegisterIn, RegisterOut, SpaceOut, TokenOut, UserOut
+from app.schemas import (
+    LoginIn,
+    ProfileIn,
+    RegisterIn,
+    RegisterOut,
+    SpaceOut,
+    TokenOut,
+    UserOut,
+)
 from app.security import (
     SESSION_LIFETIME,
     generate_session_token,
@@ -21,10 +31,6 @@ from app.security import (
     hash_token,
     verify_password,
 )
-
-# Nombre fijo del espacio que se crea con cada usuario (spec 001, decisión 7).
-PERSONAL_SPACE_NAME = "Personal"
-
 
 EMAIL_TAKEN = "Ya existe una cuenta con ese correo."
 
@@ -42,7 +48,8 @@ router = APIRouter(tags=["auth"])
 @router.post("/auth/register", status_code=status.HTTP_201_CREATED)
 def register(data: RegisterIn, db: Annotated[Session, Depends(get_db)]) -> RegisterOut:
     """Crea usuario, espacio personal, membresía y categorías predefinidas en
-    una sola transacción (RF-3 de la 001, RF-1 de la 002).
+    una sola transacción (RF-3 de la 001, RF-1 de la 002). El espacio se
+    llama "Espacio de <nombre>" (spec 031, RF-2).
 
     El registro es abierto y no sabe nada de invitaciones (RF-1, ADR 0005):
     quien llega por un enlace se registra y después canjea la invitación.
@@ -50,8 +57,12 @@ def register(data: RegisterIn, db: Annotated[Session, Depends(get_db)]) -> Regis
     if db.scalar(select(User.id).where(User.email == data.email)) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, EMAIL_TAKEN)
 
-    user = User(email=data.email, password_hash=hash_password(data.password))
-    space = Space(name=PERSONAL_SPACE_NAME)
+    user = User(
+        email=data.email,
+        password_hash=hash_password(data.password),
+        name=data.name,
+    )
+    space = Space(name=default_space_name(data.name))
     db.add_all([user, space])
     try:
         db.flush()
@@ -67,6 +78,7 @@ def register(data: RegisterIn, db: Annotated[Session, Depends(get_db)]) -> Regis
     return RegisterOut(
         id=user.id,
         email=user.email,
+        name=data.name,
         personal_space=SpaceOut.model_validate(space),
     )
 
@@ -113,4 +125,18 @@ def logout(
 @router.get("/me")
 def me(user: Annotated[User, Depends(current_user)]) -> UserOut:
     """Quién soy, según el token de la petición (RF-10)."""
+    return UserOut.model_validate(user)
+
+
+@router.patch("/me")
+def update_me(
+    data: ProfileIn,
+    user: Annotated[User, Depends(current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> UserOut:
+    """Cambia el nombre de quien llama (spec 031, RF-4). La primera vez que
+    una cuenta de antes lo escribe, su espacio "Personal" toma el nombre
+    nuevo (RF-5): la regla está en `app.accounts`."""
+    set_user_name(db, user, data.name)
+    db.commit()
     return UserOut.model_validate(user)

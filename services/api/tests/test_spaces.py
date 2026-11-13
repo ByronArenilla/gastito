@@ -59,7 +59,7 @@ def test_invalid_space_name_is_rejected(
 
     assert response.status_code == 422
     assert "nombre" in response.text
-    assert names(client, ana) == ["Personal"]
+    assert names(client, ana) == ["Espacio de Ana"]
 
 
 def test_creating_a_space_requires_a_session(client: TestClient) -> None:
@@ -74,8 +74,8 @@ def test_list_returns_only_own_spaces(client: TestClient, login: Login) -> None:
     create_space(client, ana, "Casa")
     create_space(client, bea, "Viajes")
 
-    assert names(client, ana) == ["Personal", "Casa"]
-    assert names(client, bea) == ["Personal", "Viajes"]
+    assert names(client, ana) == ["Espacio de Ana", "Casa"]
+    assert names(client, bea) == ["Espacio de Bea", "Viajes"]
 
 
 def test_listing_spaces_requires_a_session(client: TestClient) -> None:
@@ -137,7 +137,7 @@ def test_member_leaves_and_stops_seeing_the_space(
     response = leave(client, bea, space_id)
 
     assert response.status_code == 204
-    assert names(client, bea) == ["Personal"]
+    assert names(client, bea) == ["Espacio de Bea"]
 
 
 def test_space_stays_for_the_remaining_members(
@@ -148,7 +148,7 @@ def test_space_stays_for_the_remaining_members(
 
     leave(client, bea, space_id)
 
-    assert names(client, ana) == ["Personal", "Casa"]
+    assert names(client, ana) == ["Espacio de Ana", "Casa"]
     with Session(engine) as db:
         assert db.get(Space, space_id) is not None
 
@@ -163,7 +163,7 @@ def test_last_member_cannot_leave_and_is_told_to_delete(
 
     assert response.status_code == 409
     assert "bórralo" in response.json()["detail"]
-    assert names(client, ana) == ["Personal", "Viajes"]
+    assert names(client, ana) == ["Espacio de Ana", "Viajes"]
 
 
 def test_nobody_leaves_their_only_space(
@@ -210,7 +210,7 @@ def test_leaving_a_foreign_space_is_404(
     carla = login("carla@example.com")
 
     assert leave(client, carla, space_id).status_code == 404
-    assert names(client, ana) == ["Personal", "Casa"]
+    assert names(client, ana) == ["Espacio de Ana", "Casa"]
 
 
 def test_leaving_requires_a_session(
@@ -219,7 +219,7 @@ def test_leaving_requires_a_session(
     space_id, ana, bea = shared_space
 
     assert client.delete(f"/spaces/{space_id}/members/me").status_code == 401
-    assert names(client, bea) == ["Personal", "Casa"]
+    assert names(client, bea) == ["Espacio de Bea", "Casa"]
 
 
 # --- Borrar un espacio (RF-23 a RF-27) ---
@@ -242,7 +242,7 @@ def test_sole_member_deletes_confirming_the_exact_name(
     response = delete_space(client, ana, space_id, "Viajes")
 
     assert response.status_code == 204
-    assert names(client, ana) == ["Personal"]
+    assert names(client, ana) == ["Espacio de Ana"]
     with Session(engine) as db:
         assert db.get(Space, space_id) is None
         assert (
@@ -262,7 +262,7 @@ def test_wrong_confirmation_deletes_nothing(
 
     assert response.status_code == 400
     assert "nombre" in response.json()["detail"]
-    assert names(client, ana) == ["Personal", "Viajes"]
+    assert names(client, ana) == ["Espacio de Ana", "Viajes"]
 
 
 def test_missing_confirmation_deletes_nothing(client: TestClient, login: Login) -> None:
@@ -272,7 +272,7 @@ def test_missing_confirmation_deletes_nothing(client: TestClient, login: Login) 
     response = client.delete(f"/spaces/{space_id}", headers=ana)
 
     assert response.status_code == 422
-    assert names(client, ana) == ["Personal", "Viajes"]
+    assert names(client, ana) == ["Espacio de Ana", "Viajes"]
 
 
 def test_space_with_several_members_cannot_be_deleted(
@@ -283,18 +283,19 @@ def test_space_with_several_members_cannot_be_deleted(
     response = delete_space(client, ana, space_id, "Casa")
 
     assert response.status_code == 409
-    assert names(client, ana) == names(client, bea) == ["Personal", "Casa"]
+    assert names(client, ana) == ["Espacio de Ana", "Casa"]
+    assert names(client, bea) == ["Espacio de Bea", "Casa"]
 
 
 def test_only_space_cannot_be_deleted(client: TestClient, login: Login) -> None:
     ana = login()
     [personal] = client.get("/spaces", headers=ana).json()
 
-    response = delete_space(client, ana, personal["id"], "Personal")
+    response = delete_space(client, ana, personal["id"], personal["name"])
 
     assert response.status_code == 409
     assert "único espacio" in response.json()["detail"]
-    assert names(client, ana) == ["Personal"]
+    assert names(client, ana) == ["Espacio de Ana"]
 
 
 def test_deleting_a_space_leaves_the_user_and_other_spaces_intact(
@@ -308,7 +309,8 @@ def test_deleting_a_space_leaves_the_user_and_other_spaces_intact(
     delete_space(client, ana, viajes_id, "Viajes")
 
     assert client.get("/me", headers=ana).status_code == 200
-    assert names(client, ana) == names(client, bea) == ["Personal", "Casa"]
+    assert names(client, ana) == ["Espacio de Ana", "Casa"]
+    assert names(client, bea) == ["Espacio de Bea", "Casa"]
     with Session(engine) as db:
         casa_members = db.scalars(
             select(Membership).where(Membership.space_id == casa_id)
@@ -333,7 +335,7 @@ def test_pending_invitations_die_with_the_space(
     delete_space(client, ana, space_id, "Viajes")
 
     assert client.post(f"/invitations/{token}/redeem", headers=bea).status_code == 403
-    assert names(client, bea) == ["Personal"]
+    assert names(client, bea) == ["Espacio de Bea"]
 
 
 def test_deleting_a_foreign_space_is_404(client: TestClient, login: Login) -> None:
@@ -341,7 +343,7 @@ def test_deleting_a_foreign_space_is_404(client: TestClient, login: Login) -> No
     space_id = create_space(client, ana, "Viajes")["id"]
 
     assert delete_space(client, bea, space_id, "Viajes").status_code == 404
-    assert names(client, ana) == ["Personal", "Viajes"]
+    assert names(client, ana) == ["Espacio de Ana", "Viajes"]
 
 
 def test_deleting_requires_a_session(client: TestClient, login: Login) -> None:
@@ -351,4 +353,4 @@ def test_deleting_requires_a_session(client: TestClient, login: Login) -> None:
     response = client.delete(f"/spaces/{space_id}", params={"confirm": "Viajes"})
 
     assert response.status_code == 401
-    assert names(client, ana) == ["Personal", "Viajes"]
+    assert names(client, ana) == ["Espacio de Ana", "Viajes"]

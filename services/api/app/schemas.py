@@ -52,9 +52,34 @@ def normalize_email(value: str) -> str:
     return email
 
 
+MAX_USER_NAME_LENGTH = 50
+
+
+def clean_user_name(value: str) -> str:
+    """El nombre sin espacios alrededor, de 1 a 50 caracteres (spec 031,
+    decisión 3)."""
+    name = value.strip()
+    if not 1 <= len(name) <= MAX_USER_NAME_LENGTH:
+        raise PydanticCustomError(
+            "invalid_user_name",
+            "Escribe tu nombre: debe tener entre 1 y {max_length} caracteres.",
+            {"max_length": MAX_USER_NAME_LENGTH},
+        )
+    return name
+
+
 class RegisterIn(BaseModel):
     email: str
     password: str
+    # Vacío por defecto, y el valor por defecto también se valida: así un
+    # cuerpo sin `name` recibe el mismo mensaje en español que uno vacío, y no
+    # el "Field required" de pydantic (spec 031, RF-1).
+    name: str = Field(default="", validate_default=True)
+
+    @field_validator("name")
+    @classmethod
+    def check_name(cls, value: str) -> str:
+        return clean_user_name(value)
 
     @field_validator("email")
     @classmethod
@@ -143,6 +168,7 @@ class CategoryDeletedOut(BaseModel):
 class RegisterOut(BaseModel):
     id: int
     email: str
+    name: str
     personal_space: SpaceOut
 
 
@@ -179,6 +205,19 @@ class UserOut(BaseModel):
 
     id: int
     email: str
+    # `null` en una cuenta anterior a la spec 031 que aún no lo ha escrito.
+    name: str | None
+
+
+class ProfileIn(BaseModel):
+    """Lo que el usuario puede cambiar de su cuenta (spec 031, RF-4)."""
+
+    name: str
+
+    @field_validator("name")
+    @classmethod
+    def check_name(cls, value: str) -> str:
+        return clean_user_name(value)
 
 
 # --- Gastos (spec 003) ---

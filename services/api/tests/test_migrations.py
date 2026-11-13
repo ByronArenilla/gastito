@@ -24,7 +24,7 @@ from app.db import (
 from app.models import Base
 from tests import old_schemas
 
-HEAD = "0007"
+HEAD = "0008"
 
 
 @pytest.fixture
@@ -540,3 +540,23 @@ def test_migrating_twice_adds_ahorro_once(file_engine: Engine) -> None:
     run_migrations(file_engine)
 
     assert savings_categories(file_engine) == [(1, "Ahorro", 1)]
+
+
+# --- Spec 031: nombre de usuario ---
+
+
+def test_adding_the_user_name_keeps_every_account(file_engine: Engine) -> None:
+    # RF-7: la 0008 solo añade `users.name`. Las cuentas que existen quedan
+    # sin nombre y con todo lo demás igual.
+    execute(file_engine, old_schemas.SCHEMA_007 + old_schemas.BASE_ROWS)
+    migrate_to(file_engine, "0007")
+    query = "SELECT id, email, password_hash FROM users ORDER BY id"
+    before = rows(file_engine, query)
+    assert before
+
+    run_migrations(file_engine)
+
+    assert version(file_engine) == HEAD
+    assert rows(file_engine, query) == before
+    assert rows(file_engine, "SELECT DISTINCT name FROM users") == [(None,)]
+    assert schema_diff(file_engine) == []

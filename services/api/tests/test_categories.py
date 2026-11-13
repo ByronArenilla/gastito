@@ -50,7 +50,7 @@ def count(engine: Engine, model: type) -> int:
 def test_registering_creates_the_defaults_in_the_personal_space(
     client: TestClient, engine: Engine
 ) -> None:
-    body = {"email": "ana@example.com", "password": PASSWORD}
+    body = {"email": "ana@example.com", "password": PASSWORD, "name": "Ana"}
     space_id = client.post("/auth/register", json=body).json()["personal_space"]["id"]
 
     names = [category.name for category in stored_categories(engine, space_id)]
@@ -96,7 +96,7 @@ def test_rejected_registration_leaves_no_categories(
     login("ana@example.com")
     before = count(engine, Category)
 
-    body = {"email": "ana@example.com", "password": PASSWORD}
+    body = {"email": "ana@example.com", "password": PASSWORD, "name": "Ana"}
     assert client.post("/auth/register", json=body).status_code == 409
 
     assert count(engine, Category) == before
@@ -111,7 +111,7 @@ def test_registration_is_all_or_nothing_with_the_defaults(
         raise RuntimeError("fallo simulado")
 
     monkeypatch.setattr(auth, "add_default_categories", broken)
-    body = {"email": "ana@example.com", "password": PASSWORD}
+    body = {"email": "ana@example.com", "password": PASSWORD, "name": "Ana"}
 
     with pytest.raises(RuntimeError):
         client.post("/auth/register", json=body)

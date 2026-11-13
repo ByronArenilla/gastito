@@ -6,15 +6,14 @@ from sqlalchemy.orm import Session
 
 from app.models import Base, Invitation, Membership, Space, User
 from app.security import verify_password
-from tests.conftest import token_from
+from tests.conftest import name_from, token_from
 
 PASSWORD = "una-contraseña-larga"
 
 
 def register(client: TestClient, email: str = "ana@example.com", **extra: str):
-    return client.post(
-        "/auth/register", json={"email": email, "password": PASSWORD, **extra}
-    )
+    body = {"email": email, "password": PASSWORD, "name": name_from(email)}
+    return client.post("/auth/register", json=body | extra)
 
 
 def count(engine: Engine, model: type[Base]) -> int:
@@ -34,7 +33,7 @@ def test_registration_creates_user_space_and_membership(
     assert response.status_code == 201
     body = response.json()
     assert body["email"] == "ana@example.com"
-    assert body["personal_space"]["name"] == "Personal"
+    assert body["personal_space"]["name"] == "Espacio de Ana"
     with Session(engine) as db:
         user = db.scalars(select(User)).one()
         space = db.scalars(select(Space)).one()
@@ -125,7 +124,8 @@ def test_short_password_is_rejected_naming_the_requirement(
     client: TestClient, engine: Engine
 ) -> None:
     response = client.post(
-        "/auth/register", json={"email": "ana@example.com", "password": "corta"}
+        "/auth/register",
+        json={"email": "ana@example.com", "password": "corta", "name": "Ana"},
     )
 
     assert response.status_code == 422
@@ -137,7 +137,8 @@ def test_password_of_exactly_twelve_characters_is_accepted(
     client: TestClient,
 ) -> None:
     response = client.post(
-        "/auth/register", json={"email": "ana@example.com", "password": "a" * 12}
+        "/auth/register",
+        json={"email": "ana@example.com", "password": "a" * 12, "name": "Ana"},
     )
 
     assert response.status_code == 201

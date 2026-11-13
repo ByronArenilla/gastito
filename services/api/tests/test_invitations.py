@@ -165,7 +165,7 @@ def test_redeeming_makes_the_user_a_member(
 
     assert response.status_code == 200
     assert response.json() == {"id": space_id, "name": "Casa"}
-    assert space_names(client, bea) == ["Personal", "Casa"]
+    assert space_names(client, bea) == ["Espacio de Bea", "Casa"]
     row = invitation(engine, token)
     assert row.used_at is not None
     assert row.used_by == client.get("/me", headers=bea).json()["id"]
@@ -182,7 +182,7 @@ def test_space_code_cannot_be_redeemed_twice(client: TestClient, login: Login) -
     response = client.post(f"/invitations/{token}/redeem", headers=carla)
 
     assert response.status_code == 403
-    assert space_names(client, carla) == ["Personal"]
+    assert space_names(client, carla) == ["Espacio de Carla"]
 
 
 def test_existing_member_is_rejected_and_code_stays_unused(
@@ -215,7 +215,7 @@ def test_expired_space_code_is_rejected(
     response = client.post(f"/invitations/{token}/redeem", headers=bea)
 
     assert response.status_code == 403
-    assert space_names(client, bea) == ["Personal"]
+    assert space_names(client, bea) == ["Espacio de Bea"]
     assert invitation(engine, token).used_at is None
 
 
@@ -237,14 +237,8 @@ def test_shared_space_fixture_has_two_members(
 ) -> None:
     space_id, ana, bea = shared_space
 
-    assert (
-        space_names(client, ana)
-        == space_names(client, bea)
-        == [
-            "Personal",
-            "Casa",
-        ]
-    )
+    assert space_names(client, ana) == ["Espacio de Ana", "Casa"]
+    assert space_names(client, bea) == ["Espacio de Bea", "Casa"]
 
 
 # --- Consultar la invitación sin sesión (RF-19, RF-36, RF-37) ---
@@ -301,7 +295,7 @@ def test_previewing_never_creates_a_membership(
     client.get(f"/invitations/{token}", headers=bea)
 
     assert membership_count(engine) == before
-    assert space_names(client, bea) == ["Personal"]
+    assert space_names(client, bea) == ["Espacio de Bea"]
 
 
 def test_invalid_invitations_preview_as_404_with_the_same_message(
