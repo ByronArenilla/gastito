@@ -137,6 +137,21 @@ forma profesional y poder aplicar a puestos de DevOps.
     gráficos de CSS (ADR 0017), Ahorro como categoría que se aparta al
     planear y retiros de ahorro en su propia tabla (ADR 0018). Se verificó
     en Chrome del computador; el celular, con la 011 y la 012 (ver 020).
+- [x] 031-nombre-de-usuario — Nombre de usuario y espacio por defecto "Espacio de <nombre>".
+  - Se añadió el 2026-11-13, con la app ya desplegada (ADR 0020): usándola
+    hizo falta saber quién es cada persona. Lleva el 031 porque del 014 al
+    030 son las etapas de infraestructura; en el tiempo va entre la 013 y
+    la 014.
+  - `users.name` (migración `0008`), `PATCH /me` y el nombre al crear la
+    cuenta. A las cuentas anteriores la web se lo pide una vez y su espacio
+    "Personal" se renombra si son su único miembro.
+  - **Terminada el 2026-11-13.** Se verificó en Chrome del computador, a
+    ancho de celular y de computador. Fuera de la spec, y solo en la web,
+    se rehízo la navegación: Inicio, barra inferior de cinco botones y
+    perfil con los espacios.
+  - Quedó fuera: verificar el correo y recuperar la contraseña. Necesitan
+    un proveedor de correo y un dominio, o sea un ADR y decidir en qué fase
+    entran (principio 2).
 
 ## Fase 2 — Docker
 - [ ] 014-contenedores

@@ -8,6 +8,10 @@ const ROUTES = [
   { pattern: /^\/entrar$/, view: "login", access: "guest" },
   { pattern: /^\/crear-cuenta$/, view: "register", access: "guest" },
   { pattern: /^\/inicio$/, view: "home", access: "member" },
+  // Spec 031: una cuenta sin nombre lo escribe aquí antes de seguir.
+  { pattern: /^\/tu-nombre$/, view: "name", access: "member" },
+  { pattern: /^\/perfil$/, view: "profile", access: "member" },
+  { pattern: /^\/cuenta$/, view: "account", access: "member" },
   { pattern: /^\/mes$/, view: "month", access: "member" },
   { pattern: /^\/mes\/planear$/, view: "plan", access: "member" },
   { pattern: /^\/mes\/reportes$/, view: "reports", access: "member" },

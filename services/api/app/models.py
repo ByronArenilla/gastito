@@ -61,6 +61,8 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(320), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    # Nulo en las cuentas anteriores a la spec 031 hasta que lo escriban.
+    name: Mapped[str | None] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
 
 

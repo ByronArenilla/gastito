@@ -17,6 +17,12 @@ test("el logo lleva a /inicio, la guía de secciones", () => {
   assert.deepEqual(matchRoute("/"), { redirect: "/registrar" });
 });
 
+test("el perfil, la cuenta y el nombre tienen su pantalla", () => {
+  assert.deepEqual(matchRoute("/perfil"), { view: "profile", params: {}, access: "member" });
+  assert.deepEqual(matchRoute("/cuenta"), { view: "account", params: {}, access: "member" });
+  assert.deepEqual(matchRoute("/tu-nombre"), { view: "name", params: {}, access: "member" });
+});
+
 test("los reportes viven en /mes/reportes (spec 013)", () => {
   assert.deepEqual(matchRoute("/mes/reportes"), { view: "reports", params: {}, access: "member" });
 });

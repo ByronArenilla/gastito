@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ApiError } from "../public/js/api.js";
-import { logIn, logOut, signUp } from "../public/js/account.js";
+import { logIn, logOut, saveName, signUp } from "../public/js/account.js";
 
 function fakeSession() {
   const state = { saved: null, cleared: false, next: null };
@@ -69,7 +69,7 @@ test("crear cuenta registra y entra con la misma contraseña", async () => {
 
   const destination = await signUp(
     { api, session },
-    { email: "ana@example.com", password: "una-contraseña-larga" },
+    { name: "Ana", email: "ana@example.com", password: "una-contraseña-larga" },
   );
 
   assert.equal(destination, "/registrar");
@@ -78,6 +78,24 @@ test("crear cuenta registra y entra con la misma contraseña", async () => {
     ["/auth/register", "/auth/login"],
   );
   assert.equal(session.state.saved.token, "abc");
+  // El nombre viaja al crear la cuenta, no al entrar (spec 031, RF-8).
+  assert.equal(api.calls[0][1].name, "Ana");
+  assert.equal("name" in api.calls[1][1], false);
+});
+
+test("guardar el nombre lo envía a /me y devuelve la cuenta", async () => {
+  const calls = [];
+  const api = {
+    patch: async (path, body) => {
+      calls.push([path, body]);
+      return { id: 1, email: "ana@example.com", name: body.name };
+    },
+  };
+
+  const me = await saveName({ api }, "Ana");
+
+  assert.deepEqual(calls, [["/me", { name: "Ana" }]]);
+  assert.equal(me.name, "Ana");
 });
 
 test("cerrar sesión la cierra en la API y borra el dispositivo", async () => {

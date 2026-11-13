@@ -213,27 +213,18 @@ button {
   stroke: var(--red);
 }
 
-/* El espacio actual: una casilla con su nombre que despliega los demás. */
-.space-switch {
-  position: relative;
+/* En qué espacio estás: solo texto. Se cambia desde el perfil. */
+.topbar__space {
   min-width: 0;
   margin-left: auto;
-}
-
-.space-switch__button {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  max-width: 100%;
-  min-height: var(--touch);
-  padding: 0 var(--space-3);
-  background: var(--field);
-  border: var(--rule-width) solid var(--ink);
-  border-radius: var(--radius);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 600;
 }
 
-.space-switch__label {
+/* La palabra "Espacio" solo cabe en el computador (más abajo). */
+.topbar__space-label {
   display: none;
   font-family: var(--font-figures);
   font-size: var(--size-label);
@@ -243,38 +234,46 @@ button {
   color: var(--muted);
 }
 
-.space-switch__name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* La flecha: dos bordes girados; abierta, apunta hacia arriba. */
-.space-switch__button::after {
-  content: "";
+/* Iconos del menú (los dibujos están en index.html): trazo del color del
+   texto, con puntas rectas como los renglones. */
+.icon {
   flex: none;
-  width: 7px;
-  height: 7px;
-  margin-left: var(--space-1);
-  border: solid var(--ink);
-  border-width: 0 2px 2px 0;
-  translate: 0 -2px;
-  rotate: 45deg;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
 }
 
-.space-switch__button[aria-expanded="true"]::after {
-  translate: 0 2px;
-  rotate: -135deg;
+/* Las iniciales de la persona. */
+.avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 50%;
+  font-family: var(--font-figures);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
-.space-switch__menu {
-  position: absolute;
-  top: calc(100% + var(--space-1));
-  right: 0;
+.avatar--big {
+  width: 56px;
+  height: 56px;
+  font-size: var(--size-strong);
+}
+
+/* Un menú que se despliega sobre la página (el del perfil). */
+.menu {
   z-index: 20;
   width: max-content;
-  min-width: 240px;
+  min-width: 260px;
   max-width: min(320px, calc(100vw - 2 * var(--gutter)));
   padding: var(--space-2) 0;
   background: var(--paper);
@@ -285,11 +284,24 @@ button {
   box-shadow: 4px 4px 0 var(--rule);
 }
 
-.space-switch__title {
+.menu__who {
+  display: grid;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border-bottom: var(--rule-width) solid var(--rule);
+  margin-bottom: var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+.menu__who span {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.menu__title {
   padding: var(--space-2) var(--space-4);
 }
 
-.space-switch__option {
+.menu__option {
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -299,26 +311,28 @@ button {
   padding: var(--space-2) var(--space-4);
   border: 0;
   background: transparent;
+  color: var(--ink);
   text-align: left;
+  text-decoration: none;
 }
 
-.space-switch__option:hover,
-.space-switch__option:focus-visible {
+.menu__option:hover,
+.menu__option:focus-visible {
   background: var(--field);
 }
 
-.space-switch__option[aria-current="true"] {
+.menu__option[aria-current="true"] {
   font-weight: 600;
   box-shadow: inset 3px 0 0 var(--red);
   background: var(--field);
 }
 
-.space-switch__option-name {
+.menu__name {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.space-switch__here {
+.menu__here {
   flex: none;
   font-family: var(--font-figures);
   font-size: var(--size-label);
@@ -328,14 +342,10 @@ button {
   color: var(--muted);
 }
 
-.space-switch__manage {
-  display: flex;
-  align-items: center;
-  min-height: var(--touch);
+.menu__links {
   margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-4) 0;
+  padding-top: var(--space-2);
   border-top: var(--rule-width) solid var(--rule);
-  font-size: 0.9375rem;
 }
 
 .main {
@@ -357,67 +367,109 @@ button {
   outline: none;
 }
 
-/* Celular: abajo solo lo de todos los días, Registrar y Gastos, como dos
-   botones grandes. El resto de secciones está en el inicio (el logo). */
+/* La navegación. Lo común a los dos tamaños: cada sección es un icono con
+   su palabra, y Registrar es el botón en tinta. */
+.tabs__item,
+.tabs__record {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.tabs__item {
+  color: var(--muted);
+}
+
+.tabs__item[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tabs__record {
+  justify-content: center;
+  background: var(--ink);
+  color: var(--paper);
+  border: var(--rule-width) solid var(--ink);
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+
+/* Celular: barra inferior Inicio · Mes · + · Gastos · Tú. El orden lo pone
+   `order`, porque en el HTML van en el orden del menú lateral. */
 @media (max-width: 1023px) {
   .tabs {
     position: fixed;
     inset: auto 0 0 0;
     z-index: 10;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-    gap: var(--space-2);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
     min-height: calc(var(--bottom-nav) + env(safe-area-inset-bottom));
-    padding: 0 var(--gutter) env(safe-area-inset-bottom);
+    padding: 0 var(--space-2) env(safe-area-inset-bottom);
     background: var(--paper);
     border-top: var(--rule-width) solid var(--ink);
   }
 
-  .tabs a {
+  .tabs__brand,
+  .tabs__item--wide,
+  .tabs .profile,
+  .tabs__record-text {
     display: none;
   }
 
-  .tabs a.tabs__main {
-    position: relative;
-    display: flex;
+  .tabs__item {
+    flex-direction: column;
     justify-content: center;
-    align-items: center;
-    gap: var(--space-2);
-    min-height: var(--row);
-    border: var(--rule-width) solid var(--ink);
-    border-radius: var(--radius);
-    background: var(--field);
-    color: var(--ink);
-    font-weight: 600;
+    gap: 2px;
+    min-height: var(--bottom-nav);
+    font-size: var(--size-label);
     letter-spacing: 0.02em;
-    text-decoration: none;
   }
 
-  /* Registrar es lo que más se hace: va en tinta, como el botón principal. */
-  .tabs a.tabs__main--primary {
-    background: var(--ink);
-    color: var(--paper);
+  /* La pantalla en la que se está: la raya roja arriba de su botón. */
+  .tabs__item[aria-current="page"] {
+    box-shadow: inset 0 3px 0 var(--red);
   }
 
-  .tabs__plus {
-    font-size: 1.5rem;
-    font-weight: 400;
-    line-height: 1;
-    translate: 0 -2px;
+  .tabs__item[data-section="home"] {
+    order: 1;
   }
 
-  /* La pantalla en la que se está: la raya roja sobre su botón. */
-  .tabs a.tabs__main[aria-current="page"]::before {
-    content: "";
-    position: absolute;
-    inset: auto -1px calc(100% + 4px) -1px;
-    height: 4px;
-    background: var(--red);
+  .tabs__item[data-section="month"] {
+    order: 2;
+  }
+
+  /* Registrar, al centro: lo que más se hace queda bajo el pulgar. */
+  .tabs__record {
+    order: 3;
+    align-self: center;
+    justify-self: center;
+    width: 56px;
+    height: 52px;
+  }
+
+  .tabs__record .icon {
+    width: 28px;
+    height: 28px;
+    stroke-width: 2.25;
+  }
+
+  .tabs__record[aria-current="page"] {
+    outline: 3px solid var(--red);
+    outline-offset: 2px;
+  }
+
+  .tabs__item[data-section="expenses"] {
+    order: 4;
+  }
+
+  .tabs__item[data-section="profile"] {
+    order: 5;
   }
 }
 
-/* Computador: menú lateral con el logo arriba (Diseño, Navegación). */
+/* Computador: menú lateral con el logo arriba, "Registrar gasto", las
+   secciones y el perfil abajo a la izquierda (Diseño, Navegación). */
 @media (min-width: 1024px) {
   .app {
     grid-template-columns: var(--sidebar) minmax(0, 1fr);
@@ -438,17 +490,12 @@ button {
     padding-block: var(--space-3);
   }
 
-  .space-switch {
+  .topbar__space {
     margin-left: 0;
   }
 
-  .space-switch__label {
+  .topbar__space-label {
     display: inline;
-  }
-
-  .space-switch__menu {
-    right: auto;
-    left: 0;
   }
 
   .topbar__month {
@@ -470,37 +517,110 @@ button {
     flex-direction: column;
     background: var(--paper);
     border-right: var(--rule-width) solid var(--ink);
-    padding: var(--space-4) 0 var(--space-5);
+    padding: var(--space-4) 0 var(--space-3);
   }
 
   .tabs__brand {
     padding: 0 var(--gutter) var(--space-4);
     border-bottom: var(--double-rule);
-    margin-bottom: var(--space-3);
   }
 
-  .tabs__plus {
+  .tabs__item--narrow {
     display: none;
   }
 
-  .tabs a:not(.brand) {
+  .tabs__record {
+    gap: var(--space-2);
+    min-height: var(--row);
+    margin: var(--space-4) var(--gutter) var(--space-3);
+  }
+
+  .tabs__item {
+    gap: var(--space-3);
     min-height: calc(var(--row) + var(--space-1));
     padding: 0 var(--gutter);
-    display: grid;
-    align-items: center;
-    justify-items: start;
     font-size: var(--size-label);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--muted);
-    text-decoration: none;
   }
 
-  .tabs a:not(.brand)[aria-current="page"] {
-    color: var(--ink);
-    font-weight: 600;
+  .tabs__item[aria-current="page"] {
     box-shadow: inset 3px 0 0 var(--red);
     background: var(--field);
+  }
+
+  /* El perfil, abajo a la izquierda. */
+  .profile {
+    position: relative;
+    margin-top: auto;
+    padding: var(--space-3) var(--space-3) 0;
+    border-top: var(--rule-width) solid var(--rule);
+  }
+
+  .profile__button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: var(--row);
+    padding: var(--space-2);
+    background: transparent;
+    border: var(--rule-width) solid transparent;
+    border-radius: var(--radius);
+    text-align: left;
+  }
+
+  .profile__button:hover,
+  .profile__button[aria-expanded="true"] {
+    background: var(--field);
+    border-color: var(--rule-strong);
+  }
+
+  .profile__text {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+  }
+
+  .profile__name,
+  .profile__space {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .profile__name {
+    font-weight: 600;
+  }
+
+  .profile__space {
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+
+  /* La flecha: dos bordes girados; abierto, apunta hacia abajo. */
+  .profile__button::after {
+    content: "";
+    flex: none;
+    width: 7px;
+    height: 7px;
+    margin-right: var(--space-1);
+    border: solid var(--ink);
+    border-width: 2px 2px 0 0;
+    translate: 0 2px;
+    rotate: -45deg;
+  }
+
+  .profile__button[aria-expanded="true"]::after {
+    translate: 0 -2px;
+    rotate: 135deg;
+  }
+
+  /* El menú se abre hacia arriba, sobre el perfil. */
+  .profile__menu {
+    position: absolute;
+    left: var(--space-3);
+    bottom: calc(100% + var(--space-1));
   }
 }
 
@@ -2342,4 +2462,34 @@ dialog::backdrop {
 .picker__option--create .picker__mark {
   border-style: dashed;
   font-size: 1.125rem;
+}
+
+/* --- Perfil (`/perfil`) --- */
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.who__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Un renglón que es un botón: los espacios del perfil. */
+.entry--button {
+  width: 100%;
+  align-items: center;
+  padding-inline: var(--space-3);
+  border: 0;
+  border-bottom: var(--rule-width) solid var(--rule);
+  background: transparent;
+  text-align: left;
+}
+
+.entry--button[aria-current="true"] {
+  font-weight: 600;
+  background: var(--field);
+  box-shadow: inset 3px 0 0 var(--red);
 }

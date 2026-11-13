@@ -14,10 +14,16 @@ export async function logIn({ api, session, home }, { email, password }) {
   return session.takeNext() ?? home?.() ?? "/registrar";
 }
 
-/** Crea la cuenta y entra con ella (RF-1). */
-export async function signUp(context, { email, password }) {
-  await context.api.post("/auth/register", { email, password });
+/** Crea la cuenta, con su nombre (spec 031, RF-8), y entra con ella (RF-1). */
+export async function signUp(context, { name, email, password }) {
+  await context.api.post("/auth/register", { name, email, password });
   return logIn(context, { email, password });
+}
+
+/** Guarda el nombre de quien tiene la sesión y devuelve la cuenta al día
+ * (spec 031, RF-4). */
+export function saveName({ api }, name) {
+  return api.patch("/me", { name });
 }
 
 /** Cierra la sesión en la API y borra lo del dispositivo. Sin conexión, borra

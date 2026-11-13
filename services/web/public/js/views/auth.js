@@ -57,6 +57,7 @@ function authForm(app, { submitLabel, busyLabel, controls, rows, action }) {
         setBusy(submit, true, busyLabel);
         try {
           const destination = await action({
+            name: controls.name?.value.trim(),
             email: controls.email.value,
             password: controls.password.value,
           });
@@ -108,11 +109,27 @@ export function renderLogin(main, app) {
 
 export function renderRegister(main, app) {
   const controls = credentials({ newPassword: true });
+  // El nombre va primero (spec 031, RF-8): con él se nombra el espacio.
+  controls.name = h("input", {
+    class: "input",
+    name: "name",
+    autocomplete: "name",
+    autocapitalize: "words",
+    maxlength: 50,
+    required: true,
+  });
   const form = authForm(app, {
     submitLabel: "Crear cuenta",
     busyLabel: "Creando…",
     controls,
     rows: [
+      field({
+        id: "register-name",
+        label: "Nombre",
+        control: controls.name,
+        hint: "Tu espacio se llamará «Espacio de» y tu nombre.",
+        block: true,
+      }),
       field({ id: "register-email", label: "Correo", control: controls.email, block: true }),
       field({
         id: "register-password",
@@ -131,5 +148,5 @@ export function renderRegister(main, app) {
       footer: h("p", { class: "muted" }, "¿Ya tienes cuenta? ", h("a", { href: "/entrar" }, "Entrar")),
     }),
   );
-  controls.email.focus();
+  controls.name.focus();
 }

@@ -107,7 +107,7 @@ def test_foreign_space_answers_like_a_missing_one_on_every_route(
             assert response.json() == {"detail": "Espacio no encontrado."}
 
     assert [space["name"] for space in spaces(client, ana)] == [
-        "Personal",
+        "Espacio de Ana",
         "Casa de Ana",
     ]
 
@@ -145,8 +145,11 @@ def test_deleting_a_space_does_not_touch_another_users_space(
 
     client.delete(f"/spaces/{viajes}", params={"confirm": "Casa"}, headers=bea)
 
-    assert [space["name"] for space in spaces(client, ana)] == ["Personal", "Casa"]
-    assert [space["name"] for space in spaces(client, bea)] == ["Personal"]
+    assert [space["name"] for space in spaces(client, ana)] == [
+        "Espacio de Ana",
+        "Casa",
+    ]
+    assert [space["name"] for space in spaces(client, bea)] == ["Espacio de Bea"]
 
 
 def test_non_member_cannot_list_or_create_categories(

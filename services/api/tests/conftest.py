@@ -67,6 +67,12 @@ def client(engine: Engine) -> Iterator[TestClient]:
 PASSWORD = "una-contraseña-larga"
 
 
+def name_from(email: str) -> str:
+    """El nombre con el que los tests crean una cuenta: "ana@example.com" →
+    "Ana". Su espacio por defecto es "Espacio de Ana" (spec 031)."""
+    return email.strip().split("@")[0].capitalize() or "Ana"
+
+
 def token_from(url: str) -> str:
     """Token de un enlace de invitación `<WEB_BASE_URL>/unirse/<token>`."""
     return url.rsplit("/", 1)[1]
@@ -81,7 +87,8 @@ def login(client: TestClient) -> Callable[[str], dict[str, str]]:
 
     def _login(email: str = "ana@example.com") -> dict[str, str]:
         body = {"email": email, "password": PASSWORD}
-        client.post("/auth/register", json=body).raise_for_status()
+        registration = body | {"name": name_from(email)}
+        client.post("/auth/register", json=registration).raise_for_status()
         response = client.post("/auth/login", json=body)
         return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
