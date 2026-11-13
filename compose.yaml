@@ -38,6 +38,9 @@ services:
       DATABASE_URL: postgresql://gastito:${POSTGRES_PASSWORD}@db:5432/gastito
       TZ: ${TZ:-America/Bogota}
       WEB_BASE_URL: http://localhost:8080
+      # En local no se envía ningún correo: la API lo escribe, con su enlace,
+      # en su salida. Se lee con `docker compose logs api` (spec 032).
+      EMAIL_PROVIDER: console
     depends_on:
       db:
         # Espera al healthcheck de la base: la API aplica las migraciones al
