@@ -166,13 +166,33 @@ al arrancar la API; si una falla, Render deja corriendo la versión anterior.
 
 **Lo que hay que saber:**
 
-- **La API se duerme** tras 15 minutos sin uso y tarda cerca de un minuto
-  en despertar. La web carga al instante, pero la primera acción espera.
+- **La API se dormiría** tras 15 minutos sin uso, y despertar tarda cerca
+  de un minuto. Para evitarlo hay un monitor externo (ver abajo).
 - **El registro está abierto y sin límite de peticiones** hasta la 015.
 - **Si cambias las cabeceras o las rutas** en `services/web/serve.py`,
   cámbialas también en `render.yaml`.
 - Los datos desplegados están en Neon; los de tu computador, en `budget.db`.
   No se mezclan.
+
+**El monitor que mantiene despierta la API.** Es lo único del despliegue
+que no está en el repositorio: se configura a mano en
+[UptimeRobot](https://uptimerobot.com) (plan gratuito). Si hay que
+recrearlo:
+
+| Campo | Valor |
+|---|---|
+| Tipo | Keyword |
+| URL | `https://gastito-api-33vd.onrender.com/health` |
+| Palabra clave | `"status":"ok"` |
+| Incidente cuando | la palabra clave **no** está |
+| Intervalo | 5 minutos |
+| Nombre | gastito API |
+
+Es de tipo Keyword y no HTTP porque hace un `GET`: `/health` responde 405 a
+`HEAD`. Además de mantenerla despierta, avisa por correo si la API se cae.
+Despierta todo el mes, la API usa hasta 744 de las 750 horas gratuitas de
+Render: un segundo servicio web gratuito en la misma cuenta las agotaría.
+`/health` no consulta la base, así que Neon se sigue suspendiendo solo.
 
 ## La web
 Con `make run-api` y `make run-web`, abre http://localhost:8080. La web es
