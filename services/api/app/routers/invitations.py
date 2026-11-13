@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.deps import current_user
+from app.deps import verified_user
 from app.models import Invitation, Membership, Space, User
 from app.schemas import InvitationOut, InvitationPreviewOut, SpaceOut
 from app.security import generate_invitation_token, hash_token
@@ -92,10 +92,11 @@ def preview_invitation(
 @router.post("/{token}/redeem")
 def redeem_invitation(
     token: str,
-    user: Annotated[User, Depends(current_user)],
+    user: Annotated[User, Depends(verified_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> SpaceOut:
-    """Une a quien llama al espacio de la invitación y la marca usada (RF-17)."""
+    """Une a quien llama al espacio de la invitación y la marca usada (RF-17).
+    Exige el correo confirmado (spec 032, RF-8)."""
     invitation = find_valid_invitation(db, token)
     if invitation is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, INVITATION_INVALID)

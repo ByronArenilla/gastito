@@ -6,14 +6,14 @@ from sqlalchemy.orm import Session
 
 from app.models import Base, Invitation, Membership, Space, User
 from app.security import verify_password
-from tests.conftest import name_from, token_from
+from tests.conftest import sign_up, token_from
 
 PASSWORD = "una-contraseña-larga"
 
 
 def register(client: TestClient, email: str = "ana@example.com", **extra: str):
-    body = {"email": email, "password": PASSWORD, "name": name_from(email)}
-    return client.post("/auth/register", json=body | extra)
+    """La cuenta ya creada: solicitud y confirmación (spec 032)."""
+    return sign_up(client, email, **extra)
 
 
 def count(engine: Engine, model: type[Base]) -> int:
@@ -141,7 +141,8 @@ def test_password_of_exactly_twelve_characters_is_accepted(
         json={"email": "ana@example.com", "password": "a" * 12, "name": "Ana"},
     )
 
-    assert response.status_code == 201
+    # Aceptada: queda la solicitud y sale el enlace (spec 032, RF-1).
+    assert response.status_code == 202
 
 
 def test_malformed_email_is_rejected(client: TestClient, engine: Engine) -> None:

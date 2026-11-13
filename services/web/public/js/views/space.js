@@ -4,6 +4,7 @@
 // (profile.js) y en Mi cuenta (account.js).
 import { categoryRequest } from "../categories.js";
 import { h } from "../dom.js";
+import { needsVerification } from "../profile.js";
 import { createSpace, leaveSpace, shareInvitation } from "../spaces.js";
 import { OFFLINE_SAVE, clearErrors, field, formError, nameConflict, setBusy, showErrors } from "./form.js";
 
@@ -29,6 +30,21 @@ function currentSection(app) {
 }
 
 function shareSection(app) {
+  // Una cuenta con el correo sin confirmar no comparte (spec 032, RF-8 y
+  // RF-17): se explica aquí en lugar de dejar que el botón falle.
+  if (needsVerification(app.me)) {
+    return h(
+      "section",
+      { class: "stack", "aria-labelledby": "share-title" },
+      h("h2", { id: "share-title" }, "Compartir"),
+      h(
+        "p",
+        { class: "info" },
+        "Para compartir este espacio, primero confirma tu correo. Es un enlace que te enviamos y abres.",
+      ),
+      h("div", {}, h("a", { class: "button button--quiet", href: "/cuenta" }, "Confirmar en Mi cuenta")),
+    );
+  }
   const status = h("p", { class: "muted", "aria-live": "polite" });
   const manual = h("input", { class: "input", readonly: true, hidden: true, "aria-label": "Enlace de invitación" });
   const button = h(

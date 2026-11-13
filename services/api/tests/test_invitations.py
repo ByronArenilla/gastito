@@ -120,6 +120,7 @@ def test_trailing_slash_in_web_base_url_does_not_double_it(
             "DATABASE_URL": "sqlite://",
             "TZ": "UTC",
             "WEB_BASE_URL": f"{WEB_BASE_URL}/",
+            "EMAIL_PROVIDER": "console",
         }
     )
     monkeypatch.setattr(invitations, "settings", configured)

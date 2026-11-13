@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.selectable import ScalarSelect
 
 from app.db import get_db
-from app.deps import current_user, member_space
+from app.deps import current_user, member_space, verified_user
 from app.models import Membership, Space, User
 from app.routers.categories import add_default_categories
 from app.routers.invitations import issue_invitation
@@ -76,10 +76,11 @@ def create_space(
 @router.post("/{space_id}/invitations", status_code=status.HTTP_201_CREATED)
 def create_space_invitation(
     space: Annotated[Space, Depends(member_space)],
-    user: Annotated[User, Depends(current_user)],
+    user: Annotated[User, Depends(verified_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> InvitationOut:
-    """Enlace para unirse a este espacio; solo lo emite un miembro (RF-15)."""
+    """Enlace para unirse a este espacio; solo lo emite un miembro (RF-15)
+    que haya confirmado su correo (spec 032, RF-8)."""
     return issue_invitation(db, user.id, space.id)
 
 

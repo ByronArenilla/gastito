@@ -7,6 +7,12 @@
 const ROUTES = [
   { pattern: /^\/entrar$/, view: "login", access: "guest" },
   { pattern: /^\/crear-cuenta$/, view: "register", access: "guest" },
+  // Spec 032: los enlaces que llegan por correo. Se abren con o sin sesión,
+  // y en cualquier dispositivo.
+  { pattern: /^\/confirmar-cuenta\/(?<token>[\w-]+)$/, view: "confirmAccount", access: "any" },
+  { pattern: /^\/verificar\/(?<token>[\w-]+)$/, view: "verifyEmail", access: "any" },
+  { pattern: /^\/olvide-mi-contrasena$/, view: "forgot", access: "guest" },
+  { pattern: /^\/restablecer\/(?<token>[\w-]+)$/, view: "reset", access: "any" },
   { pattern: /^\/inicio$/, view: "home", access: "member" },
   // Spec 031: una cuenta sin nombre lo escribe aquí antes de seguir.
   { pattern: /^\/tu-nombre$/, view: "name", access: "member" },

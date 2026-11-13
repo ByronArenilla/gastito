@@ -50,6 +50,18 @@ services:
       # enlaces de invitación.
       - key: WEB_BASE_URL
         value: https://migastito.onrender.com
+      # Correos de crear cuenta, confirmar el correo y cambiar la contraseña
+      # (spec 032, ADR 0021). Salen por la API HTTP de Brevo: el plan gratuito
+      # de Render bloquea SMTP. Sin EMAIL_PROVIDER la API no arranca.
+      - key: EMAIL_PROVIDER
+        value: brevo
+      # La llave de Brevo es un secreto y el remitente es un correo personal:
+      # ninguno va en el repositorio. En un servicio que ya existe Render no
+      # los pide: se ponen a mano en su pestaña Environment.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
       # La API está detrás del proxy de Render, que es quien recibe el HTTPS.
       # Con esto uvicorn confía en las cabeceras X-Forwarded-* del proxy y
       # sabe que la petición original llegó por https (si no, sus

@@ -9,14 +9,13 @@ from sqlalchemy.orm import Session
 from app.models import Session as SessionRow
 from app.models import User
 from app.security import hash_token
-from tests.conftest import PASSWORD, name_from
+from tests.conftest import PASSWORD, sign_up
 
 Login = Callable[..., dict[str, str]]
 
 
 def register(client: TestClient, email: str = "ana@example.com") -> None:
-    body = {"email": email, "password": PASSWORD, "name": name_from(email)}
-    client.post("/auth/register", json=body)
+    sign_up(client, email)
 
 
 def post_login(client: TestClient, email: str, password: str = PASSWORD):

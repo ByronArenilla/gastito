@@ -41,6 +41,12 @@ def generate_invitation_token() -> str:
     return secrets.token_urlsafe(16)
 
 
+def generate_email_token() -> str:
+    """Token de un enlace que va por correo (spec 032): 256 bits, seguro para
+    usar en una URL."""
+    return secrets.token_urlsafe(32)
+
+
 def hash_token(token: str) -> str:
     """SHA-256 en hexadecimal: lo único que se guarda de un token."""
     return hashlib.sha256(token.encode()).hexdigest()

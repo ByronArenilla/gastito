@@ -2,12 +2,12 @@
 // navegación y avisos. Las pantallas viven en `views/` y reciben `app`, el
 // contexto compartido.
 import { API_URL } from "/config.js";
-import { logOut } from "./account.js";
+import { logOut, requestVerification } from "./account.js";
 import { createApi } from "./api.js";
 import { h } from "./dom.js";
 import { formatMonthShort } from "./format.js";
 import { createConnection, screenError } from "./offline.js";
-import { displayName, initials, needsName } from "./profile.js";
+import { displayName, initials, needsName, needsVerification } from "./profile.js";
 import { homePath, matchRoute } from "./routes.js";
 import { createSession } from "./session.js";
 import { createDrafts } from "./state.js";
@@ -23,6 +23,10 @@ const VIEWS = {
   account: () => import("./views/account.js").then((module) => module.renderAccount),
   login: () => import("./views/auth.js").then((module) => module.renderLogin),
   register: () => import("./views/auth.js").then((module) => module.renderRegister),
+  confirmAccount: () => import("./views/email-links.js").then((module) => module.renderConfirmAccount),
+  verifyEmail: () => import("./views/email-links.js").then((module) => module.renderVerifyEmail),
+  forgot: () => import("./views/email-links.js").then((module) => module.renderForgot),
+  reset: () => import("./views/email-links.js").then((module) => module.renderReset),
   record: () => import("./views/record.js").then((module) => module.renderRecord),
   edit: () => import("./views/record.js").then((module) => module.renderEdit),
   expenses: () => import("./views/expenses.js").then((module) => module.renderExpenses),
@@ -75,7 +79,8 @@ const dialog = document.getElementById("dialog");
 
 const session = createSession({ local: window.localStorage, temporary: window.sessionStorage });
 const connection = createConnection(window);
-const notices = createNotices(document.getElementById("notices"));
+const noticesBox = document.getElementById("notices");
+const notices = createNotices(noticesBox);
 const drafts = createDrafts();
 let renderCount = 0;
 
@@ -150,6 +155,70 @@ function refreshProfile() {
   profileSpace.textContent = app.space?.name ?? "";
   profileName.textContent = displayName(app.me);
   profileInitials.textContent = initials(app.me);
+  refreshVerification();
+}
+
+// --- "Confirma tu correo" (spec 032, RF-17) ---
+// Una cuenta anterior a la spec lo ve arriba hasta que confirme. "Ahora no"
+// lo quita hasta la próxima vez que se abra la app; en Mi cuenta sigue.
+let verificationSnoozed = false;
+let currentView = null;
+const verificationSend = h(
+  "button",
+  {
+    type: "button",
+    class: "button button--link",
+    "data-sends": true,
+    onClick: async () => {
+      if (!connection.online()) return;
+      verificationSend.disabled = true;
+      try {
+        const result = await requestVerification(app);
+        notices.show({ text: result.detail, seconds: 10 });
+      } catch (error) {
+        // Por ejemplo, el minuto de espera entre un correo y otro.
+        if (error.status !== 401) notices.show({ text: error.message, kind: "error", seconds: 10 });
+      } finally {
+        verificationSend.disabled = false;
+      }
+    },
+  },
+  "Enviar enlace",
+);
+const verificationBar = h(
+  "div",
+  { class: "notice notice--pending", role: "status" },
+  h(
+    "span",
+    { class: "notice__text" },
+    h("b", {}, "Confirma tu correo"),
+    h("span", {}, "Te enviamos un enlace y lo abres. Sin confirmarlo no puedes compartir espacios."),
+  ),
+  verificationSend,
+  h(
+    "button",
+    {
+      type: "button",
+      class: "button button--link",
+      onClick: () => {
+        verificationSnoozed = true;
+        refreshVerification();
+      },
+    },
+    "Ahora no",
+  ),
+);
+
+function refreshVerification() {
+  const show =
+    !verificationSnoozed &&
+    session.isLoggedIn() &&
+    needsVerification(app.me) &&
+    !shell.hasAttribute("data-guest") &&
+    // En la pantalla del enlace el aviso sobra: ahí mismo se confirma.
+    currentView !== "verifyEmail";
+  if (!show) verificationBar.remove();
+  else if (!verificationBar.isConnected) noticesBox.prepend(verificationBar);
 }
 
 /** Pasa a otro espacio desde el perfil y vuelve a pintar la pantalla.
@@ -250,6 +319,8 @@ async function render() {
   // "¿Cómo te llamas?" se ve como las pantallas de entrar: sin menú.
   shell.toggleAttribute("data-guest", !member || route.view === "name");
   markSection(route.view);
+  currentView = route.view;
+  refreshVerification();
   app.setMonth(null);
   // Cada pantalla pone su ancho (`main--wide`, `main--reports`): sin esto,
   // el de la anterior se quedaba.
@@ -266,6 +337,7 @@ async function render() {
       return navigate("/tu-nombre", { replace: true });
     }
     if (route.view === "name" && !needsName(app.me)) return navigate(app.home(), { replace: true });
+    refreshVerification();
     const view = await VIEWS[route.view]();
     if (count !== renderCount) return;
     main.replaceChildren();

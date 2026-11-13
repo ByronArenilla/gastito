@@ -1,9 +1,9 @@
 // Mi cuenta (`/cuenta`): el nombre (spec 031, RF-10), el correo, cómo fijar
 // la app (spec 011, RF-29) y cerrar sesión (decisión 22 de la 011).
-import { saveName } from "../account.js";
+import { requestVerification, saveName } from "../account.js";
 import { h } from "../dom.js";
 import { pinGuide } from "../platform.js";
-import { nameRequest } from "../profile.js";
+import { nameRequest, needsVerification } from "../profile.js";
 import { OFFLINE_SAVE, clearErrors, field, formError, setBusy, showErrors } from "./form.js";
 
 function nameSection(app) {
@@ -54,6 +54,55 @@ function nameSection(app) {
   return form;
 }
 
+/** El correo y si está confirmado (spec 032, RF-17). Una API anterior a la
+ * spec no dice el estado: entonces solo se muestra el correo (RF-21). */
+function emailSection(app) {
+  const pending = needsVerification(app.me);
+  const status = h("p", { class: "muted", "aria-live": "polite" });
+  const busyLabel = "Enviando…";
+  const send = h(
+    "button",
+    {
+      type: "button",
+      class: "button button--quiet",
+      "data-sends": true,
+      onClick: async () => {
+        if (!app.connection.online()) {
+          status.textContent = OFFLINE_SAVE;
+          return;
+        }
+        setBusy(send, true, busyLabel);
+        try {
+          status.textContent = (await requestVerification(app)).detail;
+        } catch (error) {
+          status.textContent = error.message;
+        } finally {
+          setBusy(send, false, busyLabel);
+        }
+      },
+    },
+    "Enviar enlace de confirmación",
+  );
+  return h(
+    "section",
+    { class: "stack", "aria-labelledby": "email-title" },
+    h("h2", { id: "email-title" }, "Correo"),
+    h("p", {}, app.me.email),
+    h("p", { class: "muted" }, "Con este correo entras a Gastito."),
+    app.me.email_verified === true && h("p", { class: "label" }, "Confirmado"),
+    pending && [
+      h("p", { class: "label over" }, "Sin confirmar"),
+      h(
+        "p",
+        { class: "muted" },
+        "Te enviamos un enlace a este correo y lo abres. Mientras no lo confirmes no puedes compartir tus espacios ni unirte a otros; lo demás funciona igual.",
+      ),
+      h("div", {}, send),
+      status,
+    ],
+  );
+}
+
 /** Los pasos para fijar la app en este navegador; nada si ya está fijada
  * (RF-29, decisión 20). */
 function pinSection() {
@@ -85,13 +134,7 @@ export async function renderAccount(main, app) {
       { class: "screen spaced" },
       h("h1", {}, "Mi cuenta"),
       nameSection(app),
-      h(
-        "section",
-        { class: "stack", "aria-labelledby": "email-title" },
-        h("h2", { id: "email-title" }, "Correo"),
-        h("p", {}, app.me.email),
-        h("p", { class: "muted" }, "Con este correo entras a Gastito."),
-      ),
+      emailSection(app),
       pinSection(),
       h(
         "section",

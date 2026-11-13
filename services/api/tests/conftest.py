@@ -1,4 +1,5 @@
 import os
+import re
 from collections.abc import Callable, Iterator
 
 import pytest
@@ -10,6 +11,9 @@ os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["TZ"] = "America/Bogota"
 WEB_BASE_URL = "http://web.test"
 os.environ["WEB_BASE_URL"] = WEB_BASE_URL
+# Los tests nunca envían correos (spec 032, RF-14): el proveedor es `console`
+# y, además, el fixture `client` lo cambia por un buzón en memoria.
+os.environ["EMAIL_PROVIDER"] = "console"
 # El bot se retiró (spec 007): si el entorno de quien corre los tests aún
 # tiene su llave, se quita para probar la API tal como arranca ahora.
 os.environ.pop("BOT_API_KEY", None)
@@ -22,8 +26,24 @@ from sqlalchemy import Engine  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from app.db import build_engine, get_db  # noqa: E402
+from app.mailer import Email, MailError, get_mailer  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Base  # noqa: E402
+
+
+class Outbox:
+    """El proveedor de correo de los tests: guarda lo "enviado" en una lista
+    y nunca sale a la red (spec 032, RF-14). Con `failing = True` se comporta
+    como un Brevo caído."""
+
+    def __init__(self) -> None:
+        self.sent: list[Email] = []
+        self.failing = False
+
+    def send(self, email: Email) -> None:
+        if self.failing:
+            raise MailError("fallo simulado")
+        self.sent.append(email)
 
 
 @pytest.fixture
@@ -59,9 +79,21 @@ def client(engine: Engine) -> Iterator[TestClient]:
         with Session(engine) as db:
             yield db
 
+    outbox = Outbox()
     app.dependency_overrides[get_db] = override_get_db
-    yield TestClient(app)
+    app.dependency_overrides[get_mailer] = lambda: outbox
+    test_client = TestClient(app)
+    # El buzón viaja con el cliente: los ayudantes que crean cuentas leen de
+    # ahí el enlace del correo.
+    test_client.outbox = outbox
+    yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def outbox(client: TestClient) -> Outbox:
+    """El buzón del `client` de este test."""
+    return client.outbox
 
 
 PASSWORD = "una-contraseña-larga"
@@ -78,17 +110,40 @@ def token_from(url: str) -> str:
     return url.rsplit("/", 1)[1]
 
 
+def link_in(email: Email) -> str:
+    """El enlace de un correo de los tests."""
+    return re.search(rf"{re.escape(WEB_BASE_URL)}/\S+", email.text).group()
+
+
+def last_token(client: TestClient, to: str | None = None) -> str:
+    """El token del último correo enviado (a `to`, si se indica)."""
+    emails = [email for email in client.outbox.sent if to in (None, email.to)]
+    return token_from(link_in(emails[-1]))
+
+
+def sign_up(client: TestClient, email: str = "ana@example.com", **changes: object):
+    """Crea una cuenta por el camino completo (spec 032): la solicitud y el
+    enlace del correo. Devuelve la respuesta de confirmar, o la de la
+    solicitud si esa no pasó (`409`, `422`...)."""
+    body = {"email": email, "password": PASSWORD, "name": name_from(email)}
+    response = client.post("/auth/register", json=body | changes)
+    if response.status_code != 202:
+        return response
+    token = last_token(client, to=response.json()["email"])
+    return client.post("/auth/register/confirm", json={"token": token})
+
+
 @pytest.fixture
 def login(client: TestClient) -> Callable[[str], dict[str, str]]:
-    """Registra un usuario, inicia su sesión y devuelve la cabecera con el token.
+    """Crea una cuenta (con su correo confirmado, como toda cuenta nueva),
+    inicia su sesión y devuelve la cabecera con el token.
 
     El registro es abierto (RF-1): cada usuario se registra sin código.
     """
 
     def _login(email: str = "ana@example.com") -> dict[str, str]:
         body = {"email": email, "password": PASSWORD}
-        registration = body | {"name": name_from(email)}
-        client.post("/auth/register", json=registration).raise_for_status()
+        sign_up(client, email).raise_for_status()
         response = client.post("/auth/login", json=body)
         return {"Authorization": f"Bearer {response.json()['access_token']}"}
 

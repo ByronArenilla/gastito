@@ -25,13 +25,15 @@ function credentials({ newPassword }) {
   return { email, password };
 }
 
-function screen({ title, form, footer, message }) {
+function screen({ title, form, footer, message, success }) {
   return h(
     "section",
     { class: "auth" },
     h("p", { class: "wordmark brand", "aria-hidden": "true" }, logo(), "Gastito"),
     h("h1", {}, title),
     message && h("p", { class: "error", role: "alert" }, message),
+    // Una buena noticia que trae a Entrar: cuenta creada o contraseña cambiada.
+    success && h("p", { class: "info", role: "status" }, success),
     form,
     footer,
   );
@@ -61,6 +63,9 @@ function authForm(app, { submitLabel, busyLabel, controls, rows, action }) {
             email: controls.email.value,
             password: controls.password.value,
           });
+          // Sin destino, la propia pantalla ya mostró qué sigue ("Revisa tu
+          // correo", al crear una cuenta).
+          if (!destination) return;
           app.me = null;
           app.navigate(destination, { replace: true });
         } catch (error) {
@@ -80,7 +85,13 @@ export function renderLogin(main, app) {
   // El aviso de una sesión que caducó o se cerró en otro lado (RF-3).
   const message = app.drafts.get("auth-message");
   app.drafts.clear("auth-message");
+  // Lo que deja un enlace del correo: "cuenta creada" y su correo ya escrito.
+  const success = app.drafts.get("auth-success");
+  const knownEmail = app.drafts.get("auth-email");
+  app.drafts.clear("auth-success");
+  app.drafts.clear("auth-email");
   const controls = credentials({ newPassword: false });
+  if (knownEmail) controls.email.value = knownEmail;
   const form = authForm(app, {
     submitLabel: "Entrar",
     busyLabel: "Entrando…",
@@ -95,16 +106,79 @@ export function renderLogin(main, app) {
     screen({
       title: "Entrar",
       message,
+      success,
       form,
       footer: h(
-        "p",
-        { class: "muted" },
-        "¿No tienes cuenta? ",
-        h("a", { href: "/crear-cuenta" }, "Crear cuenta"),
+        "div",
+        { class: "stack" },
+        h("p", {}, h("a", { href: "/olvide-mi-contrasena" }, "¿Olvidaste tu contraseña?")),
+        h("p", { class: "muted" }, "¿No tienes cuenta? ", h("a", { href: "/crear-cuenta" }, "Crear cuenta")),
       ),
     }),
   );
-  controls.email.focus();
+  (knownEmail ? controls.password : controls.email).focus();
+}
+
+/** "Revisa tu correo" (spec 032, RF-15): la cuenta todavía no existe; nace
+ * al abrir el enlace. `values` es lo que se escribió, para poder pedir el
+ * enlace otra vez sin volver a llenar el formulario. */
+function checkYourEmail(main, app, result, values) {
+  const status = h("p", { class: "muted", "aria-live": "polite" });
+  const again = h(
+    "button",
+    {
+      type: "button",
+      class: "button button--quiet button--block",
+      "data-sends": true,
+      onClick: async () => {
+        if (!app.connection.online()) {
+          status.textContent = OFFLINE_SAVE;
+          return;
+        }
+        setBusy(again, true, "Enviando…");
+        try {
+          await signUp(app, values);
+          status.textContent = "Listo, te enviamos otro enlace. El anterior ya no sirve.";
+        } catch (error) {
+          // Por ejemplo, el minuto de espera entre un correo y otro.
+          status.textContent = error.message;
+        } finally {
+          setBusy(again, false, "Enviando…");
+        }
+      },
+    },
+    "Enviar otra vez",
+  );
+  main.replaceChildren(
+    h(
+      "section",
+      { class: "auth" },
+      h("p", { class: "wordmark brand", "aria-hidden": "true" }, logo(), "Gastito"),
+      h("h1", {}, "Revisa tu correo"),
+      h(
+        "p",
+        { class: "info", role: "status" },
+        "Te enviamos un enlace a ",
+        h("b", {}, result.email),
+        ". Ábrelo para terminar de crear tu cuenta: sirve una sola vez y caduca en 24 horas.",
+      ),
+      h("p", { class: "muted" }, "Si no lo ves en unos minutos, mira en la carpeta de spam. Tu cuenta todavía no existe: se crea cuando abras el enlace."),
+      h("div", { class: "submit stack" }, again, status),
+      h(
+        "p",
+        { class: "muted" },
+        "¿Te equivocaste de correo? ",
+        h("a", { href: "/crear-cuenta", onClick: (event) => {
+          event.preventDefault();
+          main.replaceChildren();
+          renderRegister(main, app);
+        } }, "Corrígelo"),
+        " · ",
+        h("a", { href: "/entrar" }, "Entrar"),
+      ),
+    ),
+  );
+  app.refreshSending();
 }
 
 export function renderRegister(main, app) {
@@ -139,7 +213,13 @@ export function renderRegister(main, app) {
         block: true,
       }),
     ],
-    action: (values) => signUp(app, values),
+    action: async (values) => {
+      const result = await signUp(app, values);
+      // Con una API anterior a la spec 032 la cuenta ya existe: se entra.
+      if (!result.pending) return result.destination;
+      checkYourEmail(main, app, result, values);
+      return null;
+    },
   });
   main.append(
     screen({

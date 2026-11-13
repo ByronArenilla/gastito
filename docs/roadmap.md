@@ -149,9 +149,20 @@ forma profesional y poder aplicar a puestos de DevOps.
     ancho de celular y de computador. Fuera de la spec, y solo en la web,
     se rehízo la navegación: Inicio, barra inferior de cinco botones y
     perfil con los espacios.
-  - Quedó fuera: verificar el correo y recuperar la contraseña. Necesitan
-    un proveedor de correo y un dominio, o sea un ADR y decidir en qué fase
-    entran (principio 2).
+  - Quedó fuera: verificar el correo y recuperar la contraseña. Pasaron a
+    la 032.
+- [ ] 032-verificacion-de-correo — La cuenta se crea al confirmar el correo; "Olvidé mi contraseña".
+  - Se añadió el 2026-11-13. Los correos salen por la API de Brevo, en su
+    plan gratuito y sin dominio propio (ADR 0021): un servicio externo que
+    no estaba en ninguna fase.
+  - `POST /auth/register` ya no crea la cuenta: la crea confirmar el enlace.
+    Las cuentas anteriores quedan sin confirmar y solo se les bloquea
+    compartir. Migración `0009`.
+  - **Implementada el 2026-11-13**, con `make test` y `make lint` en verde,
+    y recorrida en Chromium a ancho de celular con `EMAIL_PROVIDER=console`.
+    Falta para cerrarla: crear la cuenta de Brevo, poner `EMAIL_PROVIDER`,
+    `BREVO_API_KEY` y `EMAIL_FROM` en Render y comprobar que un correo real
+    llega.
 
 ## Fase 2 — Docker
 - [ ] 014-contenedores

@@ -23,6 +23,27 @@ test("el perfil, la cuenta y el nombre tienen su pantalla", () => {
   assert.deepEqual(matchRoute("/tu-nombre"), { view: "name", params: {}, access: "member" });
 });
 
+test("los enlaces del correo se abren con o sin sesión (spec 032)", () => {
+  assert.deepEqual(matchRoute("/confirmar-cuenta/abc-_9"), {
+    view: "confirmAccount",
+    params: { token: "abc-_9" },
+    access: "any",
+  });
+  assert.deepEqual(matchRoute("/verificar/abc-_9"), {
+    view: "verifyEmail",
+    params: { token: "abc-_9" },
+    access: "any",
+  });
+  assert.deepEqual(matchRoute("/restablecer/abc-_9"), {
+    view: "reset",
+    params: { token: "abc-_9" },
+    access: "any",
+  });
+  assert.deepEqual(matchRoute("/olvide-mi-contrasena"), { view: "forgot", params: {}, access: "guest" });
+  // Un token con caracteres raros no es una ruta.
+  assert.deepEqual(matchRoute("/verificar/a.b"), { redirect: "/registrar" });
+});
+
 test("los reportes viven en /mes/reportes (spec 013)", () => {
   assert.deepEqual(matchRoute("/mes/reportes"), { view: "reports", params: {}, access: "member" });
 });

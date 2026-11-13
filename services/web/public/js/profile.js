@@ -31,3 +31,10 @@ export function nameRequest(text) {
 export function needsName(me) {
   return me != null && me.name === null;
 }
+
+/** Si esta cuenta tiene el correo sin confirmar (spec 032, RF-17): solo
+ * cuando la API lo dice (`email_verified: false`). Una API anterior a la
+ * spec no envía el campo, y ahí no se avisa ni se bloquea nada (RF-21). */
+export function needsVerification(me) {
+  return me != null && me.email_verified === false;
+}

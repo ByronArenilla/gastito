@@ -2,6 +2,7 @@
 // decisión 19). Abrir el enlace nunca une a nadie (ADR 0005): muestra el
 // espacio y pide un toque explícito.
 import { h, logo } from "../dom.js";
+import { needsVerification } from "../profile.js";
 import { OFFLINE_SAVE, setBusy } from "./form.js";
 
 const expiry = new Intl.DateTimeFormat("es-CO", { dateStyle: "long", timeStyle: "short" });
@@ -46,6 +47,16 @@ export async function renderJoin(main, app, { token }) {
         h("a", { class: "button", href: "/crear-cuenta", onClick: remember }, "Crear cuenta"),
         h("a", { class: "button button--quiet", href: "/entrar", onClick: remember }, "Entrar"),
       ),
+    );
+    return;
+  }
+
+  // Con el correo sin confirmar no se puede unir (spec 032, RF-8): se dice
+  // antes de que lo intente. El enlace sigue sirviendo después.
+  if (needsVerification(app.me)) {
+    wrap.append(
+      h("p", { class: "info" }, "Para unirte, primero confirma tu correo. Después abre otra vez este enlace."),
+      h("div", { class: "submit" }, h("a", { class: "button", href: "/cuenta" }, "Confirmar en Mi cuenta")),
     );
     return;
   }

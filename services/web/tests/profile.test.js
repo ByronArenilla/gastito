@@ -1,7 +1,13 @@
 // El perfil sin DOM: nombre a mostrar, iniciales y lo que se envía (spec 031).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { displayName, initials, nameRequest, needsName } from "../public/js/profile.js";
+import {
+  displayName,
+  initials,
+  nameRequest,
+  needsName,
+  needsVerification,
+} from "../public/js/profile.js";
 
 test("se muestra el nombre; sin nombre, el correo", () => {
   assert.equal(displayName({ name: "Byron", email: "byron@example.com" }), "Byron");
@@ -32,4 +38,12 @@ test("con una API anterior a la spec 031, que no envía el nombre, no se pide", 
   // vieja: pedir el nombre ahí daría un error al guardarlo.
   assert.equal(needsName({ id: 1, email: "ana@example.com" }), false);
   assert.equal(needsName(null), false);
+});
+
+test("el aviso de confirmar el correo sale solo si la API dice que falta (spec 032)", () => {
+  assert.equal(needsVerification({ email: "ana@example.com", email_verified: false }), true);
+  assert.equal(needsVerification({ email: "ana@example.com", email_verified: true }), false);
+  // Una API anterior no envía el campo: no se avisa ni se bloquea nada.
+  assert.equal(needsVerification({ email: "ana@example.com" }), false);
+  assert.equal(needsVerification(null), false);
 });

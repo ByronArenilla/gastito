@@ -24,7 +24,7 @@ from app.db import (
 from app.models import Base
 from tests import old_schemas
 
-HEAD = "0008"
+HEAD = "0009"
 
 
 @pytest.fixture
@@ -559,4 +559,27 @@ def test_adding_the_user_name_keeps_every_account(file_engine: Engine) -> None:
     assert version(file_engine) == HEAD
     assert rows(file_engine, query) == before
     assert rows(file_engine, "SELECT DISTINCT name FROM users") == [(None,)]
+    assert schema_diff(file_engine) == []
+
+
+# --- Spec 032: verificación de correo ---
+
+
+def test_the_email_verification_tables_keep_every_account(file_engine: Engine) -> None:
+    # La 0009 solo añade: las cuentas que existen quedan sin confirmar
+    # (decisión 2) y con todo lo demás igual.
+    execute(file_engine, old_schemas.SCHEMA_007 + old_schemas.BASE_ROWS)
+    migrate_to(file_engine, "0008")
+    query = "SELECT id, email, password_hash, name FROM users ORDER BY id"
+    before = rows(file_engine, query)
+    assert before
+
+    run_migrations(file_engine)
+
+    assert version(file_engine) == HEAD
+    assert rows(file_engine, query) == before
+    assert rows(file_engine, "SELECT DISTINCT email_verified_at FROM users") == [
+        (None,)
+    ]
+    assert {"pending_registrations", "email_tokens"} <= tables(file_engine)
     assert schema_diff(file_engine) == []

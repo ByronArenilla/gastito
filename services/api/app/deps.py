@@ -35,6 +35,11 @@ UNAUTHORIZED = HTTPException(
 )
 
 
+EMAIL_NOT_VERIFIED = (
+    "Confirma tu correo para compartir un espacio. Pide el enlace en Mi cuenta."
+)
+
+
 def current_session(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
     db: Annotated[Session, Depends(get_db)],
@@ -66,6 +71,15 @@ def current_user(
 ) -> User:
     """Usuario al que pertenece la sesión de la petición."""
     return db.get_one(User, session.user_id)
+
+
+def verified_user(user: Annotated[User, Depends(current_user)]) -> User:
+    """Quien llama, solo si confirmó su correo (spec 032, RF-8). Lo usan las
+    rutas de compartir: invitar a un espacio y unirse a uno. Una cuenta nueva
+    siempre pasa; una anterior a la spec, cuando confirme."""
+    if not user.email_verified:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, EMAIL_NOT_VERIFIED)
+    return user
 
 
 SPACE_NOT_FOUND = HTTPException(status.HTTP_404_NOT_FOUND, "Espacio no encontrado.")
