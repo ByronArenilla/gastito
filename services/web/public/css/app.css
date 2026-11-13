@@ -1091,6 +1091,18 @@ button {
   border-left-color: var(--red);
 }
 
+/* "Confirma tu correo" (spec 032): se queda hasta confirmar o "Ahora no".
+   En el celular los botones bajan a su propio renglón. */
+.notice--pending {
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+}
+
+.notice--pending .notice__text {
+  flex-basis: 16rem;
+  padding-block: var(--space-1);
+}
+
 /* Algo recién registrado: el aviso se invierte (tinta de fondo, papel de
    texto), lleva una marca de hecho y entra bajando, para que se note sin
    mirar. No usa un color nuevo: la tinta es el color de lo que se hace. */
@@ -1181,6 +1193,14 @@ button {
 .error {
   padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
   border-left: 4px solid var(--red);
+  background: var(--field);
+}
+
+/* Una noticia que no es un error: "revisa tu correo", "cuenta creada". Igual
+   que `.error`, pero en tinta. */
+.info {
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-left: 4px solid var(--ink);
   background: var(--field);
 }
 

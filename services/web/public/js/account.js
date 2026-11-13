@@ -14,10 +14,47 @@ export async function logIn({ api, session, home }, { email, password }) {
   return session.takeNext() ?? home?.() ?? "/registrar";
 }
 
-/** Crea la cuenta, con su nombre (spec 031, RF-8), y entra con ella (RF-1). */
+/** Pide la cuenta nueva (spec 032, RF-15). La API no la crea todavía:
+ * envía un enlace al correo, y la cuenta nace al confirmarlo. Devuelve
+ * `{ pending: true, email, detail }`.
+ *
+ * Una API anterior a la spec 032 sí la crea enseguida y responde con ella
+ * (`id`): entonces se entra como antes y se devuelve `{ pending: false,
+ * destination }`. Así la web nueva funciona con la API vieja mientras las
+ * dos terminan de desplegarse (RF-21). */
 export async function signUp(context, { name, email, password }) {
-  await context.api.post("/auth/register", { name, email, password });
-  return logIn(context, { email, password });
+  const result = await context.api.post("/auth/register", { name, email, password });
+  if (result?.id !== undefined) {
+    return { pending: false, destination: await logIn(context, { email, password }) };
+  }
+  return { pending: true, email: result.email, detail: result.detail };
+}
+
+/** Crea la cuenta de un enlace de "Crear cuenta" (spec 032, RF-16). No
+ * inicia sesión: devuelve la cuenta, para llevar a Entrar con su correo. */
+export function confirmAccount({ api }, token) {
+  return api.post("/auth/register/confirm", { token });
+}
+
+/** Pide un enlace para confirmar el correo de la sesión (spec 032, RF-17). */
+export function requestVerification({ api }) {
+  return api.post("/me/email-verification");
+}
+
+/** Confirma el correo de un enlace; no necesita sesión (spec 032, RF-18). */
+export function confirmEmail({ api }, token) {
+  return api.post("/auth/email-verification/confirm", { token });
+}
+
+/** Pide el enlace para cambiar la contraseña. La API responde lo mismo
+ * exista o no la cuenta (spec 032, RF-19). */
+export function requestPasswordReset({ api }, email) {
+  return api.post("/auth/password-reset", { email: email.trim() });
+}
+
+/** Guarda la contraseña nueva de un enlace (spec 032, RF-20). */
+export function resetPassword({ api }, { token, password }) {
+  return api.post("/auth/password-reset/confirm", { token, password });
 }
 
 /** Guarda el nombre de quien tiene la sesión y devuelve la cuenta al día

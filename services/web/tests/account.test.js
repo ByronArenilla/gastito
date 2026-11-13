@@ -2,7 +2,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ApiError } from "../public/js/api.js";
-import { logIn, logOut, saveName, signUp } from "../public/js/account.js";
+import {
+  confirmAccount,
+  confirmEmail,
+  logIn,
+  logOut,
+  requestPasswordReset,
+  requestVerification,
+  resetPassword,
+  saveName,
+  signUp,
+} from "../public/js/account.js";
 
 function fakeSession() {
   const state = { saved: null, cleared: false, next: null };
@@ -63,24 +73,68 @@ test("sin ruta pendiente, entrar va a la pantalla de inicio del dispositivo (spe
   assert.equal(destination, "/mes");
 });
 
-test("crear cuenta registra y entra con la misma contraseña", async () => {
+test("crear cuenta pide el enlace y todavía no entra (spec 032)", async () => {
+  const session = fakeSession();
+  const api = fakeApi({
+    "/auth/register": () => ({ email: "ana@example.com", detail: "Te enviamos un enlace." }),
+  });
+
+  const result = await signUp(
+    { api, session },
+    { name: "Ana", email: "Ana@Example.com", password: "una-contraseña-larga" },
+  );
+
+  assert.deepEqual(result, { pending: true, email: "ana@example.com", detail: "Te enviamos un enlace." });
+  assert.deepEqual(
+    api.calls.map(([path]) => path),
+    ["/auth/register"],
+  );
+  assert.equal(session.state.saved, null);
+  // El nombre viaja con la solicitud (spec 031, RF-8).
+  assert.equal(api.calls[0][1].name, "Ana");
+});
+
+test("con una API anterior, que crea la cuenta enseguida, entra como antes", async () => {
+  // Durante un despliegue la web nueva puede hablar unos minutos con la API
+  // vieja (spec 032, RF-21).
   const session = fakeSession();
   const api = fakeApi({ "/auth/register": () => ({ id: 1 }), "/auth/login": () => TOKEN });
 
-  const destination = await signUp(
+  const result = await signUp(
     { api, session },
     { name: "Ana", email: "ana@example.com", password: "una-contraseña-larga" },
   );
 
-  assert.equal(destination, "/registrar");
+  assert.deepEqual(result, { pending: false, destination: "/registrar" });
   assert.deepEqual(
     api.calls.map(([path]) => path),
     ["/auth/register", "/auth/login"],
   );
   assert.equal(session.state.saved.token, "abc");
-  // El nombre viaja al crear la cuenta, no al entrar (spec 031, RF-8).
-  assert.equal(api.calls[0][1].name, "Ana");
-  assert.equal("name" in api.calls[1][1], false);
+});
+
+test("los enlaces del correo llaman a su ruta con el token", async () => {
+  const api = fakeApi({
+    "/auth/register/confirm": () => ({ email: "ana@example.com" }),
+    "/auth/email-verification/confirm": () => ({ email: "ana@example.com" }),
+    "/auth/password-reset/confirm": () => ({ detail: "Contraseña cambiada." }),
+    "/auth/password-reset": () => ({ detail: "Si hay una cuenta…" }),
+    "/me/email-verification": () => ({ detail: "Te enviamos un enlace." }),
+  });
+
+  await confirmAccount({ api }, "t1");
+  await confirmEmail({ api }, "t2");
+  await resetPassword({ api }, { token: "t3", password: "una-contraseña-nueva" });
+  await requestPasswordReset({ api }, "  ana@example.com ");
+  await requestVerification({ api });
+
+  assert.deepEqual(api.calls, [
+    ["/auth/register/confirm", { token: "t1" }],
+    ["/auth/email-verification/confirm", { token: "t2" }],
+    ["/auth/password-reset/confirm", { token: "t3", password: "una-contraseña-nueva" }],
+    ["/auth/password-reset", { email: "ana@example.com" }],
+    ["/me/email-verification", undefined],
+  ]);
 });
 
 test("guardar el nombre lo envía a /me y devuelve la cuenta", async () => {

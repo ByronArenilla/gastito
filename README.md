@@ -28,8 +28,8 @@ make test             # pytest de la API y de la web, y node --test
 make lint             # ruff check y ruff format --check
 ```
 
-Si falta `DATABASE_URL`, `TZ` o `WEB_BASE_URL`, la API no arranca y dice
-cuál falta; si falta `API_URL`, la web tampoco. La documentación interactiva
+Si falta `DATABASE_URL`, `TZ`, `WEB_BASE_URL` o `EMAIL_PROVIDER`, la API no
+arranca y dice cuál falta; si falta `API_URL`, la web tampoco. La documentación interactiva
 de la API está en http://localhost:8000/docs.
 
 **Si tu `.env` es de antes de la spec 007**, puede tener `TELEGRAM_BOT_TOKEN`
@@ -169,6 +169,10 @@ al arrancar la API; si una falla, Render deja corriendo la versión anterior.
 - **La API se dormiría** tras 15 minutos sin uso, y despertar tarda cerca
   de un minuto. Para evitarlo hay un monitor externo (ver abajo).
 - **El registro está abierto y sin límite de peticiones** hasta la 015.
+- **Los correos** (spec 032) necesitan `EMAIL_PROVIDER=brevo`,
+  `BREVO_API_KEY` y `EMAIL_FROM` en el panel de Render, en el servicio de
+  la API, **antes** de desplegar: sin `EMAIL_PROVIDER` la API nueva no
+  arranca y Render deja corriendo la anterior.
 - **Si cambias las cabeceras o las rutas** en `services/web/serve.py`,
   cámbialas también en `render.yaml`.
 - Los datos desplegados están en Neon; los de tu computador, en `budget.db`.
@@ -300,13 +304,42 @@ otras personas para compartir presupuesto. Dos espacios nunca ven los datos
 del otro.
 
 **Registrarse.** El registro es abierto: un nombre (de 1 a 50 caracteres),
-un correo y una contraseña de al menos 12 caracteres. Crea el usuario y su
-espacio "Espacio de <nombre>" (spec 031).
+un correo y una contraseña de al menos 12 caracteres. La cuenta no se crea
+todavía: la API responde `202` y envía un enlace a ese correo. Al
+confirmarlo se crean el usuario, ya con el correo comprobado, y su espacio
+"Espacio de <nombre>" (specs 031 y 032). Hasta entonces no se puede entrar.
 
 ```sh
 curl -X POST localhost:8000/auth/register -H 'content-type: application/json' \
   -d '{"name": "Ana", "email": "ana@example.com", "password": "al-menos-12-caracteres"}'
+# El token es la última parte del enlace del correo
+# (<WEB_BASE_URL>/confirmar-cuenta/<token>).
+curl -X POST localhost:8000/auth/register/confirm -H 'content-type: application/json' \
+  -d '{"token": "<token>"}'
 ```
+
+**Correos (spec 032, [ADR 0021](docs/adr/0021-correo-transaccional-con-brevo.md)).**
+`EMAIL_PROVIDER` decide cómo salen. Con `console` no se envía nada: el
+correo, con su enlace, aparece en la terminal de `make run-api`, y de ahí se
+copia. Con `brevo` se envían por la API de Brevo; exige `BREVO_API_KEY` y
+`EMAIL_FROM`. Los enlaces son de un solo uso, pedir uno nuevo anula el
+anterior y hay que esperar un minuto entre un correo y otro. Abrir un enlace
+no hace nada: siempre hay que tocar un botón.
+
+| Para qué | Se pide con | Enlace | Dura |
+| --- | --- | --- | --- |
+| Crear la cuenta | `POST /auth/register` | `/confirmar-cuenta/<token>` | 24 horas |
+| Confirmar el correo de una cuenta anterior | `POST /me/email-verification` | `/verificar/<token>` | 24 horas |
+| Cambiar la contraseña | `POST /auth/password-reset` | `/restablecer/<token>` | 1 hora |
+
+**Cuentas anteriores a la spec 032.** Quedan con el correo sin confirmar
+(`email_verified: false` en `GET /me`). Siguen usando la app, ven el aviso
+"Confirma tu correo" y, hasta confirmarlo, no pueden crear una invitación
+ni unirse al espacio de otra persona (`403`).
+
+**Olvidé mi contraseña.** `POST /auth/password-reset` responde lo mismo
+exista o no la cuenta. Guardar la contraseña nueva cierra todas las sesiones
+de la cuenta y deja su correo confirmado.
 
 **El nombre.** `GET /me` lo devuelve y `PATCH /me` lo cambia. Una cuenta
 creada antes de la spec 031 no tiene nombre (`null`): la web se lo pide una
