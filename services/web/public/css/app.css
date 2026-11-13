@@ -337,6 +337,14 @@ button {
   padding-bottom: var(--space-2);
 }
 
+/* En un renglón apilado solo hay una columna. Sin esto, la pista pediría la
+   segunda, la rejilla la crearía y el campo quedaría al lado de la etiqueta,
+   sin línea propia: en "Crear cuenta" no se veía dónde escribir la
+   contraseña. */
+.row--block > .row__hint {
+  grid-column: 1;
+}
+
 .row__error {
   grid-column: 1 / -1;
   color: var(--red);
