@@ -1,7 +1,7 @@
 // Entrar y crear cuenta (spec 011, RF-1 y RF-2). Se entra una sola vez: la
 // sesión se renueva sola con el uso (decisión 9).
 import { logIn, signUp } from "../account.js";
-import { h } from "../dom.js";
+import { h, logo } from "../dom.js";
 import { OFFLINE_SAVE, field, formError, setBusy, showErrors } from "./form.js";
 
 function credentials({ newPassword }) {
@@ -29,7 +29,7 @@ function screen({ title, form, footer, message }) {
   return h(
     "section",
     { class: "auth" },
-    h("p", { class: "wordmark", "aria-hidden": "true" }, "gastito"),
+    h("p", { class: "wordmark brand", "aria-hidden": "true" }, logo(), "Gastito"),
     h("h1", {}, title),
     message && h("p", { class: "error", role: "alert" }, message),
     form,

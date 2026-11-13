@@ -18,9 +18,9 @@ export async function leaveSpace({ api, session }, space, spaces) {
 /** Lo que se comparte: el enlace y por qué hay que usarlo pronto. */
 export function shareText(invitation, spaceName) {
   return {
-    title: `Únete a «${spaceName}» en gastito`,
+    title: `Únete a «${spaceName}» en Gastito`,
     text:
-      `Te invito a «${spaceName}» en gastito, para llevar juntos el presupuesto. ` +
+      `Te invito a «${spaceName}» en Gastito, para llevar juntos el presupuesto. ` +
       "El enlace es de un solo uso y caduca en 24 horas.",
     url: invitation.url,
   };

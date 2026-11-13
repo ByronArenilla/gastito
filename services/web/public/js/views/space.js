@@ -208,7 +208,7 @@ function pinSection() {
     h(
       "p",
       { class: "muted" },
-      "Así gastito se abre como una aplicación, sin buscarla en el navegador. No se descarga nada.",
+      "Así Gastito se abre como una aplicación, sin buscarla en el navegador. No se descarga nada.",
     ),
     h("p", { class: "label" }, guide.title),
     guide.steps.length > 0 && h("ol", { class: "steps" }, guide.steps.map((step) => h("li", {}, step))),
@@ -219,8 +219,13 @@ function pinSection() {
 /** Las categorías del espacio: verlas, crear y eliminar (spec 012, RF-28 y
  * RF-29). Eliminar archiva: lo que ya la tiene la conserva, y crearla de
  * nuevo con el mismo nombre la restaura (spec 008). */
-function categoriesSection(app) {
+function categoriesSection(app, { back = null } = {}) {
   const base = `/spaces/${app.space.id}/categories`;
+  // Quien llegó desde la lista de categorías de un gasto vuelve con un toque.
+  const goBack = back && {
+    label: back === "/registrar" ? "Volver a Registrar" : "Volver al gasto",
+    onClick: () => app.navigate(back),
+  };
   const list = h("ul", { class: "rows", "aria-label": "Categorías" }, h("li", { class: "loading", "aria-hidden": "true" }));
   const name = h("input", { class: "input", name: "name", autocomplete: "off", maxlength: 50 });
   const busyLabel = "Creando…";
@@ -290,7 +295,11 @@ function categoriesSection(app) {
         setBusy(submit, true, busyLabel);
         try {
           const category = await app.api.post(base, request.body);
-          app.notices.show({ text: `Categoría «${category.name}» lista para usar.`, seconds: 6 });
+          app.notices.show({
+            text: `Categoría «${category.name}» lista para usar.`,
+            seconds: goBack ? 15 : 6,
+            action: goBack,
+          });
           clearErrors(form);
           name.value = "";
           await load();
@@ -320,13 +329,17 @@ function categoriesSection(app) {
 export async function renderSpace(main, app) {
   // La lista de espacios puede haber cambiado en otro dispositivo.
   await app.loadAccount();
+  // "Crear categoría" en la lista de un gasto trae aquí, directo al campo.
+  const focus = app.drafts.get("space-focus");
+  app.drafts.clear("space-focus");
+  const toCategories = focus?.section === "categories";
   main.append(
     h(
       "div",
       { class: "screen spaced" },
       h("h1", { class: "sr-only" }, "Espacio"),
       currentSection(app),
-      categoriesSection(app),
+      categoriesSection(app, { back: toCategories ? focus.back : null }),
       shareSection(app),
       createSection(app),
       app.spaces.length > 1 && leaveSection(app),
@@ -334,4 +347,9 @@ export async function renderSpace(main, app) {
       accountSection(app),
     ),
   );
+  if (toCategories) {
+    const name = main.querySelector("#category-name");
+    name?.scrollIntoView({ block: "center" });
+    name?.focus({ preventScroll: true });
+  }
 }

@@ -1,7 +1,13 @@
 // Qué envía cada renglón de Planear (spec 012, RF-13 a RF-17).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { missingText, needsConfirm, rowRequest, statementRequest } from "../public/js/plan-rows.js";
+import {
+  missingText,
+  needsConfirm,
+  planProgress,
+  rowRequest,
+  statementRequest,
+} from "../public/js/plan-rows.js";
 
 const MERCADO = { id: 3, name: "Mercado", categoryId: 2, amount: 900000 };
 
@@ -104,4 +110,47 @@ test("el extracto: escrito se guarda, vacío se quita, igual no se envía", () =
   assert.deepEqual(statementRequest(null, ""), { action: "none", body: null });
   // Una tarjeta que no cobró nada ese mes: 0 vale (decisión 20 de la 009).
   assert.deepEqual(statementRequest(null, "0"), { action: "put", body: { amount: 0 } });
+});
+
+// --- La tarjeta de "cuánto llevas planeado" ---
+
+test("lo planeado son los rubros más las deudas, y queda el resto del ingreso", () => {
+  const progress = planProgress({ income: 4000000, items: 2800000, debts: 200000 });
+
+  assert.equal(progress.planned, 3000000);
+  assert.equal(progress.left, 1000000);
+  assert.equal(progress.state, "left");
+  assert.equal(progress.percent, 75);
+  assert.deepEqual(progress.shares, { items: 0.7, debts: 0.05 });
+});
+
+test("planear justo el ingreso lo deja en cero", () => {
+  const progress = planProgress({ income: 1000000, items: 1000000, debts: 0 });
+
+  assert.equal(progress.left, 0);
+  assert.equal(progress.state, "full");
+  assert.equal(progress.percent, 100);
+});
+
+test("planear más de lo que ingresa: la barra se reparte sobre lo planeado", () => {
+  const progress = planProgress({ income: 1000000, items: 1500000, debts: 500000 });
+
+  assert.equal(progress.left, -1000000);
+  assert.equal(progress.state, "over");
+  assert.equal(progress.percent, 200);
+  assert.deepEqual(progress.shares, { items: 0.75, debts: 0.25 });
+});
+
+test("sin ingresos no hay porcentaje ni división por cero", () => {
+  assert.deepEqual(planProgress({ income: 0, items: 0, debts: 0 }), {
+    income: 0,
+    items: 0,
+    debts: 0,
+    planned: 0,
+    left: 0,
+    state: "no-income",
+    percent: null,
+    shares: { items: 0, debts: 0 },
+  });
+  assert.equal(planProgress({ income: 0, items: 300000, debts: 0 }).state, "no-income");
 });

@@ -34,6 +34,7 @@ import {
   periodOf,
 } from "../format.js";
 import { OFFLINE_SAVE, clearErrors, field, formError, setBusy, showErrors } from "./form.js";
+import { categoryPicker } from "./picker.js";
 import { buildNewWithdrawal } from "./withdrawal.js";
 
 const DRAFT = "record";
@@ -273,17 +274,29 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
   const suggestionsStatus = h("p", { class: "sr-only", "aria-live": "polite" });
 
   // --- Categoría ---
-  const category = h(
-    "select",
-    {
-      class: "select",
-      name: "category_id",
-      onChange: () => update({ categoryId: category.value ? Number(category.value) : null }),
+  // Una lista propia en vez de un `<select>` (picker.js). Al final ofrece
+  // crear una categoría: lleva a Espacio, donde se crean, y lo escrito aquí
+  // se conserva para la vuelta.
+  const category = categoryPicker({
+    id: "record-category",
+    labelId: "record-category-label",
+    options: data.categories,
+    nameOf: data.categoryName,
+    onPick: (categoryId) => update({ categoryId }),
+    create: {
+      href: "/espacio",
+      label: "Crear categoría",
+      onClick: () => app.drafts.set("space-focus", { section: "categories", back: location.pathname }),
     },
-    h("option", { value: "" }, "Elige la categoría"),
-    data.categories.map((item) => h("option", { value: item.id }, item.name)),
+  });
+  const categoryRow = h(
+    "div",
+    { class: "row row--picker", dataset: { field: "category_id" } },
+    h("span", { class: "label", id: "record-category-label" }, "Categoría"),
+    category.button,
+    category.list,
+    h("p", { class: "row__error", hidden: true }),
   );
-  const categoryRow = field({ id: "record-category", label: "Categoría", control: category });
 
   // --- Fecha (RF-13): "Hoy" no se envía (decisión 12) ---
   const dateLabel = h("span", {});
@@ -462,7 +475,8 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
 
     what.placeholder = kind === "debt" ? "Nombre de la deuda" : "";
     categoryRow.hidden = !(kind === "debt" || (usesItems(form) && form.itemId === null));
-    category.value = form.categoryId === null ? "" : String(form.categoryId);
+    if (categoryRow.hidden) category.close();
+    category.set(form.categoryId);
 
     dateLabel.textContent = form.date ? formatDay(form.date) : "Hoy";
     dateLabel.hidden = false;
@@ -557,11 +571,13 @@ export async function renderRecord(main, app) {
   (app.drafts.get("record-kind") === "withdrawal" ? withdrawal : recordForm).focus();
 }
 
-/** "Registrado: Mercado · $ 52.000" con "Deshacer" durante 10 segundos
- * (decisión 13). Pulsar "Deshacer" es la confirmación del borrado. */
+/** "Gasto registrado · Mercado · $ 52.000" con "Deshacer" durante 10
+ * segundos (decisión 13). Pulsar "Deshacer" es la confirmación del borrado. */
 function announce(app, data, expense, name) {
   app.notices.show({
-    text: `Registrado: ${name} · ${formatPesos(expense.amount)}`,
+    kind: "success",
+    title: "Gasto registrado",
+    text: `${name} · ${formatPesos(expense.amount)}`,
     seconds: 10,
     action: {
       label: "Deshacer",

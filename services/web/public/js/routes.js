@@ -7,6 +7,7 @@
 const ROUTES = [
   { pattern: /^\/entrar$/, view: "login", access: "guest" },
   { pattern: /^\/crear-cuenta$/, view: "register", access: "guest" },
+  { pattern: /^\/inicio$/, view: "home", access: "member" },
   { pattern: /^\/mes$/, view: "month", access: "member" },
   { pattern: /^\/mes\/planear$/, view: "plan", access: "member" },
   { pattern: /^\/mes\/reportes$/, view: "reports", access: "member" },
@@ -26,8 +27,9 @@ const ROUTES = [
 /** Ancho desde el que la navegación va al costado y se abre el Mes. */
 const WIDE = 1024;
 
-/** La pantalla de inicio: el Mes en el computador y Registrar en el celular
- * (spec 012, decisión 3). Se decide con el ancho de la ventana al abrir. */
+/** La pantalla con la que abre la app: el Mes en el computador y Registrar
+ * en el celular (spec 012, decisión 3). Se decide con el ancho de la ventana
+ * al abrir. `/inicio`, el del logo, es otra cosa: la guía de secciones. */
 export function homePath(width) {
   return width >= WIDE ? "/mes" : "/registrar";
 }

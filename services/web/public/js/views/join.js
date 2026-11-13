@@ -1,7 +1,7 @@
 // Unirse a un espacio desde un enlace `/unirse/<token>` (spec 011, RF-27,
 // decisión 19). Abrir el enlace nunca une a nadie (ADR 0005): muestra el
 // espacio y pide un toque explícito.
-import { h } from "../dom.js";
+import { h, logo } from "../dom.js";
 import { OFFLINE_SAVE, setBusy } from "./form.js";
 
 const expiry = new Intl.DateTimeFormat("es-CO", { dateStyle: "long", timeStyle: "short" });
@@ -10,7 +10,7 @@ export async function renderJoin(main, app, { token }) {
   const wrap = h("section", { class: "auth" });
   main.append(wrap);
   const loggedIn = app.session.isLoggedIn();
-  if (!loggedIn) wrap.append(h("p", { class: "wordmark", "aria-hidden": "true" }, "gastito"));
+  if (!loggedIn) wrap.append(h("p", { class: "wordmark brand", "aria-hidden": "true" }, logo(), "Gastito"));
 
   let preview;
   try {

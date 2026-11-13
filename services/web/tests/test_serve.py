@@ -149,7 +149,7 @@ def test_without_api_url_the_server_does_not_start() -> None:
 def test_the_manifest_lets_the_app_be_pinned() -> None:
     manifest = json.loads((serve.PUBLIC / "manifest.webmanifest").read_text())
 
-    assert manifest["name"] == manifest["short_name"] == "gastito"
+    assert manifest["name"] == manifest["short_name"] == "Gastito"
     assert manifest["lang"] == "es-CO"
     assert manifest["display"] == "standalone"
     # El ícono fijado abre la pantalla de inicio del dispositivo (spec 012).

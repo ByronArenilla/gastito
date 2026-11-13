@@ -6,6 +6,8 @@ import { h } from "../dom.js";
 const OFFLINE_TEXT =
   "Sin conexión. Lo que escribiste se queda aquí; podrás guardarlo cuando vuelva la conexión.";
 
+const KINDS = { error: "notice notice--error", success: "notice notice--success" };
+
 export function createNotices(container) {
   let current = null;
   let timer = null;
@@ -18,13 +20,16 @@ export function createNotices(container) {
   }
 
   return {
-    /** Un aviso con acción opcional que se va solo tras `seconds`. */
-    show({ text, kind = "info", action = null, seconds = 10 }) {
+    /** Un aviso con acción opcional que se va solo tras `seconds`. `kind`
+     * "success" es el de algo recién registrado: en tinta, con una marca de
+     * hecho y un `title` en negrita, para que no pase inadvertido. */
+    show({ text, title = null, kind = "info", action = null, seconds = 10 }) {
       dismiss();
       current = h(
         "div",
-        { class: kind === "error" ? "notice notice--error" : "notice" },
-        h("span", {}, text),
+        { class: KINDS[kind] ?? "notice" },
+        kind === "success" && h("span", { class: "notice__mark", "aria-hidden": "true" }),
+        h("span", { class: "notice__text" }, title && h("b", {}, title), h("span", {}, text)),
         action &&
           h(
             "button",

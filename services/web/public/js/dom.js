@@ -33,3 +33,28 @@ export function append(element, ...children) {
   }
   return element;
 }
+
+/** Cambia todo el contenido de `element`, con las reglas de `h`. El
+ * `replaceChildren` del navegador escribe `null` y `false` como texto, así
+ * que un bloque opcional (`hayTarjetas && bloque`) terminaba a la vista como
+ * la palabra "false". */
+export function replace(element, ...children) {
+  element.replaceChildren();
+  return append(element, ...children);
+}
+
+/** El logo de Gastito: reutiliza el dibujo de `index.html` (`<symbol
+ * id="logo">`). Un `<svg>` necesita su espacio de nombres, así que no sale
+ * de `h`. */
+export function logo() {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "logo");
+  svg.setAttribute("viewBox", "0 0 64 64");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const use = document.createElementNS(NS, "use");
+  use.setAttribute("href", "#logo");
+  svg.append(use);
+  return svg;
+}

@@ -3,9 +3,9 @@
 // RF-9). Un mes sin plan ofrece copiar el del mes anterior o planear en blanco
 // (RF-10, RF-11). Planear es el mismo mes en modo edición (RF-12 a RF-18).
 import { buildDashboard, copyNotice } from "../dashboard.js";
-import { h } from "../dom.js";
+import { h, replace } from "../dom.js";
 import { formatMonth, formatNumber, formatPesos, monthName, parseAmount, shiftPeriod } from "../format.js";
-import { missingText, needsConfirm, rowRequest, statementRequest } from "../plan-rows.js";
+import { missingText, needsConfirm, planProgress, rowRequest, statementRequest } from "../plan-rows.js";
 import { isSavingsName } from "../withdrawals.js";
 import { OFFLINE_SAVE } from "./form.js";
 import { monthTabs } from "./month-tabs.js";
@@ -214,10 +214,11 @@ export async function renderMonth(main, app) {
     title.textContent = capitalize(formatMonth(summary.period));
     app.setMonth(summary.period);
     if (board.empty) {
-      body.replaceChildren(emptyBlock(summary.period), cardsBlock(board, dueDays));
+      replace(body, emptyBlock(summary.period), cardsBlock(board, dueDays));
       return;
     }
-    body.replaceChildren(
+    replace(
+      body,
       h("a", { class: "button button--quiet", href: "/mes/planear" }, `Planear ${name}`),
       totalsBlock(board),
       incomeBlock(board),
@@ -264,11 +265,11 @@ export async function renderMonth(main, app) {
   }
 
   async function load() {
-    body.replaceChildren(h("div", { class: "loading", "aria-hidden": "true" }));
+    replace(body, h("div", { class: "loading", "aria-hidden": "true" }));
     try {
       paint(await loadSummary(app, base));
     } catch (error) {
-      body.replaceChildren(h("p", { class: "error", role: "alert" }, error.message));
+      replace(body, h("p", { class: "error", role: "alert" }, error.message));
     }
     app.refreshSending();
   }
@@ -400,6 +401,7 @@ function planRow(ctx, kind, original, { categories = [] } = {}) {
   async function quit() {
     if (!saved) {
       row.remove();
+      ctx.onChange();
       return;
     }
     if (!app.connection.online()) {
@@ -418,6 +420,7 @@ function planRow(ctx, kind, original, { categories = [] } = {}) {
     try {
       await app.api.del(`${base}/${isItem ? "budget-items" : "incomes"}/${saved.id}`);
       row.remove();
+      ctx.onChange();
       app.notices.show({ text: `Quitado: ${saved.name}.`, seconds: 6 });
     } catch (error) {
       say(error.message, true);
@@ -432,7 +435,41 @@ function planRow(ctx, kind, original, { categories = [] } = {}) {
     saving.finally(() => pending.delete(saving));
   });
 
-  return { element: row, focus: () => name.focus(), hasError: () => status.classList.contains("plan-row__status--error") };
+  const api = {
+    kind,
+    element: row,
+    focus: () => name.focus(),
+    /** Guarda el renglón ya, sin esperar a salir de él (el "+" y Enter).
+     * Devuelve "ok", "blank" si es nuevo y sigue vacío, o "error" si le
+     * falta algo o la API lo rechazó; entonces el foco va al campo. */
+    async commit() {
+      const saving = save();
+      pending.add(saving);
+      saving.finally(() => pending.delete(saving));
+      await saving;
+      if (status.classList.contains("plan-row__status--error")) {
+        (row.querySelector('[aria-invalid="true"]') ?? name).focus();
+        return "error";
+      }
+      return saved ? "ok" : "blank";
+    },
+    /** El "+" de la lista vive en su último renglón, antes del estado. */
+    holdAdd: (button) => row.insertBefore(button, status),
+    /** Lo escrito en el monto, se haya guardado o no: la tarjeta de arriba
+     * suma lo que se ve en la pantalla. */
+    amount: () => parseAmount(amount.value) ?? 0,
+    hasError: () => status.classList.contains("plan-row__status--error"),
+  };
+
+  // Enter en un campo de texto hace lo mismo que el "+": guarda el renglón
+  // y, si es el último, abre el siguiente.
+  row.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement)) return;
+    event.preventDefault();
+    ctx.onEnter(api);
+  });
+
+  return api;
 }
 
 /** El extracto real de una tarjeta en el mes (RF-17, decisión 6). */
@@ -506,6 +543,7 @@ function statementRow(ctx, card) {
       }
       status.classList.remove("plan-row__status--error");
       status.textContent = `Guardado. ${estimate()}`;
+      ctx.onStatement();
     } catch (error) {
       input.setAttribute("aria-invalid", "true");
       status.classList.add("plan-row__status--error");
@@ -525,6 +563,77 @@ function statementRow(ctx, card) {
   return row;
 }
 
+const LEFT_LABELS = {
+  left: "Queda por planear",
+  full: "Queda por planear",
+  over: "Te pasas por",
+  "no-income": "Queda por planear",
+};
+
+/** La tarjeta de Planear: cuánto del ingreso ya está planeado y cuánto
+ * queda. Se queda a la vista al bajar por los rubros (`position: sticky`) y
+ * se actualiza mientras se escribe. No es `aria-live`: anunciaría cada
+ * tecla; un lector de pantalla la lee al llegar a ella. */
+function planCard() {
+  const planned = h("span", { class: "plan-card__value figure" });
+  const plannedNote = h("span", { class: "plan-card__note" });
+  const leftLabel = h("span", { class: "label" });
+  const left = h("span", { class: "plan-card__value figure" });
+  const leftNote = h("span", { class: "plan-card__note" });
+  const items = h("span", { class: "plan-card__part plan-card__part--items" });
+  const debts = h("span", { class: "plan-card__part plan-card__part--debts" });
+  const legend = h("p", { class: "plan-card__legend" });
+  const element = h(
+    "section",
+    { class: "plan-card", "aria-label": "Cuánto llevas planeado", hidden: true },
+    h(
+      "div",
+      { class: "plan-card__figures" },
+      h("div", { class: "plan-card__figure" }, h("span", { class: "label" }, "Planeado"), planned, plannedNote),
+      h("div", { class: "plan-card__figure plan-card__figure--left" }, leftLabel, left, leftNote),
+    ),
+    h("div", { class: "plan-card__bar", "aria-hidden": "true" }, items, debts),
+    legend,
+  );
+
+  return {
+    element,
+    update(progress) {
+      const { state } = progress;
+      element.hidden = false;
+      element.classList.toggle("plan-card--over", state === "over");
+      planned.textContent = formatPesos(progress.planned);
+      plannedNote.textContent =
+        state === "no-income" ? "todavía sin ingresos" : `de ${formatPesos(progress.income)} de ingresos`;
+      leftLabel.textContent = LEFT_LABELS[state];
+      left.textContent = state === "no-income" ? "—" : formatPesos(Math.abs(progress.left));
+      leftNote.textContent = {
+        left: `${progress.percent} % del ingreso planeado`,
+        full: "Todo el ingreso tiene destino",
+        over: "Planeas más de lo que ingresa",
+        "no-income": "Añade tus ingresos para verlo",
+      }[state];
+      withVar(items, "--grow", progress.shares.items);
+      withVar(debts, "--grow", progress.shares.debts);
+      // Una parte en cero no se dibuja: dejaría su separación de 2 px sola.
+      items.hidden = progress.items === 0;
+      debts.hidden = progress.debts === 0;
+      element.classList.toggle("plan-card--empty", state === "no-income");
+      // Las deudas de las tarjetas ya ocupan parte del ingreso sin ser un
+      // rubro: se dicen aparte para que la suma se entienda.
+      legend.hidden = progress.debts === 0;
+      replace(
+        legend,
+        h("span", {}, h("span", { class: "swatch swatch--items", "aria-hidden": "true" }), ` Rubros ${formatPesos(progress.items)}`),
+        h("span", {}, h("span", { class: "swatch swatch--debts", "aria-hidden": "true" }), ` Deudas de tarjetas ${formatPesos(progress.debts)}`),
+      );
+    },
+    hide() {
+      element.hidden = true;
+    },
+  };
+}
+
 export async function renderPlan(main, app) {
   const base = `/spaces/${app.space.id}`;
   const [categories, cards] = await Promise.all([
@@ -534,7 +643,16 @@ export async function renderPlan(main, app) {
   const title = h("h1", { "aria-live": "polite" });
   const body = h("div", { class: "screen" });
   const pending = new Set();
+  const progressCard = planCard();
   let rows = [];
+  let debtTotal = 0;
+
+  /** Los renglones que siguen en la pantalla: uno quitado ya no cuenta. */
+  const liveRows = () => rows.filter((row) => row.element.isConnected);
+  const sumOf = (kind) =>
+    liveRows().reduce((total, row) => total + (row.kind === kind ? row.amount() : 0), 0);
+  const refreshCard = () =>
+    progressCard.update(planProgress({ income: sumOf("income"), items: sumOf("item"), debts: debtTotal }));
 
   const done = h(
     "button",
@@ -546,7 +664,9 @@ export async function renderPlan(main, app) {
         // error, se queda para corregirlo.
         if (main.contains(document.activeElement)) document.activeElement.blur();
         await Promise.allSettled([...pending]);
-        const broken = rows.find((row) => row.hasError());
+        // Solo los renglones a la vista: uno quitado con un error a medias
+        // dejaba "Listo" sin responder.
+        const broken = liveRows().find((row) => row.hasError());
         if (broken) {
           broken.focus();
           return;
@@ -564,10 +684,14 @@ export async function renderPlan(main, app) {
       { class: "screen" },
       monthHead(app, h("div", {}, h("p", { class: "label" }, "Planear"), title), load),
       h("div", { class: "cluster" }, done),
-      h("p", { class: "muted" }, "Cada renglón se guarda al salir de él."),
+      h("p", { class: "muted" }, "Cada renglón se guarda al salir de él, o con el + de la derecha."),
       body,
+      // Al final y fija abajo (CSS): se ve mientras se añaden rubros.
+      progressCard.element,
     ),
   );
+  // Cada tecla en un monto mueve la tarjeta, antes incluso de guardar.
+  body.addEventListener("input", refreshCard);
 
   function paint(summary) {
     const period = summary.period;
@@ -577,7 +701,32 @@ export async function renderPlan(main, app) {
     const savingsIds = new Set(
       summary.categories.filter((row) => isSavingsName(row.name)).map((row) => row.category_id),
     );
-    const ctx = { app, base, period, pending, savingsIds };
+    debtTotal = summary.total.debts;
+    const ctx = {
+      app,
+      base,
+      period,
+      pending,
+      savingsIds,
+      // Quitar un renglón puede dejar la lista sin el del "+".
+      onChange: () => {
+        placeAdd("income");
+        placeAdd("item");
+        refreshCard();
+      },
+      onEnter: (row) => (row === lastOf(row.kind) ? addRow(row.kind) : row.commit()),
+      // El extracto real cambia la deuda del mes, y esa cuenta es de la API.
+      onStatement: async () => {
+        try {
+          const fresh = await app.api.get(`${base}/summary`, { period });
+          if (app.drafts.get("period") !== period) return;
+          debtTotal = fresh.total.debts;
+          refreshCard();
+        } catch {
+          // La tarjeta se queda con la deuda anterior; el extracto sí se guardó.
+        }
+      },
+    };
     // Las categorías activas; la de un rubro cuya categoría se eliminó sigue
     // en su lista para no cambiarla sin querer (RF-42 de la 008).
     const options = categories.map((row) => ({ id: row.id, name: row.name }));
@@ -609,20 +758,48 @@ export async function renderPlan(main, app) {
           }).element,
       ),
     );
-    const add = (kind, list, text) =>
+    // El "+" de cada lista va a la derecha de su último renglón: guarda ese
+    // renglón y abre el siguiente, así que se siente como "añadir este y
+    // seguir". Es un solo botón por lista, que se muda al renglón que quede
+    // de último. Una lista nunca queda vacía: siempre hay un renglón en
+    // blanco listo para escribir (uno en blanco no se guarda ni da error).
+    const addButton = (kind, label) =>
       h(
         "button",
-        {
-          type: "button",
-          class: "button button--link",
-          onClick: () => {
-            const row = make(kind, null);
-            list.append(row.element);
-            row.focus();
-          },
-        },
-        text,
+        { type: "button", class: "add", "aria-label": label, title: label, onClick: () => addRow(kind) },
+        h("span", { "aria-hidden": "true" }, "+"),
       );
+    const lists = {
+      income: { list: incomes, button: addButton("income", "Guardar y añadir otro ingreso") },
+      item: { list: items, button: addButton("item", "Guardar y añadir otro rubro") },
+    };
+    const lastOf = (kind) => liveRows().filter((row) => row.kind === kind).at(-1) ?? null;
+
+    function placeAdd(kind) {
+      const { list, button } = lists[kind];
+      let last = lastOf(kind);
+      if (!last) {
+        last = make(kind, null);
+        list.append(last.element);
+      }
+      for (const row of rows) {
+        if (row.kind === kind) row.element.classList.toggle("plan-row--last", row === last);
+      }
+      last.holdAdd(button);
+    }
+
+    async function addRow(kind) {
+      const last = lastOf(kind);
+      const result = await last.commit();
+      if (result === "error") return;
+      // El último sigue en blanco: no hace falta otro, se escribe en ese.
+      if (result === "blank") return last.focus();
+      const row = make(kind, null);
+      lists[kind].list.append(row.element);
+      placeAdd(kind);
+      row.focus();
+      refreshCard();
+    }
 
     // Las tarjetas activas y las archivadas con algo en el mes (RF-17).
     const debts = new Map(summary.debts.map((debt) => [debt.card_id, debt]));
@@ -635,9 +812,10 @@ export async function renderPlan(main, app) {
       statement: debts.get(card.id)?.statement ?? null,
     }));
 
-    body.replaceChildren(
-      h("section", { class: "stack", "aria-labelledby": "plan-incomes" }, h("h2", { class: "label", id: "plan-incomes" }, "Ingresos"), incomes, h("div", {}, add("income", incomes, "Añadir ingreso"))),
-      h("section", { class: "stack", "aria-labelledby": "plan-items" }, h("h2", { class: "label", id: "plan-items" }, "Rubros"), items, h("div", {}, add("item", items, "Añadir rubro"))),
+    replace(
+      body,
+      h("section", { class: "stack", "aria-labelledby": "plan-incomes" }, h("h2", { class: "label plan-head", id: "plan-incomes" }, "Ingresos"), incomes),
+      h("section", { class: "stack", "aria-labelledby": "plan-items" }, h("h2", { class: "label plan-head", id: "plan-items" }, "Rubros"), items),
       statementCards.length > 0 &&
         h(
           "section",
@@ -646,14 +824,19 @@ export async function renderPlan(main, app) {
           statementCards.map((card) => statementRow(ctx, card)),
         ),
     );
+    placeAdd("income");
+    placeAdd("item");
+    refreshCard();
   }
 
   async function load() {
-    body.replaceChildren(h("div", { class: "loading", "aria-hidden": "true" }));
+    // Mientras carga otro mes, la tarjeta no muestra las cifras del anterior.
+    progressCard.hide();
+    replace(body, h("div", { class: "loading", "aria-hidden": "true" }));
     try {
       paint(await loadSummary(app, base));
     } catch (error) {
-      body.replaceChildren(h("p", { class: "error", role: "alert" }, error.message));
+      replace(body, h("p", { class: "error", role: "alert" }, error.message));
     }
     app.refreshSending();
   }

@@ -78,3 +78,25 @@ export function statementRequest(saved, text) {
   if (value === saved) return { action: "none", body: null };
   return { action: "put", body: { amount: value } };
 }
+
+/** Cuánto del ingreso ya está planeado, para la tarjeta de Planear. Lo
+ * planeado son los rubros más las deudas de las tarjetas, como en el resumen
+ * de la API; aquí solo se suma lo que hay escrito en la pantalla. `left` es
+ * lo que queda (negativo si se planeó de más) y `shares`, la parte de la
+ * barra de cada uno: sobre el ingreso, o sobre lo planeado si lo supera. */
+export function planProgress({ income, items, debts }) {
+  const planned = items + debts;
+  const left = income - planned;
+  const whole = Math.max(income, planned);
+  const share = (amount) => (whole > 0 ? amount / whole : 0);
+  return {
+    income,
+    items,
+    debts,
+    planned,
+    left,
+    state: income === 0 ? "no-income" : left < 0 ? "over" : left === 0 ? "full" : "left",
+    percent: income > 0 ? Math.round((planned / income) * 100) : null,
+    shares: { items: share(items), debts: share(debts) },
+  };
+}
