@@ -36,35 +36,57 @@
       <path class="logo__ink" d="M23 19H41" stroke-width="4.5"/>
       <path class="logo__rule" d="M23 31H41M23 38.5H41" stroke-width="3.5"/>
     </symbol>
+    <!-- Iconos del menú: trazos rectos, como los renglones. El color y el
+         grosor los pone `.icon` en app.css. -->
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11.5 12 4l8.5 7.5M6 10v9.5h12V10"/></symbol>
+    <symbol id="i-month" viewBox="0 0 24 24"><path d="M4 6h16v13.5H4zM4 10.5h16M8 3.5v4M16 3.5v4"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11M4 6.5h2M4 12h2M4 17.5h2"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><path d="M3 6h18v12.5H3zM3 10.5h18M6.5 15h4"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6M3 20h18"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M8 8a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4.5 20c1-3.8 3.9-5.5 7.5-5.5s6.500 1.700 7.500 5.500"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   </svg>
   <div class="app" id="app" data-guest>
-    <!-- En el computador, el menú lateral con todo. En el celular, solo los
-         dos botones de todos los días: Registrar y Gastos (app.css); lo demás
-         se alcanza desde el inicio, tocando el logo. -->
+    <!-- La misma navegación en los dos tamaños (app.css decide cómo se ve):
+         - Computador: menú lateral. "Registrar gasto" arriba, las secciones y,
+           abajo a la izquierda, el perfil con los espacios.
+         - Celular: barra inferior Inicio · Mes · + · Gastos · Tú. Tarjetas y
+           Reportes se alcanzan desde Inicio y desde Mes. -->
     <nav class="tabs" aria-label="Secciones">
-      <a class="brand tabs__brand" href="/inicio" data-section="home" aria-label="Gastito, inicio">
+      <a class="brand tabs__brand" href="/inicio" aria-label="Gastito, inicio">
         <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
         <span>Gastito</span>
       </a>
-      <a href="/mes" data-section="month">Mes</a>
-      <a href="/registrar" data-section="record" class="tabs__main tabs__main--primary"><span class="tabs__plus" aria-hidden="true">+</span>Registrar</a>
-      <a href="/gastos" data-section="expenses" class="tabs__main">Gastos</a>
-      <a href="/tarjetas" data-section="cards">Tarjetas</a>
-      <a href="/espacio" data-section="space">Espacio</a>
+      <a class="tabs__record" href="/registrar" data-section="record" aria-label="Registrar gasto">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>
+        <span class="tabs__record-text" aria-hidden="true">Registrar gasto</span>
+      </a>
+      <a class="tabs__item" href="/inicio" data-section="home"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-home"/></svg><span>Inicio</span></a>
+      <a class="tabs__item" href="/mes" data-section="month"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-month"/></svg><span>Mes</span></a>
+      <a class="tabs__item" href="/gastos" data-section="expenses"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-list"/></svg><span>Gastos</span></a>
+      <a class="tabs__item tabs__item--wide" href="/tarjetas" data-section="cards"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-card"/></svg><span>Tarjetas</span></a>
+      <a class="tabs__item tabs__item--wide" href="/mes/reportes" data-section="reports"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-chart"/></svg><span>Reportes</span></a>
+      <a class="tabs__item tabs__item--narrow" href="/perfil" data-section="profile"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-user"/></svg><span>Tú</span></a>
+      <!-- El perfil del computador: quién eres y en qué espacio estás. Abre
+           un menú con tus espacios, los ajustes y cerrar sesión (profile.js). -->
+      <div class="profile" id="profile">
+        <button type="button" class="profile__button" id="profile-button" aria-haspopup="true" aria-expanded="false" aria-controls="profile-menu">
+          <span class="avatar" id="profile-initials" aria-hidden="true"></span>
+          <span class="profile__text">
+            <span class="profile__name" id="profile-name"></span>
+            <span class="profile__space" id="profile-space"></span>
+          </span>
+        </button>
+        <div class="menu profile__menu" id="profile-menu" hidden></div>
+      </div>
     </nav>
     <header class="topbar">
-      <a class="brand topbar__brand" href="/inicio" data-section="home" aria-label="Gastito, inicio">
+      <a class="brand topbar__brand" href="/inicio" aria-label="Gastito, inicio">
         <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
         <span>Gastito</span>
       </a>
-      <!-- El espacio actual: un botón que despliega los demás (space-switch.js). -->
-      <div class="space-switch" id="space-switch">
-        <button type="button" class="space-switch__button" id="space-button" aria-haspopup="true" aria-expanded="false" aria-controls="space-menu">
-          <span class="space-switch__label">Espacio</span>
-          <span class="space-switch__name" id="space-name"></span>
-        </button>
-        <div class="space-switch__menu" id="space-menu" hidden></div>
-      </div>
+      <!-- En qué espacio estás. Se cambia desde el perfil. -->
+      <p class="topbar__space"><span class="topbar__space-label">Espacio</span> <span id="space-name"></span></p>
       <span class="topbar__month label" id="current-month"></span>
       <!-- Claro u oscuro: por defecto el del sistema; este botón elige el otro
            y se recuerda en el dispositivo (theme.js). -->

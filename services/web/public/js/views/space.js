@@ -1,10 +1,9 @@
-// Pestaña Espacio (spec 011, RF-23 a RF-26, RF-29): el espacio actual y cómo
-// cambiarlo, compartirlo, crear otro, salir de uno compartido, la cuenta con
-// cerrar sesión (decisión 22) y la guía para fijar la app (T11).
-import { logOut } from "../account.js";
+// Ajustes del espacio (`/espacio`; spec 011, RF-23 a RF-26): sus categorías,
+// compartirlo, crear otro y salir de uno compartido. Pasar de un espacio a
+// otro, la cuenta y la guía para fijar la app viven en el perfil
+// (profile.js) y en Mi cuenta (account.js).
 import { categoryRequest } from "../categories.js";
 import { h } from "../dom.js";
-import { pinGuide } from "../platform.js";
 import { createSpace, leaveSpace, shareInvitation } from "../spaces.js";
 import { OFFLINE_SAVE, clearErrors, field, formError, nameConflict, setBusy, showErrors } from "./form.js";
 
@@ -19,33 +18,13 @@ function switchTo(app, space, message) {
 }
 
 function currentSection(app) {
-  const others = app.spaces.filter((space) => space.id !== app.space.id);
   return h(
     "section",
     { class: "stack", "aria-labelledby": "space-title" },
-    h("p", { class: "label" }, "Espacio actual"),
-    h("h2", { id: "space-title" }, app.space.name),
-    others.length > 0 &&
-      h(
-        "div",
-        { class: "rows" },
-        others.map((space) =>
-          h(
-            "div",
-            { class: "row" },
-            h("span", { class: "label" }, "Otro"),
-            h(
-              "button",
-              {
-                type: "button",
-                class: "button button--link",
-                onClick: () => switchTo(app, space, `Ahora estás en «${space.name}».`),
-              },
-              `Pasar a «${space.name}»`,
-            ),
-          ),
-        ),
-      ),
+    h("p", { class: "label" }, "Ajustes del espacio"),
+    h("h1", { id: "space-title" }, app.space.name),
+    app.spaces.length > 1 &&
+      h("p", { class: "muted" }, "Para pasar a otro de tus espacios, abre tu perfil."),
   );
 }
 
@@ -165,54 +144,6 @@ function leaveSection(app) {
     { class: "stack", "aria-labelledby": "leave-title" },
     h("h2", { id: "leave-title" }, "Salir del espacio"),
     h("div", {}, button),
-  );
-}
-
-function accountSection(app) {
-  const button = h(
-    "button",
-    {
-      type: "button",
-      class: "button button--quiet",
-      onClick: async () => {
-        button.disabled = true;
-        const notice = await logOut(app).catch((error) => error.message);
-        app.me = null;
-        app.drafts.clear("record");
-        app.navigate("/entrar", { replace: true });
-        if (notice) app.notices.show({ text: notice, seconds: 0 });
-      },
-    },
-    "Cerrar sesión",
-  );
-  return h(
-    "section",
-    { class: "stack", "aria-labelledby": "account-title" },
-    h("h2", { id: "account-title" }, "Tu cuenta"),
-    h("p", { class: "muted" }, app.me.email),
-    h("div", {}, button),
-  );
-}
-
-/** Los pasos para fijar la app en este navegador; nada si ya está fijada
- * (RF-29, decisión 20). */
-function pinSection() {
-  const standalone =
-    window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-  const guide = pinGuide(navigator.userAgent, { standalone });
-  if (!guide) return null;
-  return h(
-    "section",
-    { class: "stack", "aria-labelledby": "pin-title" },
-    h("h2", { id: "pin-title" }, "Fijar en la pantalla de inicio"),
-    h(
-      "p",
-      { class: "muted" },
-      "Así Gastito se abre como una aplicación, sin buscarla en el navegador. No se descarga nada.",
-    ),
-    h("p", { class: "label" }, guide.title),
-    guide.steps.length > 0 && h("ol", { class: "steps" }, guide.steps.map((step) => h("li", {}, step))),
-    guide.note && h("p", { class: "muted" }, guide.note),
   );
 }
 
@@ -337,14 +268,11 @@ export async function renderSpace(main, app) {
     h(
       "div",
       { class: "screen spaced" },
-      h("h1", { class: "sr-only" }, "Espacio"),
       currentSection(app),
       categoriesSection(app, { back: toCategories ? focus.back : null }),
       shareSection(app),
       createSection(app),
       app.spaces.length > 1 && leaveSection(app),
-      pinSection(),
-      accountSection(app),
     ),
   );
   if (toCategories) {

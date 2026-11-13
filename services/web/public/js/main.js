@@ -2,20 +2,25 @@
 // navegación y avisos. Las pantallas viven en `views/` y reciben `app`, el
 // contexto compartido.
 import { API_URL } from "/config.js";
+import { logOut } from "./account.js";
 import { createApi } from "./api.js";
 import { h } from "./dom.js";
 import { formatMonthShort } from "./format.js";
 import { createConnection, screenError } from "./offline.js";
+import { displayName, initials, needsName } from "./profile.js";
 import { homePath, matchRoute } from "./routes.js";
 import { createSession } from "./session.js";
 import { createDrafts } from "./state.js";
 import { THEME_COLORS, activeTheme, otherTheme, saveTheme, storedTheme, themeLabel } from "./theme.js";
 import { confirmDialog, createNotices } from "./views/notices.js";
-import { createSpaceSwitch } from "./views/space-switch.js";
+import { createProfileMenu } from "./views/profile.js";
 
 // Cada pantalla se carga cuando se visita (módulos ES, sin compilar).
 const VIEWS = {
   home: () => import("./views/home.js").then((module) => module.renderHome),
+  name: () => import("./views/name.js").then((module) => module.renderName),
+  profile: () => import("./views/profile.js").then((module) => module.renderProfile),
+  account: () => import("./views/account.js").then((module) => module.renderAccount),
   login: () => import("./views/auth.js").then((module) => module.renderLogin),
   register: () => import("./views/auth.js").then((module) => module.renderRegister),
   record: () => import("./views/record.js").then((module) => module.renderRecord),
@@ -37,9 +42,11 @@ const VIEWS = {
 // Qué sección de la navegación marca cada pantalla.
 const SECTIONS = {
   home: "home",
+  profile: "profile",
+  account: "profile",
   month: "month",
   plan: "month",
-  reports: "month",
+  reports: "reports",
   record: "record",
   edit: "expenses",
   expenses: "expenses",
@@ -49,12 +56,20 @@ const SECTIONS = {
   cardEdit: "cards",
   purchase: "cards",
   withdrawal: "expenses",
-  space: "space",
+  space: "profile",
 };
+
+// En el celular no todas las secciones tienen su botón abajo: Reportes se
+// alcanza desde Mes y Tarjetas desde Inicio. Cuando el enlace de una sección
+// no está a la vista, se marca el de la que lleva a ella.
+const SECTION_FALLBACK = { reports: "month", cards: "home" };
 
 const shell = document.getElementById("app");
 const main = document.getElementById("main");
 const spaceName = document.getElementById("space-name");
+const profileName = document.getElementById("profile-name");
+const profileSpace = document.getElementById("profile-space");
+const profileInitials = document.getElementById("profile-initials");
 const monthLabel = document.getElementById("current-month");
 const dialog = document.getElementById("dialog");
 
@@ -103,13 +118,23 @@ const app = {
     app.me = me;
     app.spaces = spaces;
     app.space = session.chooseSpace(spaces);
-    spaceName.textContent = app.space?.name ?? "";
+    refreshProfile();
   },
   /** Pasa a otro espacio y lo recuerda en el dispositivo. */
   useSpace(space) {
     session.setSpace(space.id);
     app.space = space;
-    spaceName.textContent = space.name;
+    refreshProfile();
+  },
+  /** Pasa a otro espacio y vuelve a pintar la pantalla (el perfil). */
+  switchSpace,
+  /** Cierra la sesión y lleva a Entrar (decisión 22 de la 011). */
+  async signOut() {
+    const notice = await logOut(app).catch((error) => error.message);
+    app.me = null;
+    drafts.clear("record");
+    navigate("/entrar", { replace: true });
+    if (notice) notices.show({ text: notice, seconds: 0 });
   },
   /** El mes que muestra el encabezado (`AAAA-MM`). */
   setMonth(period) {
@@ -119,7 +144,15 @@ const app = {
   refreshSending,
 };
 
-/** Pasa a otro espacio desde el encabezado y vuelve a pintar la pantalla.
+/** Quién eres y en qué espacio estás: el encabezado y el perfil del menú. */
+function refreshProfile() {
+  spaceName.textContent = app.space?.name ?? "";
+  profileSpace.textContent = app.space?.name ?? "";
+  profileName.textContent = displayName(app.me);
+  profileInitials.textContent = initials(app.me);
+}
+
+/** Pasa a otro espacio desde el perfil y vuelve a pintar la pantalla.
  * Lo escrito en Registrar y el mes elegido eran del espacio anterior; un
  * gasto, una tarjeta o una compra abiertos también, así que de ahí se sale. */
 function switchSpace(space) {
@@ -131,13 +164,11 @@ function switchSpace(space) {
   notices.show({ text: `Ahora estás en «${space.name}».`, seconds: 6 });
 }
 
-const spaceSwitch = createSpaceSwitch({
-  root: document.getElementById("space-switch"),
-  button: document.getElementById("space-button"),
-  menu: document.getElementById("space-menu"),
-  spaces: () => app.spaces,
-  current: () => app.space,
-  onPick: switchSpace,
+const profileMenu = createProfileMenu({
+  root: document.getElementById("profile"),
+  button: document.getElementById("profile-button"),
+  menu: document.getElementById("profile-menu"),
+  app,
 });
 
 // --- Tema claro u oscuro ---
@@ -188,9 +219,13 @@ function navigate(path, { replace = false } = {}) {
 }
 
 function markSection(view) {
-  const section = SECTIONS[view];
-  // También el logo del encabezado, que no está dentro del menú.
-  for (const link of document.querySelectorAll("a[data-section]")) {
+  const links = [...document.querySelectorAll("a[data-section]")];
+  // `offsetParent` es `null` en un enlace oculto (`display: none`).
+  const shown = (section) =>
+    links.some((link) => link.dataset.section === section && link.offsetParent !== null);
+  let section = SECTIONS[view];
+  if (section && !shown(section)) section = SECTION_FALLBACK[section] ?? section;
+  for (const link of links) {
     if (link.dataset.section === section) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
@@ -198,7 +233,7 @@ function markSection(view) {
 
 async function render() {
   const count = ++renderCount;
-  spaceSwitch.close();
+  profileMenu.close();
   const route = matchRoute(location.pathname, { width: window.innerWidth });
   if (route.redirect) return navigate(route.redirect, { replace: true });
 
@@ -212,7 +247,8 @@ async function render() {
   }
 
   const member = loggedIn && route.access !== "guest";
-  shell.toggleAttribute("data-guest", !member);
+  // "¿Cómo te llamas?" se ve como las pantallas de entrar: sin menú.
+  shell.toggleAttribute("data-guest", !member || route.view === "name");
   markSection(route.view);
   app.setMonth(null);
   // Cada pantalla pone su ancho (`main--wide`, `main--reports`): sin esto,
@@ -222,6 +258,14 @@ async function render() {
 
   try {
     if (member && !app.me) await app.loadAccount();
+    if (count !== renderCount) return;
+    // Una cuenta sin nombre lo escribe antes de seguir (spec 031, RF-9), y
+    // después vuelve a la pantalla que había pedido.
+    if (member && needsName(app.me) && route.view !== "name") {
+      session.setNext(location.pathname);
+      return navigate("/tu-nombre", { replace: true });
+    }
+    if (route.view === "name" && !needsName(app.me)) return navigate(app.home(), { replace: true });
     const view = await VIEWS[route.view]();
     if (count !== renderCount) return;
     main.replaceChildren();

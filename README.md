@@ -202,8 +202,16 @@ que pone las cabeceras de seguridad y responde la página a cualquier ruta
 de la app. Por qué así:
 [ADR 0015](docs/adr/0015-web-sin-framework-sesion-y-pruebas.md).
 
-Cinco secciones: abajo en el celular y al costado desde 1024 px. Al abrir,
-el computador va al Mes y el celular a Registrar.
+La navegación es la misma en los dos tamaños. En el celular, una barra
+abajo: Inicio · Mes · **+** (Registrar) · Gastos · Tú. Desde 1024 px, un
+menú al costado con "Registrar gasto", Inicio, Mes, Gastos, Tarjetas y
+Reportes, y el perfil abajo a la izquierda. Al abrir, el computador va al
+Mes y el celular a Registrar. Arriba a la derecha, un botón elige el tema
+claro u oscuro; por defecto manda el del sistema.
+
+- **Inicio**: a donde lleva el logo. Una guía con Mes, Reportes, Tarjetas y
+  Espacio, que dice cómo va el mes y cuánto hay que pagarles a las
+  tarjetas.
 
 - **Mes**: el tablero del mes, con ingresos, planeado, gastado, sin asignar
   y balance; una barra que reparte el ingreso; cada categoría con sus rubros
@@ -227,15 +235,18 @@ el computador va al Mes y el celular a Registrar.
   (saldo, lo que hay que pagar cada mes y las compras con cuotas
   pendientes) y "Pagar todo". Cada compra muestra su plan de cuotas y sus
   abonos: se abona con "Deshacer" y un abono se borra con confirmación.
-- **Espacio**: cambiar de espacio, sus categorías (crear y eliminar), crear
-  otro espacio, compartirlo con un enlace de un solo uso que caduca en 24
-  horas, salir de uno compartido, cerrar sesión y la guía para fijar la
-  app.
+- **Perfil** ("Tú" en el celular; abajo a la izquierda en el computador):
+  quién eres, tus espacios para pasar de uno a otro, y la entrada a los
+  ajustes del espacio, a tu cuenta y a cerrar sesión.
+- **Ajustes del espacio**: sus categorías (crear y eliminar), compartirlo
+  con un enlace de un solo uso que caduca en 24 horas, crear otro espacio
+  y salir de uno compartido.
+- **Mi cuenta**: tu nombre, tu correo y la guía para fijar la app.
 
 **Se entra una sola vez.** La sesión se renueva cada vez que se usa la app
 y caduca tras 90 días sin abrirla. Cerrar sesión la corta al momento.
 
-**Fijar en la pantalla de inicio.** La pestaña Espacio muestra los pasos del
+**Fijar en la pantalla de inicio.** "Mi cuenta" muestra los pasos del
 navegador que estás usando: Safari en iPhone, Chrome en Android, o Chrome o
 Edge en el computador. No se descarga nada. Sin HTTPS (llega con la 020),
 en el celular el ícono abre la web en el navegador y no a pantalla
@@ -283,16 +294,29 @@ http://localhost:8000/docs: inicia sesión con
 botón **Authorize** y prueba cualquier ruta.
 
 ## Usuarios, espacios e invitaciones
-Los datos pertenecen a un **espacio**, no a una persona. Cada usuario tiene
-un espacio "Personal" y puede crear otros o unirse a los de otras personas
-para compartir presupuesto. Dos espacios nunca ven los datos del otro.
+Los datos pertenecen a un **espacio**, no a una persona. Cada usuario nace
+con su espacio, "Espacio de Ana", y puede crear otros o unirse a los de
+otras personas para compartir presupuesto. Dos espacios nunca ven los datos
+del otro.
 
-**Registrarse.** El registro es abierto: basta un correo y una contraseña de
-al menos 12 caracteres. Crea el usuario y su espacio "Personal".
+**Registrarse.** El registro es abierto: un nombre (de 1 a 50 caracteres),
+un correo y una contraseña de al menos 12 caracteres. Crea el usuario y su
+espacio "Espacio de <nombre>" (spec 031).
 
 ```sh
 curl -X POST localhost:8000/auth/register -H 'content-type: application/json' \
-  -d '{"email": "ana@example.com", "password": "al-menos-12-caracteres"}'
+  -d '{"name": "Ana", "email": "ana@example.com", "password": "al-menos-12-caracteres"}'
+```
+
+**El nombre.** `GET /me` lo devuelve y `PATCH /me` lo cambia. Una cuenta
+creada antes de la spec 031 no tiene nombre (`null`): la web se lo pide una
+vez, en "¿Cómo te llamas?", y al guardarlo su espacio "Personal" pasa a
+llamarse "Espacio de <nombre>" si sigue siendo su único miembro. Cambiar el
+nombre después no renombra ningún espacio.
+
+```sh
+curl -X PATCH localhost:8000/me -H "authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' -d '{"name": "Ana María"}'
 ```
 
 **Iniciar sesión.** Devuelve un token que se envía en la cabecera
@@ -356,7 +380,9 @@ Desde ese momento son del
 espacio, no de un mes: cualquier miembro puede añadir más o eliminarlas, y
 siguen disponibles mes tras mes.
 
-**Desde la web**: pestaña Espacio, bloque "Categorías". Ahí se crean y se
+**Desde la web**: perfil → "Ajustes del espacio", bloque "Categorías" (o
+"Crear categoría" al final de la lista de categorías de Registrar). Ahí se
+crean y se
 eliminan (con confirmación); crear de nuevo una eliminada la restaura. Con
 la API:
 
@@ -527,7 +553,7 @@ futuro, que no cambia. Por qué así:
 - Sin `period`, se usa el mes actual en `TZ`.
 - Cualquier miembro del espacio puede crear, editar y borrar.
 
-**Desde la web**: pestaña Mes → "Planear". Cada ingreso y cada rubro es un
+**Desde la web**: Mes → "Planear". Cada ingreso y cada rubro es un
 renglón de campos que se guarda al salir de él; un renglón a medias dice qué
 le falta. Quitar un rubro que ya tiene gastos pide confirmación, y sus
 gastos quedan sin rubro. Un mes sin plan ofrece "Copiar el plan de" el mes
@@ -632,7 +658,7 @@ en el plan (`is_debt`); si no lo dices, es gasto del mes. Por qué así:
 [ADR 0013](docs/adr/0013-compras-con-tarjeta-cuentan-al-pagar.md) y
 [ADR 0014](docs/adr/0014-compras-del-mes-con-tarjeta.md).
 
-**Desde la web**: pestaña Tarjetas para crear, editar, eliminar y ver el
+**Desde la web**: Tarjetas (en el menú o desde Inicio) para crear, editar, eliminar y ver el
 estado de cada tarjeta, pagar todo, y abonar o borrar abonos desde cada
 compra. El valor real del extracto se escribe al planear el mes (Mes →
 Planear). Con la API:
