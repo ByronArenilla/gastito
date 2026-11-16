@@ -171,6 +171,11 @@ def build_summary(db: Session, space_id: int, period: str) -> SummaryOut:
     # Lo no planeado se mide antes de descontar lo retirado: un retiro no es
     # un gasto con rubro (RF-36).
     spent = spent_own_day - withdrawn + debt_total
+    # Las dos bolsas del Mes (spec 033, decisiones 2, 6 y 7). Lo no planeado
+    # sale de lo sin asignar; lo retirado del ahorro vuelve al plan.
+    spent_unplanned = spent_own_day - spent_planned
+    plan_spent = spent_planned + debt_total - withdrawn
+    unassigned = income - planned
     return SummaryOut(
         period=period,
         incomes=incomes,
@@ -183,10 +188,13 @@ def build_summary(db: Session, space_id: int, period: str) -> SummaryOut:
             debts=debt_total,
             cards_to_pay=sum(row.to_pay for row in debts),
             spent_planned=spent_planned,
-            spent_unplanned=spent_own_day - spent_planned,
+            spent_unplanned=spent_unplanned,
             spent=spent,
-            unassigned=income - planned,
+            unassigned=unassigned,
             balance=income - spent,
             withdrawn=withdrawn,
+            plan_spent=plan_spent,
+            plan_remaining=planned - plan_spent,
+            unassigned_remaining=unassigned - spent_unplanned,
         ),
     )

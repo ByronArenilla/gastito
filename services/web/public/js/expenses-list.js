@@ -41,14 +41,15 @@ function paidWith(expense, names) {
     : `${card} · deuda · 1 cuota en ${month}`;
 }
 
-/** Nombre (rubro, descripción o categoría) y la línea de abajo: categoría,
- * cómo se pagó y si lo registró otro miembro (RF-18). */
+/** Nombre y la línea de abajo: categoría, cómo se pagó y si lo registró otro
+ * miembro (RF-18). El nombre es el rubro, con su detalle si lo tiene ("Viaje ·
+ * Hospedaje"; spec 033, RF-10); sin rubro, la descripción o la categoría. */
 export function describeExpense(expense, names, userId) {
   const category = names.categories.get(expense.category_id) ?? "Sin categoría";
-  const name =
-    (expense.budget_item_id !== null && names.items.get(expense.budget_item_id)) ||
-    expense.description ||
-    category;
+  const item = expense.budget_item_id !== null && names.items.get(expense.budget_item_id);
+  const name = item
+    ? [item, expense.description].filter(Boolean).join(" · ")
+    : expense.description || category;
   const parts = [category, paidWith(expense, names)];
   if (expense.created_by !== userId) parts.push("registró otro miembro");
   return { name, meta: parts.join(" · ") };

@@ -68,6 +68,19 @@ test("una deuda a 1 cuota y un crédito sin tarjeta de antes de la 009", () => {
   assert.equal(describeExpense(legacy, NAMES, 1).meta, "Transporte · Crédito");
 });
 
+test("un gasto con rubro y detalle se nombra con los dos (spec 033, RF-10)", () => {
+  const fruver = { ...EXPENSES[3], description: "Fruver" };
+  const fruverVisa = { ...EXPENSES[2], description: "Fruver" };
+
+  assert.deepEqual(describeExpense(fruver, NAMES, 1), {
+    name: "Mercado · Fruver",
+    meta: "Comida · Débito",
+  });
+  assert.equal(describeExpense(fruverVisa, NAMES, 1).name, "Mercado · Fruver");
+  // Sin rubro, la descripción sigue siendo todo el nombre.
+  assert.equal(describeExpense(EXPENSES[0], NAMES, 1).name, "Taxi");
+});
+
 test("sin descripción ni rubro, el nombre es la categoría", () => {
   const plain = { ...EXPENSES[0], description: null };
 

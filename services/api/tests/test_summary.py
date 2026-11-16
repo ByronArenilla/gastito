@@ -241,6 +241,11 @@ def test_the_summary_of_the_month(
         "unassigned": 2_700_000,
         "balance": 2_640_000,
         "withdrawn": 0,
+        # Spec 033: las dos bolsas. Mercado se excedió en 12.000 y resta en
+        # el plan; lo no planeado (48.000) sale de lo sin asignar.
+        "plan_spent": 2_312_000,
+        "plan_remaining": -12_000,
+        "unassigned_remaining": 2_652_000,
     }
 
 
@@ -297,6 +302,9 @@ def test_a_month_without_plan_is_empty_and_creates_nothing(
         "unassigned": 0,
         "balance": 0,
         "withdrawn": 0,
+        "plan_spent": 0,
+        "plan_remaining": 0,
+        "unassigned_remaining": 0,
     }
     assert session.scalar(select(func.count()).select_from(BudgetItem)) == 2
     assert session.scalar(select(func.count()).select_from(Income)) == 1
@@ -539,6 +547,9 @@ def test_december_debts_of_the_visa(session: Session, space: Space, visa: dict) 
         "unassigned": 3_077_200,
         "balance": 3_077_200,
         "withdrawn": 0,
+        "plan_spent": 1_922_800,
+        "plan_remaining": 0,
+        "unassigned_remaining": 3_077_200,
     }
 
 
@@ -813,6 +824,9 @@ def test_december_separates_month_expenses_from_debts(
         "unassigned": 4_627_200,
         "balance": 4_627_200,
         "withdrawn": 0,
+        "plan_spent": 372_800,
+        "plan_remaining": 0,
+        "unassigned_remaining": 4_627_200,
     }
 
 
@@ -841,7 +855,8 @@ def test_the_statement_is_the_total_to_pay(
 def test_the_name_of_a_month_expense(
     session: Session, space: Space, user: User, month_and_debts: dict
 ) -> None:
-    # RF-10: descripción, o rubro, o categoría.
+    # RF-10 de la 010 y RF-5 de la 033: rubro y detalle, o rubro, o
+    # descripción, o categoría.
     card = month_and_debts["card"]
     described = buy_in_plan(
         session,
@@ -860,13 +875,23 @@ def test_the_name_of_a_month_expense(
         date(2026, 11, 7),
         category=month_and_debts["comida"],
     )
+    unplanned = buy_in_plan(
+        session,
+        user,
+        card,
+        50_000,
+        date(2026, 11, 8),
+        category=month_and_debts["comida"],
+        description="Domicilio",
+    )
 
     [visa] = build_summary(session, space.id, "2026-12").debts
     names = {row.expense_id: row.name for row in visa.month_expenses}
 
     assert names[month_and_debts["mercado"].id] == "Mercado"
-    assert names[described.id] == "Éxito"
+    assert names[described.id] == "Mercado · Éxito"
     assert names[by_category.id] == "Comida"
+    assert names[unplanned.id] == "Domicilio"
 
 
 # --- Ahorro y sus retiros (spec 013, RF-36 y RF-38) ---
@@ -981,3 +1006,134 @@ def test_a_withdrawal_of_another_month_or_space_does_not_count(
 
     assert summary.total.withdrawn == 0
     assert summary.categories[0].spent == 300_000
+
+
+# --- Las dos bolsas: en el plan y sin asignar (spec 033, RF-3 y RF-4) ---
+
+
+def test_unplanned_spending_comes_out_of_the_unassigned_bucket(
+    session: Session, space: Space, user: User
+) -> None:
+    # Decisión 2: el "Plomero" de 95.000 sin rubro no toca el plan. Salario
+    # 4.200.000; Arriendo 1.200.000 pagado y Servicios 250.000 con 180.000.
+    hogar = add_category(session, space, "Hogar")
+    add_income(session, space, "Salario", 4_200_000)
+    arriendo = add_item(session, hogar, "Arriendo", 1_200_000)
+    servicios = add_item(session, hogar, "Servicios", 250_000)
+    spend(session, user, 1_200_000, date(2026, 11, 2), item=arriendo)
+    spend(session, user, 180_000, date(2026, 11, 5), item=servicios)
+    spend(session, user, 95_000, date(2026, 11, 11), category=hogar)
+
+    total = build_summary(session, space.id, "2026-11").total
+
+    assert (total.planned, total.plan_spent, total.plan_remaining) == (
+        1_450_000,
+        1_380_000,
+        70_000,
+    )
+    assert (total.unassigned, total.spent_unplanned, total.unassigned_remaining) == (
+        2_750_000,
+        95_000,
+        2_655_000,
+    )
+
+
+def test_an_exceeded_item_is_subtracted_inside_the_plan(
+    session: Session, space: Space, user: User
+) -> None:
+    # Decisión 7: Restaurantes se pasó 40.000; lo sin asignar no se toca.
+    comida = add_category(session, space, "Comida")
+    add_income(session, space, "Salario", 2_000_000)
+    mercado = add_item(session, comida, "Mercado", 800_000)
+    restaurantes = add_item(session, comida, "Restaurantes", 200_000)
+    spend(session, user, 575_000, date(2026, 11, 3), item=mercado)
+    spend(session, user, 240_000, date(2026, 11, 8), item=restaurantes)
+
+    total = build_summary(session, space.id, "2026-11").total
+
+    assert total.plan_remaining == 225_000 - 40_000
+    assert total.unassigned_remaining == total.unassigned == 1_000_000
+
+
+def test_the_unassigned_bucket_can_be_exceeded(
+    session: Session, space: Space, user: User
+) -> None:
+    # Decisión 8: lo no planeado supera lo que quedó sin asignar.
+    hogar = add_category(session, space, "Hogar")
+    add_income(session, space, "Salario", 1_000_000)
+    add_item(session, hogar, "Arriendo", 950_000)
+    spend(session, user, 80_000, date(2026, 11, 11), category=hogar)
+
+    total = build_summary(session, space.id, "2026-11").total
+
+    assert (total.unassigned, total.unassigned_remaining) == (50_000, -30_000)
+    assert total.plan_remaining == 950_000
+
+
+def test_the_two_buckets_add_up_to_the_balance(
+    session: Session, space: Space, user: User, visa: dict
+) -> None:
+    # RF-4, criterio 1: diciembre con un rubro excedido, un gasto sin rubro,
+    # las deudas de la Visa y un retiro de ahorro a la vez.
+    ahorro = add_category(session, space, "Ahorro")
+    add_item(session, ahorro, "Ahorro", 500_000, DECEMBER)
+    mercado = add_item(session, visa["comida"], "Mercado", 800_000, DECEMBER)
+    spend(session, user, 850_000, date(2026, 12, 3), item=mercado)
+    spend(session, user, 38_000, date(2026, 12, 10), category=visa["hogar"])
+    session.add(
+        SavingsWithdrawal(
+            space_id=space.id,
+            spent_on=date(2026, 12, 14),
+            amount=100_000,
+            created_by=user.id,
+        )
+    )
+    session.flush()
+
+    total = build_summary(session, space.id, "2026-12").total
+
+    assert total.debts > 0
+    # Decisión 6: en el plan van los rubros y las deudas; lo retirado del
+    # ahorro vuelve al plan.
+    assert total.plan_spent == total.spent_planned + total.debts - 100_000
+    assert total.plan_remaining == total.planned - total.plan_spent
+    # Arriendo completo, Ahorro apartado, Mercado excedido en 50.000 y los
+    # 100.000 retirados.
+    assert total.plan_remaining == -50_000 + 100_000
+    assert total.unassigned_remaining == total.unassigned - 38_000
+    assert total.plan_remaining + total.unassigned_remaining == total.balance
+
+
+def test_a_withdrawal_larger_than_what_was_saved_in_the_month(
+    session: Session, space: Space, user: User
+) -> None:
+    # Se retira ahorro de meses anteriores: la suma sigue cuadrando (RF-4).
+    august = date(2026, 8, 1)
+    ahorro = add_category(session, space, "Ahorro")
+    add_income(session, space, "Sueldo", 1_000_000, august)
+    add_item(session, ahorro, "Ahorro", 100_000, august)
+    session.add(
+        SavingsWithdrawal(
+            space_id=space.id,
+            spent_on=date(2026, 8, 14),
+            amount=300_000,
+            created_by=user.id,
+        )
+    )
+    session.flush()
+
+    total = build_summary(session, space.id, "2026-08").total
+
+    assert (total.plan_spent, total.plan_remaining) == (-200_000, 300_000)
+    assert total.unassigned_remaining == 900_000
+    assert total.plan_remaining + total.unassigned_remaining == total.balance
+
+
+def test_a_month_without_plan_has_empty_buckets(session: Session, space: Space) -> None:
+    total = build_summary(session, space.id, "2027-03").total
+
+    assert (total.plan_spent, total.plan_remaining, total.unassigned_remaining) == (
+        0,
+        0,
+        0,
+    )

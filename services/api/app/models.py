@@ -292,6 +292,17 @@ class Expense(Base):
     # mes de la compra, como un débito). Nulo sin tarjeta.
     is_debt: Mapped[bool | None] = mapped_column(Boolean)
 
+    @property
+    def kind(self) -> str:
+        """Qué clase de gasto es para el Mes (spec 033): `"debt"`, una deuda
+        de tarjeta, que cuenta en los meses de pago; `"item"`, un gasto del
+        mes con rubro; o `"unplanned"`, un gasto del mes sin rubro, que sale
+        de lo sin asignar. Es la misma regla con la que el resumen decide qué
+        cuenta el día del gasto (`spent_by_category`)."""
+        if self.card_id is not None and self.is_debt is not False:
+            return "debt"
+        return "item" if self.budget_item_id is not None else "unplanned"
+
 
 class BudgetItem(Base):
     """Rubro: una línea del plan de un mes, con nombre libre, categoría y

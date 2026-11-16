@@ -111,6 +111,9 @@ def test_the_summary_of_october_end_to_end(ana: Space) -> None:
         "unassigned": 4_200_000,
         "balance": 4_150_000,
         "withdrawn": 0,
+        "plan_spent": 812_000,
+        "plan_remaining": -12_000,
+        "unassigned_remaining": 4_162_000,
     }
 
 

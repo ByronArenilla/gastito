@@ -1,4 +1,5 @@
-// El tablero del Mes a partir del resumen de la API (spec 012, RF-5 a RF-9).
+// El tablero del Mes a partir del resumen y los gastos de la API (spec 012,
+// RF-5 a RF-9; spec 033, RF-11 a RF-19).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildDashboard, copyNotice } from "../public/js/dashboard.js";
@@ -52,9 +53,23 @@ function november() {
       spent: 3371340,
       unassigned: 2688660,
       balance: 3128660,
+      // Spec 033: las dos bolsas, que suman el balance.
+      plan_spent: 3251340,
+      plan_remaining: 560000,
+      unassigned_remaining: 2568660,
     },
   };
 }
+
+// Los gastos de noviembre como los da `GET /expenses`: del más reciente al
+// más antiguo, cada uno con su `kind`.
+const EXPENSES = [
+  { id: 21, amount: 320000, spent_on: "2026-11-10", category_id: 2, budget_item_id: 3, description: "Fruver", kind: "item" },
+  { id: 22, amount: 75000, spent_on: "2026-11-09", category_id: 2, budget_item_id: null, description: "Domicilio pizza", kind: "unplanned" },
+  { id: 24, amount: 600000, spent_on: "2026-11-06", category_id: 3, budget_item_id: null, description: "Llantas", kind: "debt" },
+  { id: 23, amount: 45000, spent_on: "2026-11-04", category_id: 2, budget_item_id: null, description: null, kind: "unplanned" },
+  { id: 20, amount: 200000, spent_on: "2026-11-03", category_id: 2, budget_item_id: 3, description: null, kind: "item" },
+];
 
 test("los totales del mes y lo que hay que pagar a las tarjetas", () => {
   const { totals } = buildDashboard(november());
@@ -62,6 +77,7 @@ test("los totales del mes y lo que hay que pagar a las tarjetas", () => {
   assert.deepEqual(totals, {
     income: 6500000,
     planned: 3811340,
+    debts: 211340,
     spent: 3371340,
     unassigned: 2688660,
     balance: 3128660,
@@ -69,57 +85,97 @@ test("los totales del mes y lo que hay que pagar a las tarjetas", () => {
   });
 });
 
-test("la barra del ingreso reparte rubros, deudas y sin asignar", () => {
-  const { incomeBar } = buildDashboard(november());
+// --- Las dos bolsas (spec 033, RF-12) ---
+
+test("las dos bolsas: asignado, gastado, lo que queda y cuánto llenan", () => {
+  const [plan, free] = buildDashboard(november()).buckets;
 
   assert.deepEqual(
-    incomeBar.parts.map(({ key, amount }) => [key, amount]),
-    [
-      ["items", 3600000],
-      ["debts", 211340],
-      ["free", 2688660],
-    ],
+    [plan.key, plan.assigned, plan.spent, plan.remaining, plan.exceeded],
+    ["plan", 3811340, 3251340, 560000, false],
   );
-  const sum = incomeBar.parts.reduce((total, part) => total + part.amount, 0);
-  assert.equal(sum, 6500000);
-  assert.equal(incomeBar.over, 0);
-  assert.ok(Math.abs(incomeBar.parts[0].share - 3600000 / 6500000) < 1e-9);
+  assert.ok(Math.abs(plan.fill - 3251340 / 3811340) < 1e-9);
+  assert.deepEqual(
+    [free.key, free.assigned, free.spent, free.remaining, free.exceeded],
+    ["free", 2688660, 120000, 2568660, false],
+  );
+  assert.ok(Math.abs(free.fill - 120000 / 2688660) < 1e-9);
 });
 
-test("un plan que supera el ingreso dice por cuánto y no tiene parte libre", () => {
+test("las bolsas suman lo que queda en el mes", () => {
+  const { buckets, totals } = buildDashboard(november());
+
+  assert.equal(buckets[0].remaining + buckets[1].remaining, totals.balance);
+});
+
+test("una bolsa excedida se llena entera", () => {
   const summary = november();
-  summary.total.planned = 7000000;
-  summary.total.unassigned = -500000;
+  summary.total = { ...summary.total, spent_unplanned: 2700000, unassigned_remaining: -11340 };
 
-  const { incomeBar } = buildDashboard(summary);
+  const free = buildDashboard(summary).buckets[1];
 
-  assert.equal(incomeBar.over, 500000);
-  assert.equal(incomeBar.parts.find((part) => part.key === "free").amount, 0);
-  // Las partes se reparten sobre lo planeado, que es lo más grande.
-  const shares = incomeBar.parts.reduce((total, part) => total + part.share, 0);
-  assert.ok(Math.abs(shares - 1) < 1e-9);
+  assert.equal(free.exceeded, true);
+  assert.equal(free.fill, 1);
+  assert.equal(free.remaining, -11340);
 });
 
-test("un mes sin ingresos ni plan deja la barra vacía", () => {
+test("un plan que supera el ingreso dice por cuánto y deja lo sin asignar excedido", () => {
   const summary = november();
-  summary.total = { ...summary.total, income: 0, planned: 0, debts: 0, unassigned: 0 };
+  summary.total = { ...summary.total, planned: 7000000, unassigned: -500000, unassigned_remaining: -620000 };
 
-  const { incomeBar } = buildDashboard(summary);
+  const board = buildDashboard(summary);
 
-  assert.ok(incomeBar.parts.every((part) => part.share === 0));
+  assert.equal(board.overPlanned, 500000);
+  assert.equal(board.buckets[1].exceeded, true);
+  assert.equal(board.buckets[1].fill, 1);
+  assert.equal(buildDashboard(november()).overPlanned, 0);
 });
 
-test("cada rubro trae su medidor, lo que queda y si se excedió", () => {
+test("un mes sin plan ni gastos deja las bolsas vacías", () => {
+  const summary = november();
+  summary.total = {
+    ...summary.total,
+    planned: 0,
+    unassigned: 0,
+    spent_unplanned: 0,
+    plan_spent: 0,
+    plan_remaining: 0,
+    unassigned_remaining: 0,
+  };
+
+  assert.ok(buildDashboard(summary).buckets.every((bucket) => bucket.fill === 0 && !bucket.exceeded));
+});
+
+test("con una API anterior a la 033 no hay bolsas ni fuera del plan", () => {
+  // La web puede llegar a producción minutos antes que la API: no calcula
+  // las bolsas por su cuenta (principio 10).
+  const summary = november();
+  delete summary.total.plan_spent;
+  delete summary.total.plan_remaining;
+  delete summary.total.unassigned_remaining;
+  const old = EXPENSES.map(({ kind, ...expense }) => expense);
+
+  const board = buildDashboard(summary, old);
+
+  assert.equal(board.buckets, null);
+  assert.equal(board.unplanned, null);
+  assert.equal(board.totals.balance, 3128660);
+  assert.ok(board.categories.flatMap((c) => c.items).every((item) => item.expenses.length === 0));
+});
+
+// --- Los rubros (spec 033, RF-14 a RF-16) ---
+
+test("cada rubro trae su medidor, lo que queda y su estado", () => {
   const { categories } = buildDashboard(november());
   const items = Object.fromEntries(categories.flatMap((c) => c.items).map((i) => [i.name, i]));
 
   assert.ok(Math.abs(items.Mercado.fill - 520000 / 900000) < 1e-9);
   assert.equal(items.Mercado.remaining, 380000);
-  assert.equal(items.Mercado.exceeded, false);
+  assert.equal(items.Mercado.status, "left");
   assert.equal(items.Arriendo.fill, 1);
-  assert.equal(items.Arriendo.exceeded, false);
+  assert.equal(items.Arriendo.status, "done");
   assert.equal(items.Gasolina.fill, 1);
-  assert.equal(items.Gasolina.exceeded, true);
+  assert.equal(items.Gasolina.status, "over");
   assert.equal(items.Gasolina.remaining, -40000);
 });
 
@@ -132,13 +188,13 @@ test("un rubro con planeado 0 y gasto se ve excedido", () => {
     .find((item) => item.name === "Salidas");
 
   assert.equal(salidas.fill, 1);
-  assert.equal(salidas.exceeded, true);
+  assert.equal(salidas.status, "over");
 });
 
-test("las categorías del mes, en el orden de la API, con sus rubros dentro", () => {
+test("las categorías con rubros, en el orden de la API y sin cifras propias", () => {
   const { categories } = buildDashboard(november());
 
-  // Salud no tiene rubros ni gastos en el mes: no sale.
+  // Salud no tiene rubros en el mes: no sale.
   assert.deepEqual(
     categories.map((c) => c.name),
     ["Hogar", "Comida", "Transporte", "Ocio"],
@@ -147,27 +203,63 @@ test("las categorías del mes, en el orden de la API, con sus rubros dentro", ()
     categories[0].items.map((i) => i.name),
     ["Arriendo", "Servicios"],
   );
-  assert.equal(categories[2].exceeded, true);
-  assert.equal(categories[0].exceeded, false);
+  // Decisión 3: la categoría es solo un rótulo.
+  assert.deepEqual(Object.keys(categories[0]).sort(), ["deleted", "id", "items", "name", "withdrawn"]);
 });
 
-test("lo no planeado es el renglón sin rubro de su categoría", () => {
-  const { categories } = buildDashboard(november());
-  const byName = Object.fromEntries(categories.map((c) => [c.name, c]));
-
-  assert.equal(byName.Comida.unplanned, 120000);
-  assert.equal(byName.Hogar.unplanned, 0);
-});
-
-test("una categoría eliminada con gastos sale marcada", () => {
+test("una categoría con gastos pero sin rubros no sale entre los rubros", () => {
   const summary = november();
   summary.categories.push({ category_id: 9, name: "Mascotas", planned: 0, spent: 45000, deleted: true });
 
-  const mascotas = buildDashboard(summary).categories.at(-1);
+  assert.equal(buildDashboard(summary).categories.some((c) => c.name === "Mascotas"), false);
+});
 
-  assert.equal(mascotas.name, "Mascotas");
-  assert.equal(mascotas.deleted, true);
-  assert.equal(mascotas.unplanned, 45000);
+test("una categoría eliminada con rubros sale marcada", () => {
+  const summary = november();
+  summary.categories[4] = { ...summary.categories[4], deleted: true };
+
+  assert.equal(buildDashboard(summary).categories.at(-1).deleted, true);
+});
+
+test("cada rubro trae sus gastos del mes, con el detalle si lo tienen", () => {
+  const { categories } = buildDashboard(november(), EXPENSES);
+  const items = Object.fromEntries(categories.flatMap((c) => c.items).map((i) => [i.name, i]));
+
+  assert.deepEqual(items.Mercado.expenses, [
+    { id: 21, day: "2026-11-10", detail: "Fruver", amount: 320000 },
+    { id: 20, day: "2026-11-03", detail: "", amount: 200000 },
+  ]);
+  assert.deepEqual(items.Arriendo.expenses, []);
+});
+
+// --- Fuera del plan (spec 033, RF-17 y RF-18) ---
+
+test("fuera del plan: los gastos sin rubro del mes, con su total y lo sin asignar", () => {
+  const { unplanned } = buildDashboard(november(), EXPENSES);
+
+  assert.equal(unplanned.spent, 120000);
+  assert.equal(unplanned.assigned, 2688660);
+  assert.deepEqual(unplanned.rows, [
+    { id: 22, name: "Domicilio pizza", category: "Comida", day: "2026-11-09", amount: 75000 },
+    // Sin descripción, el nombre es la categoría.
+    { id: 23, name: "Comida", category: "Comida", day: "2026-11-04", amount: 45000 },
+  ]);
+});
+
+test("las deudas de tarjeta no van fuera del plan", () => {
+  const { unplanned } = buildDashboard(november(), EXPENSES);
+
+  assert.equal(unplanned.rows.some((row) => row.name === "Llantas"), false);
+});
+
+test("un mes sin gastos fuera del plan tiene la lista vacía", () => {
+  const summary = november();
+  summary.total = { ...summary.total, spent_unplanned: 0, unassigned_remaining: 2688660 };
+
+  const { unplanned } = buildDashboard(summary, EXPENSES.filter((e) => e.kind !== "unplanned"));
+
+  assert.deepEqual(unplanned.rows, []);
+  assert.equal(unplanned.spent, 0);
 });
 
 test("cada tarjeta con lo que hay que pagarle, su deuda y sus gastos del mes", () => {
@@ -217,32 +309,18 @@ test("al copiar el plan, el aviso dice qué rubros se omitieron y por qué", () 
   );
 });
 
-// --- Lo retirado del ahorro (spec 013, RF-36) ---
+// --- Ahorro y lo retirado (spec 013, RF-36; spec 033, RF-20) ---
 
-test("Ahorro muestra lo neto y lo retirado aparte; las demás, nada retirado", () => {
-  // Agosto: rubro Ahorro de 500.000 apartado entero y 200.000 retirados. El
-  // resumen ya trae Ahorro neto (300.000) y lo retirado.
+test("un rubro de Ahorro está apartado; lo retirado va aparte en su categoría", () => {
+  // Agosto: rubro Ahorro de 500.000 apartado entero y 200.000 retirados.
   const summary = november();
   summary.budget_items.push({ id: 9, name: "Ahorro", category_id: 8, planned: 500000, spent: 500000, remaining: 0 });
   summary.categories.push({ category_id: 8, name: "Ahorro", planned: 500000, spent: 300000, deleted: false, withdrawn: 200000 });
 
   const byName = Object.fromEntries(buildDashboard(summary).categories.map((c) => [c.name, c]));
 
-  assert.equal(byName.Ahorro.spent, 300000);
   assert.equal(byName.Ahorro.withdrawn, 200000);
-  // El retiro no es "sin rubro": lo apartado está todo en su rubro.
-  assert.equal(byName.Ahorro.unplanned, 0);
+  assert.equal(byName.Ahorro.items[0].status, "saved");
   assert.equal(byName.Ahorro.items[0].spent, 500000);
   assert.equal(byName.Comida.withdrawn, 0);
-});
-
-test("todo lo apartado retirado: Ahorro sigue en el Mes por su rubro", () => {
-  const summary = november();
-  summary.budget_items.push({ id: 9, name: "Ahorro", category_id: 8, planned: 500000, spent: 500000, remaining: 0 });
-  summary.categories.push({ category_id: 8, name: "Ahorro", planned: 500000, spent: 0, deleted: false, withdrawn: 500000 });
-
-  const ahorro = buildDashboard(summary).categories.find((c) => c.name === "Ahorro");
-
-  assert.equal(ahorro.spent, 0);
-  assert.equal(ahorro.withdrawn, 500000);
 });

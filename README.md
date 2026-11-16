@@ -214,20 +214,25 @@ Mes y el celular a Registrar. Arriba a la derecha, un botón elige el tema
 claro u oscuro; por defecto manda el del sistema.
 
 - **Inicio**: a donde lleva el logo. Una guía con Mes, Reportes, Tarjetas y
-  Espacio, que dice cómo va el mes y cuánto hay que pagarles a las
-  tarjetas.
+  Espacio, que dice cuánto te queda en el mes y cuánto hay que pagarles a
+  las tarjetas.
 
-- **Mes**: el tablero del mes, con ingresos, planeado, gastado, sin asignar
-  y balance; una barra que reparte el ingreso; cada categoría con sus rubros
-  (lo gastado, lo que queda y "excedido" en rojo) y lo no planeado como "Sin
-  rubro"; y lo que hay que pagarle a cada tarjeta. Un mes sin plan ofrece
-  copiar el del mes anterior. **Planear** convierte el mes en una tabla
+- **Mes**: el tablero del mes (spec 033). Arriba, "Te queda este mes".
+  Debajo, dos anillos: "En el plan" (rubros y deudas de tarjetas) y "Sin
+  asignar", cada uno con lo gastado y lo que queda. Luego los rubros por
+  categoría, cada uno con lo que le queda ("completo" o "excedido" en rojo)
+  y su barra; tocar un rubro despliega sus gastos con el detalle. "Fuera del
+  plan" lista los gastos sin rubro, que salen de lo sin asignar y ya no se
+  suman a la categoría. Al final, lo que hay que pagarle a cada tarjeta. Un
+  mes sin plan ofrece copiar el del mes anterior. **Planear** convierte el mes en una tabla
   editable: ingresos, rubros y el valor real del extracto de cada tarjeta.
   Cada renglón se guarda al salir de él. **Reportes** ("Este mes |
   Reportes") responde tres preguntas sobre un mes ya cerrado (ver
   "Reportes").
 - **Registrar**: abre con el teclado numérico en el monto. "Qué fue"
-  sugiere los rubros del mes con lo que queda. A crédito pide la tarjeta y
+  sugiere los rubros del mes con lo que queda. Al elegir un rubro aparece
+  "Detalle", opcional, para decir en qué se fue esa parte ("Viaje" ·
+  "Hospedaje"); el gasto se nombra "Viaje · Hospedaje". A crédito pide la tarjeta y
   las cuotas, y a 1 cuota pregunta si estaba en el plan del mes. Antes de
   guardar muestra cuándo y cuánto se paga. Tras registrar, "Deshacer" dura
   10 segundos. Arriba, "Gasto | Retiro de ahorro" registra lo que se saca
@@ -276,10 +281,11 @@ según el sistema. Las reglas están en la sección "Diseño" de
 `specs/012-tablero-y-planear/spec.md`. Los colores están en
 `services/web/public/css/tokens.css`, y un test comprueba su contraste en
 los dos temas, también el de las barras y el de las tintas de los
-reportes. Las barras y los gráficos de varios meses son CSS propio, sin
-librería de gráficos:
-[ADR 0016](docs/adr/0016-barras-propias-sin-libreria.md) y
-[ADR 0017](docs/adr/0017-graficos-de-varios-meses-con-css.md).
+reportes. Las barras, los gráficos de varios meses y los anillos del Mes
+son CSS propio, sin librería de gráficos:
+[ADR 0016](docs/adr/0016-barras-propias-sin-libreria.md),
+[ADR 0017](docs/adr/0017-graficos-de-varios-meses-con-css.md) y
+[ADR 0022](docs/adr/0022-anillos-con-css.md).
 
 **Regenerar los íconos** después de cambiar `icons/icon.svg` o
 `icons/icon-maskable.svg` (desde `services/web/public/icons`):
@@ -504,8 +510,13 @@ curl -X POST localhost:8000/spaces/1/expenses \
        "spent_on": "2026-11-03", "description": "Mercado de la semana"}'
 # {"id": 1, "amount": 412000, "payment_type": "debit", "category_id": 2,
 #  "spent_on": "2026-11-03", "description": "Mercado de la semana",
-#  "created_by": 1, "created_at": "2026-11-05T22:30:33Z", "budget_item_id": 1}
+#  "created_by": 1, "created_at": "2026-11-05T22:30:33Z", "budget_item_id": 1,
+#  "kind": "item"}
 ```
+
+Con rubro, `description` es el detalle del gasto y es opcional (spec 033).
+Cada gasto trae `kind`: `"item"` (con rubro), `"unplanned"` (del mes, sin
+rubro: sale de lo sin asignar) o `"debt"` (deuda de tarjeta).
 
 Uno no planeado, en Transporte:
 
@@ -658,7 +669,9 @@ curl 'localhost:8000/spaces/1/summary?period=2026-11' \
 #  "debts": [],
 #  "total": {"income": 5000000, "planned": 2300000, "debts": 0,
 #            "spent_planned": 1912000, "spent_unplanned": 38000, "spent": 1950000,
-#            "unassigned": 2700000, "balance": 3050000}}
+#            "unassigned": 2700000, "balance": 3050000,
+#            "plan_spent": 1912000, "plan_remaining": 388000,
+#            "unassigned_remaining": 2662000}}
 ```
 
 - `remaining` de un rubro: planeado menos gastado; negativo si se excedió.
@@ -670,6 +683,12 @@ curl 'localhost:8000/spaces/1/summary?period=2026-11' \
   las separa.
 - `unassigned` (sin asignar): ingresos menos planeado. `balance`: ingresos
   menos todo lo gastado. Los dos pueden ser negativos.
+- Las dos bolsas del Mes (spec 033). **En el plan**: `planned` es lo
+  asignado; `plan_spent`, lo gastado en rubros más las deudas, menos lo
+  retirado del ahorro; `plan_remaining`, lo que queda (un rubro excedido
+  resta aquí). **Sin asignar**: `unassigned` es lo asignado;
+  `spent_unplanned`, lo gastado sin rubro; `unassigned_remaining`, lo que
+  queda. Las dos que quedan suman `balance`.
 
 **El presupuesto de la 004 ya no existe.** `PUT /spaces/{id}/budgets/...`
 responde `404`. Al migrar, cada presupuesto guardado pasó a ser un rubro del

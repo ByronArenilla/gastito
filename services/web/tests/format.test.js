@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   formatDay,
+  formatDayShort,
   formatMonth,
   formatMonthShort,
   formatNumber,
@@ -44,6 +45,7 @@ test("el monto escrito se limpia a un entero de pesos", () => {
 test("un día se muestra como 'jue 5 nov'", () => {
   assert.equal(formatDay("2026-11-05"), "jue 5 nov");
   assert.equal(formatDay("2027-01-01"), "vie 1 ene");
+  assert.equal(formatDayShort("2026-11-05"), "5 nov");
 });
 
 test("los meses se muestran en español", () => {

@@ -398,3 +398,109 @@ test("el bloqueo enlaza a los abonos de la compra (spec 012, RF-27)", () => {
 
   assert.equal(lock.link, "/compras/7");
 });
+
+// --- Detalle de un gasto con rubro (spec 033, RF-7 a RF-9) ---
+
+import { formName, showsDetail } from "../public/js/expense-form.js";
+
+test("el detalle solo se ofrece con un rubro elegido", () => {
+  const free = { ...typeDescription(newForm(), "Plomero"), categoryId: 1 };
+  const planned = chooseItem(newForm(), ITEMS[0], "2026-11");
+
+  assert.equal(showsDetail(free), false);
+  assert.equal(showsDetail(planned), true);
+  // Una deuda no lleva rubro, aunque quede uno elegido de antes.
+  assert.equal(showsDetail({ ...planned, paymentType: "credit", installments: 6 }), false);
+});
+
+test("un gasto con rubro envía su detalle como descripción", () => {
+  const form = { ...chooseItem(newForm(), ITEMS[0], "2026-11"), amount: 240000, detail: "  Fruver " };
+
+  assert.deepEqual(buildExpense(form), {
+    amount: 240000,
+    payment_type: "debit",
+    budget_item_id: 1,
+    description: "Fruver",
+  });
+});
+
+test("sin detalle, un gasto con rubro se envía como antes", () => {
+  const form = { ...chooseItem(newForm(), ITEMS[0], "2026-11"), amount: 240000, detail: "   " };
+
+  assert.deepEqual(buildExpense(form), { amount: 240000, payment_type: "debit", budget_item_id: 1 });
+});
+
+test("soltar el rubro deja de enviar el detalle", () => {
+  const planned = { ...chooseItem(newForm(), ITEMS[0], "2026-11"), amount: 95000, detail: "Fruver" };
+  const free = { ...typeDescription(planned, "Plomero"), categoryId: 1 };
+
+  assert.equal(showsDetail(free), false);
+  assert.deepEqual(buildExpense(free), {
+    amount: 95000,
+    payment_type: "debit",
+    category_id: 1,
+    description: "Plomero",
+  });
+});
+
+test("un gasto del mes con tarjeta también lleva detalle", () => {
+  const form = {
+    ...chooseItem(newForm({ paymentType: "credit", cardId: 7 }), ITEMS[0], "2026-11"),
+    amount: 200000,
+    inPlan: true,
+    detail: "Fruver",
+  };
+
+  assert.deepEqual(buildExpense(form), {
+    amount: 200000,
+    payment_type: "credit",
+    card_id: 7,
+    installments: 1,
+    is_debt: false,
+    budget_item_id: 1,
+    description: "Fruver",
+  });
+});
+
+test("tras registrar, el detalle queda vacío", () => {
+  const form = { ...chooseItem(newForm(), ITEMS[0], "2026-11"), amount: 1000, detail: "Fruver" };
+
+  assert.equal(afterRecord(form).detail, "");
+});
+
+test("el nombre de lo registrado une rubro y detalle", () => {
+  const planned = chooseItem(newForm(), ITEMS[0], "2026-11");
+
+  assert.equal(formName({ ...planned, detail: " Fruver " }), "Mercado · Fruver");
+  assert.equal(formName(planned), "Mercado");
+  assert.equal(formName({ ...typeDescription(planned, " Plomero "), detail: "Fruver" }), "Plomero");
+});
+
+const FRUVER = { ...MERCADO, description: "Fruver" };
+
+test("al editar, el rubro va en Qué fue y la descripción en Detalle", () => {
+  const form = formFromExpense(FRUVER, ITEMS);
+
+  assert.equal(form.description, "Mercado");
+  assert.equal(form.detail, "Fruver");
+  assert.deepEqual(buildChanges(FRUVER, form), {});
+});
+
+test("un gasto sin rubro se edita sin detalle", () => {
+  const plomero = { ...MERCADO, budget_item_id: null, description: "Plomero" };
+  const form = formFromExpense(plomero, ITEMS);
+
+  assert.equal(form.description, "Plomero");
+  assert.equal(form.detail, "");
+  assert.deepEqual(buildChanges(plomero, form), {});
+});
+
+test("editar el detalle lo cambia, lo añade o lo quita con null", () => {
+  const changed = { ...formFromExpense(FRUVER, ITEMS), detail: "Carnes" };
+  const removed = { ...formFromExpense(FRUVER, ITEMS), detail: "" };
+  const added = { ...formFromExpense(MERCADO, ITEMS), detail: "Fruver" };
+
+  assert.deepEqual(buildChanges(FRUVER, changed), { description: "Carnes" });
+  assert.deepEqual(buildChanges(FRUVER, removed), { description: null });
+  assert.deepEqual(buildChanges(MERCADO, added), { description: "Fruver" });
+});
