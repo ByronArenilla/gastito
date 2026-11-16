@@ -60,6 +60,11 @@ export function formatDay(iso) {
   return `${clean(parts.weekday)} ${parts.day} ${clean(parts.month)}`;
 }
 
+/** `2026-11-05` → `5 nov`: para renglones donde el día de la semana sobra. */
+export function formatDayShort(iso) {
+  return formatDay(iso).split(" ").slice(1).join(" ");
+}
+
 /** `2026-11` → `noviembre`. */
 export function monthName(period) {
   return monthLong.format(utcDate(period));

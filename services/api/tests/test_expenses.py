@@ -251,6 +251,8 @@ def test_expense_out_has_exactly_the_planned_fields() -> None:
         "first_due_period",
         # Spec 010: deuda o gasto del mes; nulo sin tarjeta (RF-4).
         "is_debt",
+        # Spec 033: con rubro, no planeado o deuda de tarjeta.
+        "kind",
     }
 
 
@@ -1877,3 +1879,153 @@ def test_debit_to_credit_keeps_the_item_as_a_month_expense(cards: Cards) -> None
         cards.mercado_noviembre["id"],
     )
     assert body["first_due_period"] == "2026-12"
+
+
+# --- Detalle de un gasto con rubro (spec 033, T1) ---
+
+
+def test_a_planned_expense_takes_an_optional_detail(plan: Plan) -> None:
+    # RF-1: el detalle va en `description`, junto al rubro.
+    response = plan.register(
+        budget_item_id=plan.mercado["id"],
+        spent_on="2026-10-15",
+        description="  Fruver ",
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["budget_item_id"] == plan.mercado["id"]
+    assert body["description"] == "Fruver"
+
+
+def test_a_month_expense_with_a_card_takes_an_optional_detail(cards: Cards) -> None:
+    # RF-1: también con tarjeta a 1 cuota que estaba en el plan.
+    body = month_purchase(cards, description="Fruver").json()
+
+    assert (body["is_debt"], body["budget_item_id"]) == (
+        False,
+        cards.mercado_noviembre["id"],
+    )
+    assert body["description"] == "Fruver"
+
+
+def test_the_detail_of_a_planned_expense_has_the_usual_limit(plan: Plan) -> None:
+    # Decisión 9: las reglas de la descripción de la 003.
+    response = plan.register(
+        budget_item_id=plan.mercado["id"], spent_on="2026-10-15", description="x" * 201
+    )
+
+    assert response.status_code == 422
+
+
+def test_the_detail_of_a_planned_expense_is_changed_and_removed(plan: Plan) -> None:
+    # RF-2: cambiarlo o quitarlo no toca el rubro.
+    expense = plan.register(
+        budget_item_id=plan.mercado["id"], spent_on="2026-10-15"
+    ).json()
+
+    added = plan.patch(expense["id"], {"description": "Fruver"}).json()
+    assert (added["description"], added["budget_item_id"]) == (
+        "Fruver",
+        plan.mercado["id"],
+    )
+
+    removed = plan.patch(expense["id"], {"description": None}).json()
+    assert (removed["description"], removed["budget_item_id"]) == (
+        None,
+        plan.mercado["id"],
+    )
+    assert removed["category_id"] == plan.categories["Comida"]
+
+
+def test_dropping_the_item_keeps_the_detail_as_description(plan: Plan) -> None:
+    # Decisión 12: sin rubro, el detalle pasa a ser su descripción.
+    expense = plan.register(
+        budget_item_id=plan.mercado["id"], spent_on="2026-10-15", description="Fruver"
+    ).json()
+
+    body = plan.patch(expense["id"], {"budget_item_id": None}).json()
+
+    assert (body["budget_item_id"], body["description"]) == (None, "Fruver")
+    assert body["category_id"] == plan.categories["Comida"]
+
+
+def test_deleting_the_item_keeps_the_detail_of_its_expenses(plan: Plan) -> None:
+    # Decisión 12, al quitar el rubro en Planear.
+    expense = plan.register(
+        budget_item_id=plan.mercado["id"], spent_on="2026-10-15", description="Fruver"
+    ).json()
+
+    deleted = plan.client.delete(
+        f"/spaces/{plan.space_id}/budget-items/{plan.mercado['id']}",
+        headers=plan.headers,
+    )
+
+    assert deleted.status_code == 204
+    after = plan.client.get(
+        f"/spaces/{plan.space_id}/expenses/{expense['id']}", headers=plan.headers
+    ).json()
+    assert (after["budget_item_id"], after["description"]) == (None, "Fruver")
+
+
+# --- La clase de cada gasto (spec 033, T3) ---
+
+
+def test_each_expense_says_what_kind_it_is(cards: Cards, engine: Engine) -> None:
+    # Con rubro, no planeado o deuda: la web agrupa con esto y no repite la
+    # regla de qué cuenta como no planeado (principio 10).
+    hogar = cards.categories["Hogar"]
+    kinds = {
+        "planned": cards.register(
+            budget_item_id=cards.mercado_noviembre["id"], spent_on="2026-11-03"
+        ).json()["kind"],
+        "unplanned": cards.register(category_id=hogar, spent_on="2026-11-11").json()[
+            "kind"
+        ],
+        "card in plan": month_purchase(cards).json()["kind"],
+        "card unplanned": month_purchase(
+            cards, budget_item_id=None, category_id=hogar
+        ).json()["kind"],
+        "debt": cards.purchase(installments=6).json()["kind"],
+        "one installment debt": cards.purchase().json()["kind"],
+    }
+    legacy_id = legacy_credit_expense(engine, cards)
+    legacy = cards.client.get(
+        f"/spaces/{cards.space_id}/expenses/{legacy_id}", headers=cards.headers
+    ).json()
+
+    assert kinds == {
+        "planned": "item",
+        "unplanned": "unplanned",
+        "card in plan": "item",
+        "card unplanned": "unplanned",
+        "debt": "debt",
+        "one installment debt": "debt",
+    }
+    # A crédito sin tarjeta, de antes de la 009: cuenta el día del gasto.
+    assert legacy["kind"] == "unplanned"
+
+
+def test_the_unplanned_expenses_add_up_to_the_summary(
+    cards: Cards, engine: Engine
+) -> None:
+    # Lo que el Mes lista en "Fuera del plan" suma lo que dice su anillo.
+    hogar = cards.categories["Hogar"]
+    cards.register(budget_item_id=cards.mercado_noviembre["id"], spent_on="2026-11-03")
+    cards.register(category_id=hogar, spent_on="2026-11-11", amount=95000)
+    month_purchase(cards, budget_item_id=None, category_id=hogar, amount=38000)
+    month_purchase(cards)
+    cards.purchase(installments=6)
+    legacy_credit_expense(engine, cards)
+    base = f"/spaces/{cards.space_id}"
+
+    expenses = cards.client.get(
+        f"{base}/expenses?period=2026-11", headers=cards.headers
+    ).json()
+    total = cards.client.get(
+        f"{base}/summary?period=2026-11", headers=cards.headers
+    ).json()["total"]
+
+    unplanned = sum(row["amount"] for row in expenses if row["kind"] == "unplanned")
+    assert unplanned == 95000 + 38000 + 90000
+    assert unplanned == total["spent_unplanned"]

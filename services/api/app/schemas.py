@@ -532,6 +532,9 @@ class ExpenseOut(BaseModel):
         BeforeValidator(lambda value: month_of(value)),
         Field(validation_alias="first_due_start"),
     ]
+    # Spec 033: con rubro, no planeado o deuda de tarjeta. Lo decide el
+    # modelo (`Expense.kind`); la web solo agrupa con esto (principio 10).
+    kind: Literal["item", "unplanned", "debt"]
 
 
 # --- Periodo (spec 004) ---
@@ -734,6 +737,14 @@ class TotalSummaryOut(BaseModel):
     # Spec 013: lo retirado del ahorro en el mes. `spent` y `balance` ya lo
     # descuentan; `spent_unplanned`, no (RF-36).
     withdrawn: int = 0
+    # Spec 033: las dos bolsas del Mes (RF-3). "En el plan" es `planned`; lo
+    # gastado ahí son los rubros más las deudas, menos lo retirado del ahorro,
+    # y un rubro excedido resta en lo que queda. "Sin asignar" es
+    # `unassigned`, y lo gastado ahí, `spent_unplanned`. Las dos que quedan
+    # suman `balance` (RF-4) y pueden ser negativas.
+    plan_spent: int = 0
+    plan_remaining: int = 0
+    unassigned_remaining: int = 0
 
 
 class DebtInstallmentOut(BaseModel):

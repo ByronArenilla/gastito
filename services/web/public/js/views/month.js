@@ -1,27 +1,32 @@
-// Mes y Planear (spec 012). El Mes es el tablero de un periodo: totales, la
-// barra del ingreso, las categorías con sus rubros y las tarjetas (RF-5 a
-// RF-9). Un mes sin plan ofrece copiar el del mes anterior o planear en blanco
-// (RF-10, RF-11). Planear es el mismo mes en modo edición (RF-12 a RF-18).
+// Mes y Planear (spec 012). El Mes es el tablero de un periodo. Desde la
+// spec 033: lo que queda en el mes, las dos bolsas ("En el plan" y "Sin
+// asignar") con sus anillos, los rubros con sus gastos, lo que quedó fuera
+// del plan y las tarjetas. Un mes sin plan ofrece copiar el del mes anterior
+// o planear en blanco (RF-10, RF-11 de la 012). Planear es el mismo mes en
+// modo edición (RF-12 a RF-18 de la 012).
 import { buildDashboard, copyNotice } from "../dashboard.js";
 import { h, replace } from "../dom.js";
-import { formatMonth, formatNumber, formatPesos, monthName, parseAmount, shiftPeriod } from "../format.js";
+import {
+  formatDayShort,
+  formatMonth,
+  formatNumber,
+  formatPesos,
+  monthName,
+  parseAmount,
+  shiftPeriod,
+} from "../format.js";
 import { missingText, needsConfirm, planProgress, rowRequest, statementRequest } from "../plan-rows.js";
 import { isSavingsName } from "../withdrawals.js";
 import { OFFLINE_SAVE } from "./form.js";
 import { monthTabs } from "./month-tabs.js";
 
-const PART_NAMES = { items: "Rubros", debts: "Deudas", free: "Sin asignar" };
+const BUCKET_NAMES = { plan: "En el plan", free: "Sin asignar" };
 
 /** Fija una propiedad CSS desde JavaScript: la CSP no deja escribir `style`
  * en el HTML, pero sí cambiarlo así (plan 012, "Barras"). */
 function withVar(element, name, value) {
   element.style.setProperty(name, String(value));
   return element;
-}
-
-/** Un monto que puede ser negativo: en rojo y con el signo (principio 4). */
-function signedFigure(amount) {
-  return h("span", { class: amount < 0 ? "figure over" : "figure" }, formatPesos(amount));
 }
 
 /** El mes elegido, compartido con Planear y Gastos (decisión 9). Sin elegir,
@@ -52,75 +57,138 @@ function monthHead(app, title, onMove) {
   );
 }
 
-function totalsBlock(board) {
+/** La cifra principal (spec 033, RF-11): lo que queda en el mes, con los
+ * ingresos y lo gastado debajo. */
+function heroBlock(board) {
   const { totals } = board;
-  const row = (label, figure, extra = "") =>
-    h("li", { class: `ledger__row${extra}` }, h("span", {}, label), figure);
   return h(
-    "ul",
-    { class: "ledger", "aria-label": "Totales del mes" },
-    row("Ingresos", h("span", { class: "figure" }, formatPesos(totals.income))),
-    row("Planeado", h("span", { class: "figure" }, formatPesos(totals.planned))),
-    row("Gastado", h("span", { class: "figure" }, formatPesos(totals.spent))),
-    row("Sin asignar", signedFigure(totals.unassigned)),
-    row("Balance", signedFigure(totals.balance), " ledger__row--total"),
+    "div",
+    { class: "hero" },
+    h("h2", { class: "label" }, "Te queda este mes"),
+    h("p", { class: totals.balance < 0 ? "hero__figure over" : "hero__figure" }, formatPesos(totals.balance)),
+    h(
+      "p",
+      { class: "hero__note" },
+      "Ingresos ",
+      h("span", { class: "figure" }, formatNumber(totals.income)),
+      " · Gastado ",
+      h("span", { class: "figure" }, formatNumber(totals.spent)),
+    ),
   );
 }
 
-/** La barra del ingreso (RF-6): oculta al lector de pantalla, porque la
- * leyenda de abajo dice lo mismo con cifras (decisión 15). */
-function incomeBlock(board) {
-  const { parts, over } = board.incomeBar;
-  const bar = h(
-    "div",
-    { class: over > 0 ? "income-bar income-bar--over" : "income-bar", "aria-hidden": "true" },
-    parts.map((part) =>
-      withVar(h("span", { class: `income-bar__part income-bar__part--${part.key}` }), "--grow", part.share),
+/** Una bolsa con su anillo (RF-12). El anillo va oculto al lector de
+ * pantalla: las cifras de abajo dicen lo mismo (RF-13). Excedida, lleva la
+ * palabra y el rojo (decisión 8). */
+function bucketBlock(bucket) {
+  const ring = withVar(
+    h(
+      "div",
+      { class: bucket.exceeded ? "ring ring--over" : "ring", "aria-hidden": "true" },
+      !bucket.exceeded && h("span", { class: "ring__share" }, `${Math.round(bucket.fill * 100)}%`),
     ),
+    "--fill",
+    bucket.fill,
   );
+  const left = bucket.exceeded
+    ? h("p", { class: "bucket__left over" }, `excedido ${formatPesos(-bucket.remaining)}`)
+    : h("p", { class: "bucket__left" }, `queda ${formatPesos(bucket.remaining)}`);
   return h(
     "div",
-    { class: "stack" },
-    h("h2", { class: "label" }, "Cómo se reparte el ingreso"),
-    bar,
-    over > 0 &&
-      h("p", { class: "over" }, `Planeas ${formatPesos(over)} más de lo que ingresa.`),
+    { class: "bucket" },
+    h("h3", { class: "label" }, BUCKET_NAMES[bucket.key]),
+    ring,
+    left,
     h(
-      "ul",
-      { class: "legend" },
-      parts.map((part) =>
-        h(
-          "li",
-          {},
-          h("span", { class: `swatch swatch--${part.key}`, "aria-hidden": "true" }),
-          h("span", {}, PART_NAMES[part.key]),
-          h("span", { class: "figure" }, formatPesos(part.amount)),
-        ),
+      "p",
+      { class: "bucket__note" },
+      `gastado ${formatNumber(bucket.spent)} de ${formatNumber(Math.max(bucket.assigned, 0))}`,
+    ),
+  );
+}
+
+/** Las dos bolsas, lado a lado. Con una API anterior a la 033 no salen. */
+function bucketsBlock(board) {
+  if (!board.buckets) return null;
+  return h(
+    "section",
+    { class: "stack", "aria-label": "Lo planeado y lo sin asignar" },
+    h("div", { class: "buckets" }, board.buckets.map(bucketBlock)),
+    board.overPlanned > 0 &&
+      h("p", { class: "over" }, `Planeas ${formatPesos(board.overPlanned)} más de lo que ingresa.`),
+  );
+}
+
+/** Lo que se escribe a la derecha de un rubro: lo que le queda, primero
+ * (RF-15). Lo excedido lleva palabra y rojo. */
+function itemStatus(item) {
+  if (item.status === "over") {
+    return h("span", { class: "figure over" }, `excedido ${formatPesos(-item.remaining)}`);
+  }
+  if (item.status === "done") return h("span", { class: "figure muted" }, "completo");
+  if (item.status === "saved") return h("span", { class: "figure muted" }, "apartado");
+  return h("span", { class: "figure" }, `queda ${formatPesos(item.remaining)}`);
+}
+
+/** Un rubro con su medidor (RF-15). Si tiene gastos en el mes es un botón
+ * que los despliega ahí mismo (RF-16): fecha, detalle y monto. Todo va en
+ * `<span>`, que es lo que un `<button>` admite dentro. */
+function itemRow(item) {
+  const meter = h(
+    "span",
+    { class: item.status === "over" ? "item__meter meter meter--over" : "item__meter meter", "aria-hidden": "true" },
+    withVar(h("span", { class: "meter__fill" }), "--fill", item.fill),
+  );
+  const spent = h("span", {}, `${formatNumber(item.spent)} de ${formatNumber(item.planned)}`);
+  const count = item.expenses.length;
+  if (!count) {
+    return h(
+      "div",
+      { class: "item" },
+      h("span", {}, item.name),
+      itemStatus(item),
+      meter,
+      h("span", { class: "item__note" }, spent),
+    );
+  }
+  const noun = count === 1 ? "1 gasto" : `${count} gastos`;
+  const more = h("span", { class: "item__more" }, `ver ${noun}`);
+  const list = h(
+    "ul",
+    { class: "moves", id: `item-${item.id}-expenses`, hidden: true, "aria-label": `Gastos de ${item.name}` },
+    item.expenses.map((expense) =>
+      h(
+        "li",
+        {},
+        h("time", { datetime: expense.day }, formatDayShort(expense.day)),
+        h("span", {}, expense.detail),
+        h("span", { class: "figure" }, formatNumber(expense.amount)),
       ),
     ),
   );
-}
-
-/** Un rubro con su medidor (RF-8): lo excedido lleva palabra y signo. */
-function itemRow(item) {
-  const meter = h(
-    "div",
-    { class: item.exceeded ? "item__meter meter meter--over" : "item__meter meter", "aria-hidden": "true" },
-    withVar(h("div", { class: "meter__fill" }), "--fill", item.fill),
-  );
-  const left = item.exceeded
-    ? h("span", { class: "over" }, `excedido ${formatNumber(item.remaining)}`)
-    : h("span", {}, `queda ${formatPesos(item.remaining)}`);
-  return h(
-    "div",
-    { class: "item" },
+  const toggle = h(
+    "button",
+    {
+      type: "button",
+      class: "item item__toggle",
+      "aria-expanded": "false",
+      "aria-controls": list.id,
+      onClick: () => {
+        const open = list.hidden;
+        list.hidden = !open;
+        toggle.setAttribute("aria-expanded", String(open));
+        more.textContent = open ? "ocultar" : `ver ${noun}`;
+      },
+    },
     h("span", {}, item.name),
-    h("span", { class: "figure" }, formatPesos(item.spent)),
+    itemStatus(item),
     meter,
-    h("div", { class: "item__note" }, h("span", {}, `de ${formatNumber(item.planned)}`), left),
+    h("span", { class: "item__note" }, spent, more),
   );
+  return h("div", { class: "item-group" }, toggle, list);
 }
 
+/** Una categoría es solo el rótulo que agrupa sus rubros (decisión 3). */
 function categoryBlock(category) {
   return h(
     "section",
@@ -134,22 +202,9 @@ function categoryBlock(category) {
         category.name,
         category.deleted && h("span", { class: "muted" }, " · eliminada"),
       ),
-      h(
-        "span",
-        { class: category.exceeded ? "figure over" : "figure muted" },
-        `${formatNumber(category.spent)} de ${formatNumber(category.planned)}`,
-      ),
     ),
     category.items.map(itemRow),
-    category.unplanned > 0 &&
-      h(
-        "div",
-        { class: "item" },
-        h("span", { class: "muted" }, "Sin rubro"),
-        h("span", { class: "figure" }, formatPesos(category.unplanned)),
-      ),
-    // Lo retirado del ahorro en el mes (spec 013, RF-36): la cifra de la
-    // categoría ya lo descuenta.
+    // Lo retirado del ahorro en el mes (spec 013, RF-36).
     category.withdrawn > 0 &&
       h(
         "div",
@@ -157,6 +212,65 @@ function categoryBlock(category) {
         h("span", { class: "muted" }, "Retirado del ahorro"),
         h("span", { class: "figure" }, formatPesos(-category.withdrawn)),
       ),
+  );
+}
+
+/** "En el plan" (RF-14): los rubros por categoría. Las deudas de tarjetas
+ * también son del plan (decisión 6), pero se listan abajo, en Tarjetas. */
+function planSection(board) {
+  if (!board.categories.length && !board.totals.debts) return null;
+  return h(
+    "section",
+    { "aria-label": "En el plan" },
+    h("div", { class: "section-head" }, h("h2", {}, "En el plan")),
+    board.categories.map(categoryBlock),
+    board.totals.debts > 0 &&
+      h(
+        "p",
+        { class: "section-note muted" },
+        `En el plan también cuentan ${formatPesos(board.totals.debts)} de deudas de tarjetas: están abajo, en Tarjetas.`,
+      ),
+  );
+}
+
+/** "Fuera del plan" (RF-17, RF-18): los gastos sin rubro, que salen de lo que
+ * quedó sin asignar. */
+function unplannedSection(board) {
+  const { unplanned } = board;
+  if (!unplanned) return null;
+  return h(
+    "section",
+    { "aria-label": "Fuera del plan" },
+    h(
+      "div",
+      { class: "section-head" },
+      h("h2", {}, "Fuera del plan"),
+      h(
+        "span",
+        { class: "figure muted" },
+        `${formatNumber(unplanned.spent)} de ${formatNumber(Math.max(unplanned.assigned, 0))}`,
+      ),
+    ),
+    h("p", { class: "section-note muted" }, "Gastos sin rubro: salen de lo que quedó sin asignar."),
+    unplanned.rows.length
+      ? h(
+          "div",
+          { class: "ruled" },
+          unplanned.rows.map((row) =>
+            h(
+              "div",
+              { class: "entry entry--static" },
+              h("span", {}, row.name),
+              h("span", { class: "figure" }, formatPesos(row.amount)),
+              h(
+                "span",
+                { class: "entry__meta" },
+                [row.name !== row.category && row.category, formatDayShort(row.day)].filter(Boolean).join(" · "),
+              ),
+            ),
+          ),
+        )
+      : h("p", { class: "empty" }, `No hay gastos fuera del plan en ${monthName(board.period)}.`),
   );
 }
 
@@ -208,8 +322,11 @@ export async function renderMonth(main, app) {
   main.classList.add("main--wide");
   main.append(h("div", { class: "screen" }, monthTabs("month"), monthHead(app, title, load), body));
 
+  // Los gastos del mes que se está viendo: copiar el plan no los cambia.
+  let expenses = [];
+
   function paint(summary) {
-    const board = buildDashboard(summary);
+    const board = buildDashboard(summary, expenses);
     const name = monthName(summary.period);
     title.textContent = capitalize(formatMonth(summary.period));
     app.setMonth(summary.period);
@@ -219,10 +336,12 @@ export async function renderMonth(main, app) {
     }
     replace(
       body,
+      heroBlock(board),
+      bucketsBlock(board),
       h("a", { class: "button button--quiet", href: "/mes/planear" }, `Planear ${name}`),
-      totalsBlock(board),
-      incomeBlock(board),
-      h("div", {}, board.categories.map(categoryBlock), cardsBlock(board, dueDays)),
+      planSection(board),
+      unplannedSection(board),
+      cardsBlock(board, dueDays),
     );
   }
 
@@ -267,7 +386,16 @@ export async function renderMonth(main, app) {
   async function load() {
     replace(body, h("div", { class: "loading", "aria-hidden": "true" }));
     try {
-      paint(await loadSummary(app, base));
+      // Con el mes ya elegido, el resumen y sus gastos se piden a la vez; sin
+      // elegir, primero el resumen, que dice cuál es el mes actual.
+      const chosen = app.drafts.get("period");
+      const listExpenses = (period) => app.api.get(`${base}/expenses`, { period });
+      const [summary, listed] = await Promise.all([
+        loadSummary(app, base),
+        chosen ? listExpenses(chosen) : null,
+      ]);
+      expenses = listed ?? (await listExpenses(summary.period));
+      paint(summary);
     } catch (error) {
       replace(body, h("p", { class: "error", role: "alert" }, error.message));
     }

@@ -7,6 +7,9 @@
 // un gasto del mes (débito, o tarjeta a 1 cuota que estaba en el plan) sugiere
 // los rubros del mes; elegir uno lo liga al rubro y la categoría sale de él.
 // Si no se elige ninguno, se pide la categoría y el texto es la descripción.
+//
+// Con un rubro elegido aparece "Detalle", opcional (spec 033): dice en qué se
+// fue esa parte del rubro ("Viaje" · "Hospedaje") y viaja en `description`.
 
 import { monthName, periodOf } from "./format.js";
 import { isSavingsName } from "./withdrawals.js";
@@ -48,6 +51,9 @@ export function newForm({ paymentType = "debit", cardId = null, date = null } = 
     amount: null,
     paymentType,
     description: "",
+    // Solo con rubro (spec 033, decisión 1). Sin rubro no se muestra ni se
+    // envía, aunque quede algo escrito de antes (decisión 11).
+    detail: "",
     itemId: null,
     itemPeriod: null,
     categoryId: null,
@@ -129,6 +135,25 @@ export function usesItems(form) {
   return kind === "debit" || kind === "month";
 }
 
+/** "Detalle" solo se ofrece con un rubro elegido (spec 033, RF-7). */
+export function showsDetail(form) {
+  return form.itemId !== null && usesItems(form);
+}
+
+/** El detalle que se envía: sin espacios alrededor, o "" si no aplica. Un
+ * borrador guardado antes de la 033 no trae `detail`. */
+function detailOf(form) {
+  return showsDetail(form) ? (form.detail ?? "").trim() : "";
+}
+
+/** Cómo se nombra lo que se está registrando: "Rubro · Detalle", el rubro, o
+ * lo escrito en "Qué fue" (spec 033, decisión 10). */
+export function formName(form) {
+  const detail = detailOf(form);
+  const name = form.description.trim();
+  return detail ? `${name} · ${detail}` : name;
+}
+
 const NO_CARDS =
   "Este espacio todavía no tiene tarjetas. Por ahora se crean con la API (README, «Tarjetas»).";
 
@@ -159,7 +184,7 @@ export function missing(form, { hasCards = true } = {}) {
 
 /** El cuerpo de `POST /expenses` (criterio 1). A crédito lleva tarjeta,
  * cuotas e `is_debt` (spec 010); una deuda, categoría y descripción, nunca
- * rubro. */
+ * rubro. Con rubro, la descripción es el detalle, si se escribió (spec 033). */
 export function buildExpense(form) {
   const body = { amount: form.amount, payment_type: form.paymentType };
   const description = form.description.trim();
@@ -168,8 +193,10 @@ export function buildExpense(form) {
     body.installments = form.installments;
     body.is_debt = kindOf(form) === "debt";
   }
-  if (form.itemId !== null && usesItems(form)) {
+  if (showsDetail(form)) {
     body.budget_item_id = form.itemId;
+    const detail = detailOf(form);
+    if (detail) body.description = detail;
   } else {
     body.category_id = form.categoryId;
     if (description) body.description = description;
@@ -219,6 +246,8 @@ export function formFromExpense(expense, items) {
     amount: expense.amount,
     paymentType: expense.payment_type,
     description: item ? item.name : (expense.description ?? ""),
+    // Con rubro, la descripción guardada es su detalle (spec 033, RF-9).
+    detail: expense.budget_item_id !== null ? (expense.description ?? "") : "",
     itemId: expense.budget_item_id,
     itemPeriod: expense.budget_item_id !== null ? periodOf(expense.spent_on) : null,
     categoryId: expense.category_id,
@@ -246,6 +275,9 @@ export function buildChanges(original, form) {
   }
   if (target.budget_item_id !== undefined) {
     set("budget_item_id", target.budget_item_id);
+    // El detalle: `null` lo quita (spec 033, RF-9).
+    const detail = target.description ?? null;
+    if (detail !== (original.description ?? null)) changes.description = detail;
   } else {
     if (original.budget_item_id !== null) {
       changes.budget_item_id = null;

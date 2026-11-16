@@ -151,7 +151,7 @@ forma profesional y poder aplicar a puestos de DevOps.
     perfil con los espacios.
   - Quedó fuera: verificar el correo y recuperar la contraseña. Pasaron a
     la 032.
-- [ ] 032-verificacion-de-correo — La cuenta se crea al confirmar el correo; "Olvidé mi contraseña".
+- [x] 032-verificacion-de-correo — La cuenta se crea al confirmar el correo; "Olvidé mi contraseña".
   - Se añadió el 2026-11-13. Los correos salen por la API de Brevo, en su
     plan gratuito y sin dominio propio (ADR 0021): un servicio externo que
     no estaba en ninguna fase.
@@ -160,9 +160,25 @@ forma profesional y poder aplicar a puestos de DevOps.
     compartir. Migración `0009`.
   - **Implementada el 2026-11-13**, con `make test` y `make lint` en verde,
     y recorrida en Chromium a ancho de celular con `EMAIL_PROVIDER=console`.
-    Falta para cerrarla: crear la cuenta de Brevo, poner `EMAIL_PROVIDER`,
-    `BREVO_API_KEY` y `EMAIL_FROM` en Render y comprobar que un correo real
-    llega.
+  - **Terminada el 2026-11-15**: fusionada en `main` (PR #19) y probada por
+    el usuario con un correo real de Brevo.
+- [ ] 033-detalle-del-gasto-y-mes — Detalle opcional en un gasto con rubro y el Mes separando lo planeado de lo no planeado.
+  - Se añadió el 2026-11-15, usando la app: un gasto con rubro no decía en
+    qué se fue ("Viaje": pasajes, hospedaje) y el Mes sumaba lo no planeado
+    a la categoría.
+  - El detalle usa `description`, sin migración. Cambia la decisión 26 de
+    la 009 y la 10 de la 011 (un solo campo para nombrar el gasto).
+  - El Mes pasa a una cifra principal ("Te queda este mes"), dos bolsas con
+    anillos ("En el plan" y "Sin asignar") y una sección "Fuera del plan".
+    Cambia RF-5 a RF-8 de la 012.
+  - También cambia la frase del mes en Inicio, que pasa a decir lo que
+    queda.
+  - **Implementada el 2026-11-15**, con `make test` y `make lint` en verde
+    y recorrida en Chromium en local, a ancho de celular y de computador,
+    en claro y en oscuro. La API gana tres campos en el resumen
+    (`plan_spent`, `plan_remaining`, `unassigned_remaining`) y `kind` en
+    cada gasto; los anillos son CSS propio (ADR 0022). Falta para cerrarla:
+    fusionarla y probarla con los datos reales en la app desplegada.
 
 ## Fase 2 — Docker
 - [ ] 014-contenedores

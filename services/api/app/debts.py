@@ -339,13 +339,15 @@ def card_debts(db: Session, space_id: int, period: str) -> list[CardDebtOut]:
 
 
 def purchase_name(db: Session, expense: Expense) -> str:
-    """Nombre de una compra con tarjeta: su descripción, o el nombre de su
-    rubro, o el de su categoría (RF-10 de la 010). Una deuda siempre tiene
-    descripción; un gasto del mes, no siempre."""
+    """Nombre de una compra con tarjeta (RF-10 de la 010; RF-5 de la 033): su
+    rubro con el detalle ("Mercado · Éxito"), o solo el rubro; sin rubro, su
+    descripción o el nombre de su categoría. Una deuda siempre tiene
+    descripción y nunca rubro; un gasto del mes, no siempre."""
+    if expense.budget_item_id is not None:
+        item = db.get_one(BudgetItem, expense.budget_item_id).name
+        return f"{item} · {expense.description}" if expense.description else item
     if expense.description:
         return expense.description
-    if expense.budget_item_id is not None:
-        return db.get_one(BudgetItem, expense.budget_item_id).name
     return db.get_one(Category, expense.category_id).name
 
 

@@ -11,6 +11,7 @@ import {
   changeDate,
   chooseItem,
   formFromExpense,
+  formName,
   formPeriod,
   kindOf,
   lockFor,
@@ -19,6 +20,7 @@ import {
   parseInstallments,
   recordableCategories,
   recordableItems,
+  showsDetail,
   simulationRequest,
   simulationSummary,
   suggestItems,
@@ -270,6 +272,23 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
   const itemInfo = h("p", { class: "row__hint", id: "item-info", hidden: true });
   const whatRow = field({ id: "record-what", label: "Qué fue", control: what });
   whatRow.append(itemInfo);
+
+  // --- Detalle (spec 033, RF-7): opcional y solo con un rubro elegido ---
+  const detail = h("input", {
+    class: "input",
+    name: "detail",
+    autocomplete: "off",
+    enterkeyhint: "done",
+    maxlength: 200,
+    value: form.detail ?? "",
+    onInput: () => update({ detail: detail.value }),
+  });
+  const detailRow = field({
+    id: "record-detail",
+    label: "Detalle",
+    control: detail,
+    hint: "Opcional: en qué se fue esta parte del rubro.",
+  });
   const suggestions = h("ul", { class: "suggestions", id: "suggestions", hidden: true });
   const suggestionsStatus = h("p", { class: "sr-only", "aria-live": "polite" });
 
@@ -376,7 +395,7 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
     amountField,
     h("div", { class: "rows" }, paymentRow, cardRow, noCards, installmentsRow, planRow, whatRow, suggestionsStatus),
     suggestions,
-    h("div", { class: "rows" }, categoryRow, dateRow),
+    h("div", { class: "rows" }, detailRow, categoryRow, dateRow),
     simulation,
     h("div", { class: "submit" }, submit),
   );
@@ -407,7 +426,8 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
               onClick: () => {
                 update(chooseItem(form, item, period()));
                 what.value = form.description;
-                dateToggle.focus();
+                // El detalle queda a un toque: se escribe o se sigue de largo.
+                detail.focus();
               },
             },
             h("b", {}, item.name),
@@ -474,6 +494,7 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
     plan.select(form.inPlan);
 
     what.placeholder = kind === "debt" ? "Nombre de la deuda" : "";
+    detailRow.hidden = !showsDetail(form);
     categoryRow.hidden = !(kind === "debt" || (usesItems(form) && form.itemId === null));
     if (categoryRow.hidden) category.close();
     category.set(form.categoryId);
@@ -510,6 +531,7 @@ export async function buildRecordForm(app, data, { initial, onSubmit, submitLabe
       form = next;
       amount.value = form.amount === null ? "" : formatNumber(form.amount);
       what.value = form.description;
+      detail.value = form.detail ?? "";
       otherInstallments.value = "";
       paint();
     },
@@ -531,7 +553,7 @@ export async function renderRecord(main, app) {
     busyLabel: "Registrando…",
     onSubmit: async (form) => {
       const expense = await app.api.post(`${data.base}/expenses`, buildExpense(form));
-      const name = form.description.trim() || data.categoryName(expense.category_id);
+      const name = formName(form) || data.categoryName(expense.category_id);
       announce(app, data, expense, name);
       const recordedPeriod = formPeriod(form, data.currentPeriod);
       await data.refresh(recordedPeriod);
@@ -626,7 +648,7 @@ export async function renderEdit(main, app, { id }) {
     },
   });
 
-  const name = controller.form.description || data.categoryName(expense.category_id);
+  const name = formName(controller.form) || data.categoryName(expense.category_id);
   const remove = h(
     "button",
     {
